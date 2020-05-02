@@ -75,6 +75,10 @@ io.on("connection", socket => {
     }
   });
 
+  socket.on("fix meta", title => {
+    setMeta(meta.station, title);
+  });
+
   // when the client emits 'typing', we broadcast it to others
   socket.on("typing", () => {
     typing = compact(
@@ -104,6 +108,45 @@ io.on("connection", socket => {
   });
 });
 
+const setMeta = async (station, title) => {
+  // Lookup and emit track meta
+  const info = (title || station.title).split("|");
+  const track = info[0];
+  const artist = info[1];
+  const album = info[2];
+  fetching = true;
+
+  if (!artist & !album) {
+    fetching = false;
+    io.emit("meta", {});
+    return;
+  }
+  const release = await fetchReleaseInfo(`${artist} ${album}`);
+  meta = { ...station, artist, album, track, release };
+  const newMessage = {
+    user: {
+      username: "system",
+      id: "system",
+      userId: "system"
+    },
+    content: track
+      ? `Up next: ${track} - ${artist} - ${album}`
+      : `Up next: ${album}`,
+    timestamp: new Date().toISOString(),
+    meta: {
+      artist,
+      album,
+      track,
+      release
+    }
+  };
+  io.emit("new message", newMessage);
+  messages = concat(newMessage, messages);
+  fetching = false;
+  io.emit("meta", meta);
+  fetching = false;
+};
+
 setInterval(async () => {
   if (fetching) {
     return;
@@ -113,37 +156,12 @@ setInterval(async () => {
   if (!station) {
     return;
   }
-  if (station.title !== meta.title || station.bitrate !== meta.bitrate) {
-    // Lookup and emit track meta
-    const info = station.title.split("|");
-    const track = info[0];
-    const artist = info[1];
-    const album = info[2];
-    fetching = true;
 
-    const release = await fetchReleaseInfo(`${artist} ${album}`);
-    meta = { ...station, artist, album, track, release };
-    const newMessage = {
-      user: {
-        username: "system",
-        id: "system",
-        userId: "system"
-      },
-      content: track
-        ? `Up next: ${track} - ${artist} - ${album}`
-        : `Up next: ${album}`,
-      timestamp: new Date().toISOString(),
-      meta: {
-        artist,
-        album,
-        track,
-        release
-      }
-    };
-    io.emit("new message", newMessage);
-    messages = concat(newMessage, messages);
-    fetching = false;
-    io.emit("meta", meta);
+  if (
+    (station.title && station.title !== "" && station.title !== meta.title) ||
+    station.bitrate !== meta.bitrate
+  ) {
+    await setMeta(station);
   }
   fetching = false;
-}, 2000);
+}, 3000);
