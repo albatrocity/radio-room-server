@@ -4,9 +4,20 @@ const socketIO = require("socket.io");
 const internetradio = require("node-internet-radio");
 const fetchReleaseInfo = require("./lib/fetchReleaseInfo");
 const parseMessage = require("./lib/parseMessage");
+const systemMessage = require("./lib/systemMessage");
 const PORT = process.env.PORT || 3000;
 const INDEX = "/index.html";
-const { reject, find, takeRight, concat, uniq, compact } = require("lodash/fp");
+const {
+  reject,
+  find,
+  takeRight,
+  concat,
+  map,
+  uniq,
+  uniqBy,
+  compact,
+  get
+} = require("lodash/fp");
 
 const streamURL = process.env.SERVER_URL;
 const getStation = util.promisify(internetradio.getStationInfo);
@@ -23,7 +34,13 @@ let users = [];
 let messages = [];
 let typing = [];
 let meta = {};
+let cover = null;
 let fetching = false;
+
+const sendMessage = message => {
+  io.emit("new message", message);
+  messages = takeRight(10, concat(message, messages));
+};
 
 io.on("connection", socket => {
   var addedUser = false;
@@ -31,8 +48,14 @@ io.on("connection", socket => {
   socket.on("login", ({ username, userId }) => {
     socket.username = username;
     socket.userId = userId;
-    const newUser = { username, userId, id: socket.id };
-    users = users.concat(newUser);
+    const newUser = {
+      username,
+      userId,
+      id: socket.id,
+      isDj: false,
+      connectedAt: new Date().toISOString()
+    };
+    users = uniqBy("userId", users.concat(newUser));
     console.log("users", users);
 
     socket.broadcast.emit("user joined", {
@@ -43,7 +66,7 @@ io.on("connection", socket => {
     socket.emit("init", {
       users,
       messages,
-      meta
+      meta: cover ? { ...meta, cover } : meta
     });
   });
 
@@ -57,19 +80,65 @@ io.on("connection", socket => {
       mentions,
       timestamp: new Date().toISOString()
     };
-    messages = takeRight(10, [...messages, payload]);
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
     io.emit("typing", typing);
-    io.emit("new message", payload);
+    sendMessage(payload);
   });
 
   socket.on("change username", ({ userId, username }) => {
     const user = find({ userId }, users);
+    const oldUsername = get("username", user);
     if (user) {
-      const newUser = { username, userId, id: socket.id };
-      users = concat(newUser, reject({ userId }, users));
+      const newUser = { ...user, username };
+      users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+
+      const content = `${oldUsername} transformed into ${username}`;
+      const newMessage = systemMessage(content, {
+        oldUsername,
+        userId
+      });
       io.emit("user joined", {
         user: newUser,
+        users
+      });
+      sendMessage(newMessage);
+    }
+  });
+
+  socket.on("set DJ", userId => {
+    const user = find({ userId }, users);
+    if (userId && user) {
+      const newUser = { ...user, isDj: true };
+      users = uniqBy(
+        "userId",
+        concat(
+          newUser,
+          reject(
+            { userId },
+            map(x => ({ ...x, isDj: false }), users)
+          )
+        )
+      );
+      const content = `${user.username} is now the DJ`;
+      const newMessage = systemMessage(content, {
+        userId
+      });
+      sendMessage(newMessage);
+      io.emit("user joined", {
+        user: newUser,
+        users
+      });
+    } else {
+      users = uniqBy(
+        "userId",
+        map(x => ({ ...x, isDj: false }), users)
+      );
+      const content = `There's currently no DJ.`;
+      const newMessage = systemMessage(content, {
+        userId
+      });
+      sendMessage(newMessage);
+      io.emit("user joined", {
         users
       });
     }
@@ -77,6 +146,12 @@ io.on("connection", socket => {
 
   socket.on("fix meta", title => {
     setMeta(meta.station, title);
+  });
+
+  socket.on("set cover", url => {
+    cover = url;
+    meta = { ...meta, cover: url };
+    io.emit("meta", meta);
   });
 
   // when the client emits 'typing', we broadcast it to others
@@ -97,7 +172,10 @@ io.on("connection", socket => {
   socket.on("disconnect", () => {
     console.log("Disconnect", socket.username, socket.id);
     console.log("socket.id", socket.id);
-    users = users.filter(x => x.id !== socket.id);
+    users = uniqBy(
+      "userId",
+      users.filter(x => x.id !== socket.id)
+    );
     console.log(users);
 
     // echo globally that this client has left
@@ -109,6 +187,13 @@ io.on("connection", socket => {
 });
 
 const setMeta = async (station, title) => {
+  if (!station && !title) {
+    fetching = false;
+    console.log("OFFLINE");
+    meta = {};
+    io.emit("meta", meta);
+    return;
+  }
   // Lookup and emit track meta
   const info = (title || station.title).split("|");
   const track = info[0];
@@ -123,23 +208,17 @@ const setMeta = async (station, title) => {
   }
   const release = await fetchReleaseInfo(`${artist} ${album}`);
   meta = { ...station, artist, album, track, release };
-  const newMessage = {
-    user: {
-      username: "system",
-      id: "system",
-      userId: "system"
-    },
-    content: track
-      ? `Up next: ${track} - ${artist} - ${album}`
-      : `Up next: ${album}`,
-    timestamp: new Date().toISOString(),
-    meta: {
-      artist,
-      album,
-      track,
-      release
-    }
-  };
+  const content = track
+    ? `Up next: ${track} - ${artist} - ${album}`
+    : `Up next: ${album}`;
+
+  const newMessage = systemMessage(content, {
+    artist,
+    album,
+    track,
+    release
+  });
+
   io.emit("new message", newMessage);
   messages = concat(newMessage, messages);
   fetching = false;
@@ -153,14 +232,16 @@ setInterval(async () => {
   }
   fetching = true;
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-  if (!station) {
+  if (!station || station.bitrate === "0") {
+    setMeta();
     return;
   }
 
   if (
     (station.title && station.title !== "" && station.title !== meta.title) ||
-    station.bitrate !== meta.bitrate
+    (station.bitrate !== "0" && station.bitrate !== meta.bitrate)
   ) {
+    cover = null;
     await setMeta(station);
   }
   fetching = false;
