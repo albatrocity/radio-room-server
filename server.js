@@ -30,12 +30,26 @@ const io = socketIO(server, { origins: "*:*" });
 
 let numUsers = 0;
 
+const defaultSettings = {
+  fetchMeta: true,
+  extraInfo: undefined,
+  donationURL: undefined
+};
+
 let users = [];
 let messages = [];
 let typing = [];
 let meta = {};
+let settings = { ...defaultSettings };
 let cover = null;
 let fetching = false;
+
+const updateUserAttributes = (userId, attributes) => {
+  const user = find({ userId }, users);
+  const newUser = { ...user, ...attributes };
+  users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+  return { users, user: newUser };
+};
 
 const sendMessage = message => {
   io.emit("new message", message);
@@ -107,6 +121,9 @@ io.on("connection", socket => {
 
   socket.on("set DJ", userId => {
     const user = find({ userId }, users);
+    if (user && user.isDj) {
+      return;
+    }
     if (userId && user) {
       const newUser = { ...user, isDj: true };
       users = uniqBy(
@@ -142,6 +159,8 @@ io.on("connection", socket => {
         users
       });
     }
+    settings = { ...defaultSettings };
+    io.emit("settings", settings);
   });
 
   socket.on("fix meta", title => {
@@ -152,6 +171,43 @@ io.on("connection", socket => {
     cover = url;
     meta = { ...meta, cover: url };
     io.emit("meta", meta);
+  });
+
+  socket.on("get settings", url => {
+    io.emit("settings", settings);
+  });
+
+  socket.on("settings", async values => {
+    const { donationURL, extraInfo, fetchMeta } = values;
+    const prevSettings = { ...settings };
+    settings = {
+      fetchMeta,
+      donationURL,
+      extraInfo
+    };
+    io.emit("settings", settings);
+
+    if (
+      prevSettings.donationURL !== values.donationURL ||
+      prevSettings.extraInfo !== values.extraInfo
+    ) {
+      const { user } = updateUserAttributes(socket.userId, {
+        donationURL,
+        extraInfo
+      });
+      io.emit("user joined", {
+        user,
+        users
+      });
+    }
+
+    if (!prevSettings.fetchMeta && values.fetchMeta) {
+      console.log("fetchMeta turned on");
+      const station = await getStation(
+        `${streamURL}/stream?type=http&nocache=4`
+      );
+      await setMeta(station, station.title, { silent: true });
+    }
   });
 
   // when the client emits 'typing', we broadcast it to others
@@ -172,6 +228,12 @@ io.on("connection", socket => {
   socket.on("disconnect", () => {
     console.log("Disconnect", socket.username, socket.id);
     console.log("socket.id", socket.id);
+    const user = find({ userId: socket.userId }, users);
+    if (user && user.isDj) {
+      settings = { ...defaultSettings };
+      io.emit("settings", settings);
+    }
+
     users = uniqBy(
       "userId",
       users.filter(x => x.id !== socket.id)
@@ -186,10 +248,10 @@ io.on("connection", socket => {
   });
 });
 
-const setMeta = async (station, title) => {
+const setMeta = async (station, title, options = {}) => {
+  const silent = options.silent || false;
   if (!station && !title) {
     fetching = false;
-    console.log("OFFLINE");
     meta = {};
     io.emit("meta", meta);
     return;
@@ -206,7 +268,9 @@ const setMeta = async (station, title) => {
     io.emit("meta", {});
     return;
   }
-  const release = await fetchReleaseInfo(`${artist} ${album}`);
+  const release = settings.fetchMeta
+    ? await fetchReleaseInfo(`${artist} ${album}`)
+    : {};
   meta = { ...station, artist, album, track, release };
   const content = track
     ? `Up next: ${track} - ${artist} - ${album}`
@@ -219,8 +283,10 @@ const setMeta = async (station, title) => {
     release
   });
 
-  io.emit("new message", newMessage);
-  messages = concat(newMessage, messages);
+  if (!silent) {
+    io.emit("new message", newMessage);
+    messages = concat(newMessage, messages);
+  }
   fetching = false;
   io.emit("meta", meta);
   fetching = false;
