@@ -57,8 +57,6 @@ const sendMessage = message => {
 };
 
 io.on("connection", socket => {
-  var addedUser = false;
-
   socket.on("login", ({ username, userId }) => {
     socket.username = username;
     socket.userId = userId;
@@ -175,6 +173,18 @@ io.on("connection", socket => {
 
   socket.on("get settings", url => {
     io.emit("settings", settings);
+  });
+
+  socket.on("kick user", user => {
+    const { userId } = user;
+    const socketId = get("id", find({ userId }, users));
+
+    const newMessage = systemMessage(
+      `Terribly sorry: you have been kicked. I hope you deserved it.`
+    );
+
+    io.to(socketId).emit("new message", newMessage, { status: "critical" });
+    io.to(socketId).emit("kicked");
   });
 
   socket.on("settings", async values => {
