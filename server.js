@@ -1,10 +1,11 @@
 const util = require("util");
 const express = require("express");
 const socketIO = require("socket.io");
-const internetradio = require("node-internet-radio");
 const fetchReleaseInfo = require("./lib/fetchReleaseInfo");
 const parseMessage = require("./lib/parseMessage");
 const systemMessage = require("./lib/systemMessage");
+const radioMachine = require("./lib/machines/radioMachine");
+const getStation = require("./lib/getStation");
 const PORT = process.env.PORT || 3000;
 const INDEX = "/index.html";
 const {
@@ -19,8 +20,11 @@ const {
   get
 } = require("lodash/fp");
 
+const service = interpret(radioMachine);
+
+service.start();
+
 const streamURL = process.env.SERVER_URL;
-const getStation = util.promisify(internetradio.getStationInfo);
 
 const server = express()
   .use((req, res) => res.sendFile(INDEX, { root: __dirname }))

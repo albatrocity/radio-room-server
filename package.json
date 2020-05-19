@@ -13,6 +13,7 @@
     "graphbrainz": "^8.1.0",
     "lodash": "^4.17.15",
     "node-internet-radio": "^0.2.0",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.3.0",
+    "xstate": "^4.9.1"
   }
 }
