@@ -310,9 +310,9 @@ setInterval(async () => {
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
   if (!station || station.bitrate === "0") {
     setMeta();
+    fetching = false;
     return;
   }
-
   if (
     (station.title && station.title !== "" && station.title !== meta.title) ||
     (station.bitrate !== "0" && station.bitrate !== meta.bitrate)
