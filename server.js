@@ -12,6 +12,7 @@ const {
   reject,
   find,
   takeRight,
+  take,
   concat,
   map,
   uniq,
@@ -19,6 +20,7 @@ const {
   compact,
   get
 } = require("lodash/fp");
+const { interpret } = require("xstate");
 
 const service = interpret(radioMachine);
 
@@ -57,7 +59,7 @@ const updateUserAttributes = (userId, attributes) => {
 
 const sendMessage = message => {
   io.emit("new message", message);
-  messages = takeRight(10, concat(message, messages));
+  messages = take(60, concat(message, messages));
 };
 
 io.on("connection", socket => {
