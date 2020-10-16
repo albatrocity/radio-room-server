@@ -198,7 +198,7 @@ io.on("connection", socket => {
       [reactTo.type]: {
         ...reactions[reactTo.type],
         [reactTo.id]: [
-          ...(reactions[reactTo.type][reactTo.id] || []),
+          ...takeRight(199, reactions[reactTo.type][reactTo.id] || []),
           { emoji: emoji.colons, user: user.userId }
         ]
       }
@@ -210,14 +210,6 @@ io.on("connection", socket => {
     if (reactionableTypes.indexOf(reactTo.type) === -1) {
       return;
     }
-    console.log(emoji, reactTo, user);
-    console.log(reactions[reactTo.type][reactTo.id]);
-    console.log(
-      find(
-        { emoji: emoji.colons, user: user.userId },
-        reactions[reactTo.type][reactTo.id]
-      )
-    );
 
     reactions = {
       ...reactions,
@@ -287,13 +279,13 @@ io.on("connection", socket => {
     typing = compact(
       uniq(concat(typing, find({ userId: socket.userId }, users)))
     );
-    io.emit("typing", typing);
+    socket.broadcast.emit("typing", typing);
   });
 
   // when the client emits 'stop typing', we broadcast it to others
   socket.on("stop typing", () => {
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
-    io.emit("typing", typing);
+    socket.broadcast.emit("typing", typing);
   });
 
   // when the user disconnects.. perform this
@@ -310,7 +302,6 @@ io.on("connection", socket => {
       "userId",
       users.filter(x => x.id !== socket.id)
     );
-    console.log(users);
 
     // echo globally that this client has left
     socket.broadcast.emit("user left", {
