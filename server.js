@@ -373,6 +373,7 @@ setInterval(async () => {
   }
   fetching = true;
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
+  console.log(station);
   if (!station || station.bitrate === "0") {
     setMeta();
     fetching = false;
