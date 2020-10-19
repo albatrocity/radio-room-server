@@ -313,7 +313,7 @@ io.on("connection", socket => {
 
 const setMeta = async (station, title, options = {}) => {
   const silent = options.silent || false;
-  if (!station && !title) {
+  if (!station) {
     fetching = false;
     meta = {};
     io.emit("meta", meta);
@@ -328,7 +328,7 @@ const setMeta = async (station, title, options = {}) => {
 
   if (!artist & !album) {
     fetching = false;
-    io.emit("meta", {});
+    io.emit("meta", { ...station });
     return;
   }
   const release = settings.fetchMeta
