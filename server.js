@@ -65,11 +65,12 @@ const updateUserAttributes = (userId, attributes) => {
 };
 
 const sendMessage = message => {
-  io.emit("new message", message);
+  io.emit("event", { type: "NEW_MESSAGE", data: message });
   messages = take(60, concat(message, messages));
 };
 
 io.on("connection", socket => {
+  console.log("CONNECTION");
   socket.on("login", ({ username, userId }) => {
     socket.username = username;
     socket.userId = userId;
@@ -82,17 +83,24 @@ io.on("connection", socket => {
     };
     users = uniqBy("userId", users.concat(newUser));
 
-    socket.broadcast.emit("user joined", {
-      user: newUser,
-      users
+    socket.broadcast.emit("event", {
+      type: "USER_JOINED",
+      data: {
+        user: newUser,
+        users
+      }
     });
 
-    socket.emit("init", {
-      users,
-      messages,
-      meta: cover ? { ...meta, cover } : meta,
-      playlist,
-      reactions
+    console.log("user joined, init");
+    socket.emit("event", {
+      type: "INIT",
+      data: {
+        users,
+        messages,
+        meta: cover ? { ...meta, cover } : meta,
+        playlist,
+        reactions
+      }
     });
   });
 
@@ -107,7 +115,7 @@ io.on("connection", socket => {
       timestamp: new Date().toISOString()
     };
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
-    io.emit("typing", typing);
+    io.emit("event", { type: "TYPING", data: typing });
     sendMessage(payload);
   });
 
@@ -123,9 +131,12 @@ io.on("connection", socket => {
         oldUsername,
         userId
       });
-      io.emit("user joined", {
-        user: newUser,
-        users
+      io.emit("event", {
+        type: "USER_JOINED",
+        data: {
+          user: newUser,
+          users
+        }
       });
       sendMessage(newMessage);
     }
@@ -153,9 +164,12 @@ io.on("connection", socket => {
         userId
       });
       sendMessage(newMessage);
-      io.emit("user joined", {
-        user: newUser,
-        users
+      io.emit("event", {
+        type: "USER_JOINED",
+        data: {
+          user: newUser,
+          users
+        }
       });
     } else {
       users = uniqBy(
@@ -167,12 +181,15 @@ io.on("connection", socket => {
         userId
       });
       sendMessage(newMessage);
-      io.emit("user joined", {
-        users
+      io.emit("event", {
+        type: "USER_JOINED",
+        data: {
+          users
+        }
       });
     }
     settings = { ...defaultSettings };
-    io.emit("settings", settings);
+    io.emit("event", { type: "SETTINGS", data: settings });
   });
 
   socket.on("fix meta", title => {
@@ -182,11 +199,11 @@ io.on("connection", socket => {
   socket.on("set cover", url => {
     cover = url;
     meta = { ...meta, cover: url };
-    io.emit("meta", meta);
+    io.emit("event", { type: "META", meta });
   });
 
   socket.on("get settings", url => {
-    io.emit("settings", settings);
+    io.emit("event", { type: "SETTINGS", settings });
   });
 
   socket.on("add reaction", ({ emoji, reactTo, user }) => {
@@ -203,7 +220,7 @@ io.on("connection", socket => {
         ]
       }
     };
-    io.emit("reactions", { reactions });
+    io.emit("event", { type: "REACTIONS", data: { reactions } });
   });
 
   socket.on("remove reaction", ({ emoji, reactTo, user }) => {
@@ -221,7 +238,7 @@ io.on("connection", socket => {
         )
       }
     };
-    io.emit("reactions", { reactions });
+    io.emit("event", { type: "REACTIONS", data: { reactions } });
   });
 
   socket.on("kick user", user => {
@@ -232,13 +249,17 @@ io.on("connection", socket => {
       `Terribly sorry: you have been kicked. I hope you deserved it.`
     );
 
-    io.to(socketId).emit("new message", newMessage, { status: "critical" });
-    io.to(socketId).emit("kicked");
+    io.to(socketId).emit(
+      "message",
+      { type: "NEW_MESSAGE", data: newMessage },
+      { status: "critical" }
+    );
+    io.to(socketId).emit("event", { type: "KICKED" });
   });
 
   socket.on("clear playlist", () => {
     playlist = [];
-    io.emit("playlist", playlist);
+    io.emit("event", { type: "PLAYLIST", data: playlist });
   });
 
   socket.on("settings", async values => {
@@ -249,7 +270,7 @@ io.on("connection", socket => {
       donationURL,
       extraInfo
     };
-    io.emit("settings", settings);
+    io.emit("event", { type: "SETTINGS", data: settings });
 
     if (
       prevSettings.donationURL !== values.donationURL ||
@@ -259,9 +280,12 @@ io.on("connection", socket => {
         donationURL,
         extraInfo
       });
-      io.emit("user joined", {
-        user,
-        users
+      io.emit("event", {
+        type: "USER_JOINED",
+        data: {
+          user,
+          users
+        }
       });
     }
 
@@ -279,13 +303,13 @@ io.on("connection", socket => {
     typing = compact(
       uniq(concat(typing, find({ userId: socket.userId }, users)))
     );
-    socket.broadcast.emit("typing", typing);
+    socket.broadcast.emit("event", { type: "TYPING", data: typing });
   });
 
   // when the client emits 'stop typing', we broadcast it to others
   socket.on("stop typing", () => {
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
-    socket.broadcast.emit("typing", typing);
+    socket.broadcast.emit("event", { type: "TYPING", data: typing });
   });
 
   // when the user disconnects.. perform this
@@ -295,7 +319,7 @@ io.on("connection", socket => {
     const user = find({ userId: socket.userId }, users);
     if (user && user.isDj) {
       settings = { ...defaultSettings };
-      io.emit("settings", settings);
+      io.emit("event", { type: "SETTINGS", data: settings });
     }
 
     users = uniqBy(
@@ -304,19 +328,23 @@ io.on("connection", socket => {
     );
 
     // echo globally that this client has left
-    socket.broadcast.emit("user left", {
-      user: { username: socket.username },
-      users
+    socket.broadcast.emit("event", {
+      type: "USER_LEFT",
+      data: {
+        user: { username: socket.username },
+        users
+      }
     });
   });
 });
 
 const setMeta = async (station, title, options = {}) => {
+  console.log("setMeta");
   const silent = options.silent || false;
   if (!station) {
     fetching = false;
     meta = {};
-    io.emit("meta", meta);
+    io.emit("event", { type: "META", data: meta });
     return;
   }
   // Lookup and emit track meta
@@ -328,7 +356,7 @@ const setMeta = async (station, title, options = {}) => {
 
   if (!artist & !album) {
     fetching = false;
-    io.emit("meta", { ...station });
+    io.emit("event", { type: "META", data: { ...station } });
     return;
   }
   const release = settings.fetchMeta
@@ -347,7 +375,7 @@ const setMeta = async (station, title, options = {}) => {
   });
 
   if (!silent) {
-    io.emit("new message", newMessage);
+    io.emit("event", { type: "NEW_MESSAGE", data: newMessage });
     messages = concat(newMessage, messages);
   }
   playlist = concat(
@@ -362,8 +390,9 @@ const setMeta = async (station, title, options = {}) => {
     playlist
   );
   fetching = false;
-  io.emit("meta", meta);
-  io.emit("playlist", playlist);
+  console.log("seteta", meta);
+  io.emit("event", { type: "META", data: meta });
+  io.emit("event", { type: "PLAYLIST", data: playlist });
   fetching = false;
 };
 
@@ -373,16 +402,14 @@ setInterval(async () => {
   }
   fetching = true;
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-  console.log(station);
+
   if (!station || station.bitrate === "0") {
     setMeta();
     fetching = false;
     return;
   }
-  if (
-    (station.title && station.title !== "" && station.title !== meta.title) ||
-    (station.bitrate !== "0" && station.bitrate !== meta.bitrate)
-  ) {
+
+  if (station.title && station.title !== "" && station.title !== meta.title) {
     cover = null;
     await setMeta(station);
   }
