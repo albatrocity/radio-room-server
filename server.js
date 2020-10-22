@@ -56,6 +56,7 @@ let reactions = {
   message: {},
   track: {}
 };
+let offline = true;
 
 const updateUserAttributes = (userId, attributes) => {
   const user = find({ userId }, users);
@@ -91,7 +92,6 @@ io.on("connection", socket => {
       }
     });
 
-    console.log("user joined, init");
     socket.emit("event", {
       type: "INIT",
       data: {
@@ -99,7 +99,8 @@ io.on("connection", socket => {
         messages,
         meta: cover ? { ...meta, cover } : meta,
         playlist,
-        reactions
+        reactions,
+        currentUser: { userId: socket.userId, username: socket.username }
       }
     });
   });
@@ -115,7 +116,7 @@ io.on("connection", socket => {
       timestamp: new Date().toISOString()
     };
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
-    io.emit("event", { type: "TYPING", data: typing });
+    io.emit("event", { type: "TYPING", data: { typing } });
     sendMessage(payload);
   });
 
@@ -199,14 +200,17 @@ io.on("connection", socket => {
   socket.on("set cover", url => {
     cover = url;
     meta = { ...meta, cover: url };
-    io.emit("event", { type: "META", meta });
+    console.log("set cover", meta);
+    io.emit("event", { type: "META", data: { meta } });
   });
 
   socket.on("get settings", url => {
-    io.emit("event", { type: "SETTINGS", settings });
+    console.log("GET SETTINGS", settings);
+    io.emit("event", { type: "SETTINGS", data: { settings } });
   });
 
   socket.on("add reaction", ({ emoji, reactTo, user }) => {
+    console.log("ADD REACTION", emoji, reactTo, user);
     if (reactionableTypes.indexOf(reactTo.type) === -1) {
       return;
     }
@@ -242,6 +246,7 @@ io.on("connection", socket => {
   });
 
   socket.on("kick user", user => {
+    console.log("kick user", user);
     const { userId } = user;
     const socketId = get("id", find({ userId }, users));
 
@@ -250,11 +255,14 @@ io.on("connection", socket => {
     );
 
     io.to(socketId).emit(
-      "message",
+      "event",
       { type: "NEW_MESSAGE", data: newMessage },
       { status: "critical" }
     );
     io.to(socketId).emit("event", { type: "KICKED" });
+    if (io.sockets.connected[socketId]) {
+      io.sockets.connected[socketId].disconnect();
+    }
   });
 
   socket.on("clear playlist", () => {
@@ -303,13 +311,13 @@ io.on("connection", socket => {
     typing = compact(
       uniq(concat(typing, find({ userId: socket.userId }, users)))
     );
-    socket.broadcast.emit("event", { type: "TYPING", data: typing });
+    socket.broadcast.emit("event", { type: "TYPING", data: { typing } });
   });
 
   // when the client emits 'stop typing', we broadcast it to others
   socket.on("stop typing", () => {
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
-    socket.broadcast.emit("event", { type: "TYPING", data: typing });
+    socket.broadcast.emit("event", { type: "TYPING", data: { typing } });
   });
 
   // when the user disconnects.. perform this
@@ -344,7 +352,7 @@ const setMeta = async (station, title, options = {}) => {
   if (!station) {
     fetching = false;
     meta = {};
-    io.emit("event", { type: "META", data: meta });
+    io.emit("event", { type: "META", data: { meta } });
     return;
   }
   // Lookup and emit track meta
@@ -356,7 +364,7 @@ const setMeta = async (station, title, options = {}) => {
 
   if (!artist & !album) {
     fetching = false;
-    io.emit("event", { type: "META", data: { ...station } });
+    io.emit("event", { type: "META", data: { meta: { ...station } } });
     return;
   }
   const release = settings.fetchMeta
@@ -391,7 +399,7 @@ const setMeta = async (station, title, options = {}) => {
   );
   fetching = false;
   console.log("seteta", meta);
-  io.emit("event", { type: "META", data: meta });
+  io.emit("event", { type: "META", data: { meta } });
   io.emit("event", { type: "PLAYLIST", data: playlist });
   fetching = false;
 };
@@ -402,15 +410,18 @@ setInterval(async () => {
   }
   fetching = true;
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-
-  if (!station || station.bitrate === "0") {
+  console.log("offline?", offline);
+  if ((!station || station.bitrate === "0") && !offline) {
     setMeta();
+    console.log("set offline");
+    offline = true;
     fetching = false;
     return;
   }
 
   if (station.title && station.title !== "" && station.title !== meta.title) {
     cover = null;
+    offline = false;
     await setMeta(station);
   }
   fetching = false;
