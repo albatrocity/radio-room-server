@@ -364,6 +364,7 @@ const setMeta = async (station, title, options = {}) => {
 
   if (!artist & !album) {
     fetching = false;
+    meta = { ...station };
     io.emit("event", { type: "META", data: { meta: { ...station } } });
     return;
   }
@@ -398,7 +399,6 @@ const setMeta = async (station, title, options = {}) => {
     playlist
   );
   fetching = false;
-  console.log("seteta", meta);
   io.emit("event", { type: "META", data: { meta } });
   io.emit("event", { type: "PLAYLIST", data: playlist });
   fetching = false;
@@ -409,8 +409,8 @@ setInterval(async () => {
     return;
   }
   fetching = true;
+  console.log(`${streamURL}/stream?type=http&nocache=4`);
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-  console.log("offline?", offline);
   if ((!station || station.bitrate === "0") && !offline) {
     setMeta();
     console.log("set offline");
@@ -419,7 +419,12 @@ setInterval(async () => {
     return;
   }
 
-  if (station.title && station.title !== "" && station.title !== meta.title) {
+  if (station.title !== meta.title) {
+    await setMeta(station, station.title);
+  }
+
+  if (offline && station.bitrate && station.bitrate !== "") {
+    console.log("set online");
     cover = null;
     offline = false;
     await setMeta(station);
