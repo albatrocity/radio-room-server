@@ -409,8 +409,9 @@ setInterval(async () => {
     return;
   }
   fetching = true;
-  console.log(`${streamURL}/stream?type=http&nocache=4`);
+
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
+  console.log(station);
   if ((!station || station.bitrate === "0") && !offline) {
     setMeta();
     console.log("set offline");
@@ -419,11 +420,16 @@ setInterval(async () => {
     return;
   }
 
-  if (station.title !== meta.title) {
+  if (station.title !== meta.title && !offline) {
     await setMeta(station, station.title);
   }
 
-  if (offline && station.bitrate && station.bitrate !== "") {
+  if (
+    offline &&
+    station.bitrate &&
+    station.bitrate !== "" &&
+    station.bitrate !== "0"
+  ) {
     console.log("set online");
     cover = null;
     offline = false;
