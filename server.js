@@ -18,6 +18,7 @@ const {
   uniq,
   uniqBy,
   compact,
+  isNil,
   get
 } = require("lodash/fp");
 const { interpret } = require("xstate");
@@ -39,7 +40,8 @@ let numUsers = 0;
 const defaultSettings = {
   fetchMeta: true,
   extraInfo: undefined,
-  donationURL: undefined
+  donationURL: undefined,
+  password: null
 };
 
 const reactionableTypes = ["message", "track"];
@@ -67,12 +69,45 @@ const updateUserAttributes = (userId, attributes) => {
 
 const sendMessage = message => {
   io.emit("event", { type: "NEW_MESSAGE", data: message });
+  console.log("new message", message);
   messages = take(60, concat(message, messages));
+};
+
+const setPassword = pw => {
+  if (value === "") {
+    console.log("clear password?");
+    settings.password = null;
+  } else {
+    console.log("else set it", value);
+    settings.password = pw;
+  }
 };
 
 io.on("connection", socket => {
   console.log("CONNECTION");
-  socket.on("login", ({ username, userId }) => {
+
+  socket.on("check password", submittedPassword => {
+    socket.emit("event", {
+      type: "SET_PASSWORD_REQUIREMENT",
+      data: {
+        passwordRequired: !isNil(settings.password),
+        passwordAccepted: settings.password
+          ? submittedPassword === settings.password
+          : true
+      }
+    });
+  });
+
+  socket.on("submit password", submittedPassword => {
+    socket.emit("event", {
+      type: "SET_PASSWORD_ACCEPTED",
+      data: {
+        passwordAccepted: settings.password === submittedPassword
+      }
+    });
+  });
+
+  socket.on("login", ({ username, userId, password }) => {
     socket.username = username;
     socket.userId = userId;
     const newUser = {
@@ -193,6 +228,10 @@ io.on("connection", socket => {
     io.emit("event", { type: "SETTINGS", data: settings });
   });
 
+  socket.on("set password", value => {
+    setPassword(value);
+  });
+
   socket.on("fix meta", title => {
     setMeta(meta.station, title);
   });
@@ -271,12 +310,13 @@ io.on("connection", socket => {
   });
 
   socket.on("settings", async values => {
-    const { donationURL, extraInfo, fetchMeta } = values;
+    const { donationURL, extraInfo, fetchMeta, password } = values;
     const prevSettings = { ...settings };
     settings = {
       fetchMeta,
       donationURL,
-      extraInfo
+      extraInfo,
+      password
     };
     io.emit("event", { type: "SETTINGS", data: settings });
 
