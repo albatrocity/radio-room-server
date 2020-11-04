@@ -460,12 +460,13 @@ setInterval(async () => {
     return;
   }
 
-  if (station.title !== meta.title && !offline) {
+  if (station && station.title !== meta.title && !offline) {
     await setMeta(station, station.title);
   }
 
   if (
     offline &&
+    station && 
     station.bitrate &&
     station.bitrate !== "" &&
     station.bitrate !== "0"
