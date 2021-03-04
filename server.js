@@ -33,7 +33,20 @@ const server = express()
   .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
-const io = socketIO(server, { origins: "*:*" });
+const io = socketIO(server, {
+  cors: {
+    origin: [
+      "http://localhost:8000",
+      "https://www.ross.show",
+      "https://www.shyboys.live",
+      "https://www.koney.live"
+    ],
+    credentials: true
+  },
+  connectTimeout: 10000,
+  pingInterval: 10000,
+  allowEIO3: true
+});
 
 let numUsers = 0;
 
@@ -108,6 +121,7 @@ io.on("connection", socket => {
   });
 
   socket.on("login", ({ username, userId, password }) => {
+    console.log("USERID", userId);
     socket.username = username;
     socket.userId = userId;
     const newUser = {
@@ -118,6 +132,7 @@ io.on("connection", socket => {
       connectedAt: new Date().toISOString()
     };
     users = uniqBy("userId", users.concat(newUser));
+    console.log("USERS", users);
 
     socket.broadcast.emit("event", {
       type: "USER_JOINED",
@@ -299,8 +314,9 @@ io.on("connection", socket => {
       { status: "critical" }
     );
     io.to(socketId).emit("event", { type: "KICKED" });
-    if (io.sockets.connected[socketId]) {
-      io.sockets.connected[socketId].disconnect();
+
+    if (io.sockets.sockets.get(socketId)) {
+      io.sockets.sockets.get(socketId).disconnect();
     }
   });
 
@@ -374,6 +390,8 @@ io.on("connection", socket => {
       "userId",
       users.filter(x => x.id !== socket.id)
     );
+
+    console.log("USERS", users);
 
     // echo globally that this client has left
     socket.broadcast.emit("event", {
@@ -466,7 +484,7 @@ setInterval(async () => {
 
   if (
     offline &&
-    station && 
+    station &&
     station.bitrate &&
     station.bitrate !== "" &&
     station.bitrate !== "0"
