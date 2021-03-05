@@ -39,7 +39,11 @@ const io = socketIO(server, {
       "http://localhost:8000",
       "https://www.ross.show",
       "https://www.shyboys.live",
-      "https://www.koney.live"
+      "https://www.koney.live",
+      "https://www.snacky.live",
+      "https://www.snacky.band",
+      "https://www.snackymusic.com",
+      "http://rosss-macbook-pro.local:8000"
     ],
     credentials: true
   },
@@ -358,7 +362,7 @@ io.on("connection", socket => {
       const station = await getStation(
         `${streamURL}/stream?type=http&nocache=4`
       );
-      await setMeta(station, station.title, { silent: true });
+      await setMeta(station, get("title", station), { silent: true });
     }
   });
 
