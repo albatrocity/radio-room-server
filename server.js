@@ -43,6 +43,8 @@ const io = socketIO(server, {
       "https://www.snacky.live",
       "https://www.snacky.band",
       "https://www.snackymusic.com",
+      "https://www.ripeter.party",
+      "https://ripeter-live.netlify.app",
       "http://rosss-macbook-pro.local:8000"
     ],
     credentials: true
