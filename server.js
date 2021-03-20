@@ -18,6 +18,7 @@ const {
   uniq,
   uniqBy,
   compact,
+  isEqual,
   isNil,
   get
 } = require("lodash/fp");
