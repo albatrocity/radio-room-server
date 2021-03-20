@@ -90,7 +90,7 @@ const updateUserAttributes = (userId, attributes) => {
 const sendMessage = message => {
   io.emit("event", { type: "NEW_MESSAGE", data: message });
   console.log("new message", message);
-  messages = take(60, concat(message, messages));
+  messages = take(120, concat(message, messages));
 };
 
 const setPassword = pw => {
@@ -131,6 +131,9 @@ io.on("connection", socket => {
     console.log("USERID", userId);
     socket.username = username;
     socket.userId = userId;
+
+    console.log("LOGIN", userId);
+
     const newUser = {
       username,
       userId,
