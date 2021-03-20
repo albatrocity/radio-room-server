@@ -397,10 +397,7 @@ io.on("connection", socket => {
       io.emit("event", { type: "SETTINGS", data: settings });
     }
 
-    users = uniqBy(
-      "userId",
-      reject(x => isEqual(socket.id, x.id), users)
-    );
+    users = reject({ id: socket.id }, users);
     console.log("DISCONNETED, UPDATED USER COUNT:", users.length);
     console.log("USERS", users);
 
