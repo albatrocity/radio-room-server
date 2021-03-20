@@ -398,9 +398,9 @@ io.on("connection", socket => {
 
     users = uniqBy(
       "userId",
-      users.filter(x => x.id !== socket.id)
+      reject(x => isEqual(socket.id, x.id), users)
     );
-
+    console.log("DISCONNETED, UPDATED USER COUNT:", users.length);
     console.log("USERS", users);
 
     // echo globally that this client has left
