@@ -1,6 +1,7 @@
 const util = require("util");
 const express = require("express");
 const socketIO = require("socket.io");
+const redisAdapter = require("socket.io-redis");
 const fetchReleaseInfo = require("./lib/fetchReleaseInfo");
 const parseMessage = require("./lib/parseMessage");
 const systemMessage = require("./lib/systemMessage");
@@ -51,10 +52,13 @@ const io = socketIO(server, {
     ],
     credentials: true
   },
-  connectTimeout: 10000,
-  pingInterval: 10000,
-  allowEIO3: true
+  connectTimeout: 45000,
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  allowEIO3: false
 });
+
+io.adapter(redisAdapter(process.env.REDIS_TLS_URL || "redis://127.0.0.1:6379"));
 
 let numUsers = 0;
 
