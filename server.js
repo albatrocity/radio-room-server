@@ -58,7 +58,7 @@ const io = socketIO(server, {
   allowEIO3: false
 });
 
-io.adapter(redisAdapter(process.env.REDIS_TLS_URL || "redis://127.0.0.1:6379"));
+io.adapter(redisAdapter(process.env.REDIS_URL || "redis://127.0.0.1:6379"));
 
 let numUsers = 0;
 
