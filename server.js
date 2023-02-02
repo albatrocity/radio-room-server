@@ -21,7 +21,7 @@ const {
   compact,
   isEqual,
   isNil,
-  get
+  get,
 } = require("lodash/fp");
 const { interpret } = require("xstate");
 
@@ -48,14 +48,14 @@ const io = socketIO(server, {
       "https://snacky-radio.netlify.app",
       "https://www.ripeter.party",
       "https://ripeter-live.netlify.app",
-      "http://rosss-macbook-pro.local:8000"
+      "http://rosss-macbook-pro.local:8000",
     ],
-    credentials: true
+    credentials: true,
   },
   connectTimeout: 45000,
   pingTimeout: 60000,
   pingInterval: 25000,
-  allowEIO3: false
+  allowEIO3: false,
 });
 
 io.adapter(redisAdapter(process.env.REDIS_URL || "redis://127.0.0.1:6379"));
@@ -66,7 +66,7 @@ const defaultSettings = {
   fetchMeta: true,
   extraInfo: undefined,
   donationURL: undefined,
-  password: null
+  password: null,
 };
 
 const reactionableTypes = ["message", "track"];
@@ -81,7 +81,7 @@ let fetching = false;
 let playlist = [];
 let reactions = {
   message: {},
-  track: {}
+  track: {},
 };
 let offline = true;
 
@@ -92,13 +92,13 @@ const updateUserAttributes = (userId, attributes) => {
   return { users, user: newUser };
 };
 
-const sendMessage = message => {
+const sendMessage = (message) => {
   io.emit("event", { type: "NEW_MESSAGE", data: message });
   console.log("new message", message);
   messages = take(120, concat(message, messages));
 };
 
-const setPassword = pw => {
+const setPassword = (pw) => {
   if (value === "") {
     console.log("clear password?");
     settings.password = null;
@@ -108,27 +108,27 @@ const setPassword = pw => {
   }
 };
 
-io.on("connection", socket => {
+io.on("connection", (socket) => {
   console.log("CONNECTION");
 
-  socket.on("check password", submittedPassword => {
+  socket.on("check password", (submittedPassword) => {
     socket.emit("event", {
       type: "SET_PASSWORD_REQUIREMENT",
       data: {
         passwordRequired: !isNil(settings.password),
         passwordAccepted: settings.password
           ? submittedPassword === settings.password
-          : true
-      }
+          : true,
+      },
     });
   });
 
-  socket.on("submit password", submittedPassword => {
+  socket.on("submit password", (submittedPassword) => {
     socket.emit("event", {
       type: "SET_PASSWORD_ACCEPTED",
       data: {
-        passwordAccepted: settings.password === submittedPassword
-      }
+        passwordAccepted: settings.password === submittedPassword,
+      },
     });
   });
 
@@ -144,7 +144,7 @@ io.on("connection", socket => {
       userId,
       id: socket.id,
       isDj: false,
-      connectedAt: new Date().toISOString()
+      connectedAt: new Date().toISOString(),
     };
     users = uniqBy("userId", users.concat(newUser));
     console.log("USERS", users);
@@ -153,8 +153,8 @@ io.on("connection", socket => {
       type: "USER_JOINED",
       data: {
         user: newUser,
-        users
-      }
+        users,
+      },
     });
 
     socket.emit("event", {
@@ -165,20 +165,20 @@ io.on("connection", socket => {
         meta: cover ? { ...meta, cover } : meta,
         playlist,
         reactions,
-        currentUser: { userId: socket.userId, username: socket.username }
-      }
+        currentUser: { userId: socket.userId, username: socket.username },
+      },
     });
   });
 
   // when the client emits 'new message', this listens and executes
-  socket.on("new message", data => {
+  socket.on("new message", (data) => {
     // we tell the client to execute 'new message'
     const { content, mentions } = parseMessage(data);
     const payload = {
       user: find({ id: socket.id }, users) || { username: socket.username },
       content,
       mentions,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
     io.emit("event", { type: "TYPING", data: { typing } });
@@ -195,20 +195,20 @@ io.on("connection", socket => {
       const content = `${oldUsername} transformed into ${username}`;
       const newMessage = systemMessage(content, {
         oldUsername,
-        userId
+        userId,
       });
       io.emit("event", {
         type: "USER_JOINED",
         data: {
           user: newUser,
-          users
-        }
+          users,
+        },
       });
       sendMessage(newMessage);
     }
   });
 
-  socket.on("set DJ", userId => {
+  socket.on("set DJ", (userId) => {
     const user = find({ userId }, users);
     if (user && user.isDj) {
       return;
@@ -221,59 +221,59 @@ io.on("connection", socket => {
           newUser,
           reject(
             { userId },
-            map(x => ({ ...x, isDj: false }), users)
+            map((x) => ({ ...x, isDj: false }), users)
           )
         )
       );
       const content = `${user.username} is now the DJ`;
       const newMessage = systemMessage(content, {
-        userId
+        userId,
       });
       sendMessage(newMessage);
       io.emit("event", {
         type: "USER_JOINED",
         data: {
           user: newUser,
-          users
-        }
+          users,
+        },
       });
     } else {
       users = uniqBy(
         "userId",
-        map(x => ({ ...x, isDj: false }), users)
+        map((x) => ({ ...x, isDj: false }), users)
       );
       const content = `There's currently no DJ.`;
       const newMessage = systemMessage(content, {
-        userId
+        userId,
       });
       sendMessage(newMessage);
       io.emit("event", {
         type: "USER_JOINED",
         data: {
-          users
-        }
+          users,
+        },
       });
     }
     settings = { ...defaultSettings };
     io.emit("event", { type: "SETTINGS", data: settings });
   });
 
-  socket.on("set password", value => {
+  socket.on("set password", (value) => {
     setPassword(value);
   });
 
-  socket.on("fix meta", title => {
+  socket.on("fix meta", (title) => {
     setMeta(meta.station, title);
   });
 
-  socket.on("set cover", url => {
+  socket.on("set cover", (url) => {
     cover = url;
     meta = { ...meta, cover: url };
     console.log("set cover", meta);
     io.emit("event", { type: "META", data: { meta } });
   });
 
-  socket.on("get settings", url => {
+  socket.on("get settings", (url) => {
     console.log("GET SETTINGS", settings);
     io.emit("event", { type: "SETTINGS", data: { settings } });
   });
@@ -289,9 +289,9 @@ io.on("connection", socket => {
         ...reactions[reactTo.type],
         [reactTo.id]: [
           ...takeRight(199, reactions[reactTo.type][reactTo.id] || []),
-          { emoji: emoji.colons, user: user.userId }
-        ]
-      }
+          { emoji: emoji.shortcodes, user: user.userId },
+        ],
+      },
     };
     io.emit("event", { type: "REACTIONS", data: { reactions } });
   });
@@ -306,15 +306,15 @@ io.on("connection", socket => {
       [reactTo.type]: {
         ...reactions[reactTo.type],
         [reactTo.id]: reject(
-          { emoji: emoji.colons, user: user.userId },
+          { emoji: emoji.shortcodes, user: user.userId },
           reactions[reactTo.type][reactTo.id] || []
-        )
-      }
+        ),
+      },
     };
     io.emit("event", { type: "REACTIONS", data: { reactions } });
   });
 
-  socket.on("kick user", user => {
+  socket.on("kick user", (user) => {
     console.log("kick user", user);
     const { userId } = user;
     const socketId = get("id", find({ userId }, users));
@@ -340,14 +340,14 @@ io.on("connection", socket => {
     io.emit("event", { type: "PLAYLIST", data: playlist });
   });
 
-  socket.on("settings", async values => {
+  socket.on("settings", async (values) => {
     const { donationURL, extraInfo, fetchMeta, password } = values;
     const prevSettings = { ...settings };
     settings = {
       fetchMeta,
       donationURL,
       extraInfo,
-      password
+      password,
     };
     io.emit("event", { type: "SETTINGS", data: settings });
 
@@ -357,14 +357,14 @@ io.on("connection", socket => {
     ) {
       const { user } = updateUserAttributes(socket.userId, {
         donationURL,
-        extraInfo
+        extraInfo,
       });
       io.emit("event", {
         type: "USER_JOINED",
         data: {
           user,
-          users
-        }
+          users,
+        },
       });
     }
 
@@ -410,8 +410,8 @@ io.on("connection", socket => {
       type: "USER_LEFT",
       data: {
         user: { username: socket.username },
-        users
-      }
+        users,
+      },
     });
   });
 });
@@ -450,7 +450,7 @@ const setMeta = async (station, title, options = {}) => {
     artist,
     album,
     track,
-    release
+    release,
   });
 
   if (!silent) {
@@ -464,7 +464,7 @@ const setMeta = async (station, title, options = {}) => {
       artist,
       track,
       timestamp: Date.now(),
-      dj: find({ isDj: true }, users)
+      dj: find({ isDj: true }, users),
     },
     playlist
   );
