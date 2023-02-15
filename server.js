@@ -340,6 +340,11 @@ io.on("connection", (socket) => {
     io.emit("event", { type: "PLAYLIST", data: playlist });
   });
 
+  socket.on("clear messages", () => {
+    messages = [];
+    io.emit("event", { type: "SET_MESSAGES", data: [] });
+  });
+
   socket.on("settings", async (values) => {
     const { donationURL, extraInfo, fetchMeta, password } = values;
     const prevSettings = { ...settings };
