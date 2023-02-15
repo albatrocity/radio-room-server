@@ -341,6 +341,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("clear messages", () => {
+    console.log("CLEAR MESSAGES");
     messages = [];
     io.emit("event", { type: "SET_MESSAGES", data: [] });
   });
