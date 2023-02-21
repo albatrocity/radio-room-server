@@ -7,6 +7,10 @@ const parseMessage = require("./lib/parseMessage");
 const systemMessage = require("./lib/systemMessage");
 const radioMachine = require("./lib/machines/radioMachine");
 const getStation = require("./lib/getStation");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const spotify = require("./spotify");
+
 const PORT = process.env.PORT || 3000;
 const INDEX = "/index.html";
 const {
@@ -32,7 +36,13 @@ service.start();
 const streamURL = process.env.SERVER_URL;
 
 const server = express()
-  .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
+  .use(express.static(__dirname + "/public"))
+  .use(cors())
+  .use(cookieParser())
+  .get("/login", spotify.login)
+  .get("/callback", spotify.callback)
+  .get("/refresh_token", spotify.refreshToken)
+  .get("/queue", spotify.queue)
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server, {
