@@ -10,9 +10,9 @@ const getStation = require("./lib/getStation");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const spotify = require("./spotify");
+const spotifyApi = require("./lib/spotifyApi");
 
 const PORT = process.env.PORT || 3000;
-const INDEX = "/index.html";
 const {
   reject,
   find,
@@ -268,6 +268,32 @@ io.on("connection", (socket) => {
     io.emit("event", { type: "SETTINGS", data: settings });
   });
 
+  socket.on("queue song", async (uri) => {
+    try {
+      const data = await spotifyApi.addToQueue(uri);
+      socket.emit("event", {
+        type: "SONG_QUEUED",
+        data,
+      });
+    } catch (e) {
+      socket.emit("event", {
+        type: "SONG_QUEUE_FAILURE",
+        data: {
+          message: "Song could not be queued",
+          error: e.message,
+        },
+      });
+    }
+  });
+
+  socket.on("search spotify track", async ({ query, options }) => {
+    const data = await spotifyApi.searchTracks(query, options);
+    socket.emit("event", {
+      type: "TRACK_SEARCH_RESULTS",
+      data: data,
+    });
+  });
+
   socket.on("set password", (value) => {
     setPassword(value);
   });
@@ -289,7 +315,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("add reaction", ({ emoji, reactTo, user }) => {
-    console.log("ADD REACTION", emoji, reactTo, user);
     if (reactionableTypes.indexOf(reactTo.type) === -1) {
       return;
     }

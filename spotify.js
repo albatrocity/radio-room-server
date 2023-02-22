@@ -2,27 +2,14 @@ const axios = require("axios");
 const qs = require("qs");
 const querystring = require("querystring");
 const { getClient } = require("./redisClient");
-const SpotifyWebApi = require("spotify-web-api-node");
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const client_secret = process.env.CLIENT_SECRET; // Your secret
 const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
-const spotifyApi = new SpotifyWebApi({
-  clientId: client_id,
-  clientSecret: client_secret,
-  redirectUri: redirect_uri,
-});
-
 const stateKey = "spotify_auth_state";
 const SPOTIFY_ACCESS_TOKEN = "spotifyAccessToken";
 const SPOTIFY_REFRESH_TOKEN = "spotifyRefreshToken";
-
-async function getSpotifyToken() {
-  const client = await getClient();
-  const token = await client.get(SPOTIFY_ACCESS_TOKEN);
-  return token;
-}
 
 function generateRandomString(length) {
   var text = "";
@@ -133,9 +120,6 @@ async function refreshToken(req, res) {
       grant_type: "refresh_token",
     }),
   });
-
-  console.log("DATA========", data);
-
   await client.set(SPOTIFY_ACCESS_TOKEN, data.access_token);
 
   res.send({
@@ -143,30 +127,8 @@ async function refreshToken(req, res) {
   });
 }
 
-async function queue(req, res) {
-  try {
-    const data = await spotifyApi.addToQueue(
-      "spotify:track:4iV5W9uYEdYUVa79Axb7Rh"
-    );
-    res.send({ data });
-  } catch (e) {
-    console.log("ERROR==================");
-    console.log(console.log(e));
-    res.send({ error: e.status });
-  }
-}
-
 module.exports = {
   login,
   callback,
   refreshToken,
-  queue,
 };
-
-async function setApiToken() {
-  const token = await getSpotifyToken();
-  console.log(`set token ${token}`);
-  spotifyApi.setAccessToken(token);
-}
-
-setApiToken();
