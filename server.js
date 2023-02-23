@@ -382,6 +382,41 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("dj deputize user", (userId) => {
+    const user = find({ userId }, users);
+    const socketId = get("id", find({ userId }, users));
+    var eventType, message, newUser;
+
+    if (user.isDeputyDj) {
+      eventType = "END_DEPUTY_DJ_SESSION";
+      message = `You are no longer a deputy DJ`;
+      newUser = { ...user, isDeputyDj: false };
+      users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+    } else {
+      eventType = "START_DEPUTY_DJ_SESSION";
+      message = `You've been promoted to a deputy DJ`;
+      newUser = { ...user, isDeputyDj: true };
+      users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+    }
+
+    io.to(socketId).emit(
+      "event",
+      {
+        type: "NEW_MESSAGE",
+        data: systemMessage(message),
+      },
+      { status: "info" }
+    );
+    io.to(socketId).emit("event", { type: eventType });
+    io.emit("event", {
+      type: "USER_JOINED",
+      data: {
+        user: newUser,
+        users,
+      },
+    });
+  });
+
   socket.on("clear playlist", () => {
     playlist = [];
     io.emit("event", { type: "PLAYLIST", data: playlist });
