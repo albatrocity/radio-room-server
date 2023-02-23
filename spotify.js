@@ -2,14 +2,13 @@ const axios = require("axios");
 const qs = require("qs");
 const querystring = require("querystring");
 const { getClient } = require("./redisClient");
+const constants = require("./lib/constants");
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const client_secret = process.env.CLIENT_SECRET; // Your secret
 const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
 const stateKey = "spotify_auth_state";
-const SPOTIFY_ACCESS_TOKEN = "spotifyAccessToken";
-const SPOTIFY_REFRESH_TOKEN = "spotifyRefreshToken";
 
 function generateRandomString(length) {
   var text = "";
@@ -45,13 +44,10 @@ function login(req, res) {
 async function callback(req, res) {
   // your application requests refresh and access tokens
   // after checking the state parameter
-  console.log("CALLBACK");
 
   const code = req.query.code || null;
   const state = req.query.state || null;
   const storedState = req.cookies ? req.cookies[stateKey] : null;
-
-  console.log("CODE", code);
 
   if (state === null || state !== storedState) {
     res.redirect(
@@ -82,13 +78,10 @@ async function callback(req, res) {
 
       const { access_token, refresh_token, scope } = data;
 
-      console.log("SCOPE====");
-      console.log(scope);
-
       const redisClient = await getClient();
 
-      await redisClient.set(SPOTIFY_ACCESS_TOKEN, access_token);
-      await redisClient.set(SPOTIFY_REFRESH_TOKEN, refresh_token);
+      await redisClient.set(constants.SPOTIFY_ACCESS_TOKEN, access_token);
+      await redisClient.set(constants.SPOTIFY_REFRESH_TOKEN, refresh_token);
       res.send({
         access_token: access_token,
       });
@@ -101,34 +94,7 @@ async function callback(req, res) {
   }
 }
 
-async function refreshToken(req, res) {
-  // requesting access token from refresh token
-  const client = await getClient();
-  const refresh_token = await client.get(SPOTIFY_REFRESH_TOKEN);
-
-  const { data } = await axios({
-    method: "post",
-    url: "https://accounts.spotify.com/api/token",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      Authorization:
-        "Basic " +
-        Buffer.from(client_id + ":" + client_secret).toString("base64"),
-    },
-    data: qs.stringify({
-      refresh_token,
-      grant_type: "refresh_token",
-    }),
-  });
-  await client.set(SPOTIFY_ACCESS_TOKEN, data.access_token);
-
-  res.send({
-    access_token: data.access_token,
-  });
-}
-
 module.exports = {
   login,
   callback,
-  refreshToken,
 };

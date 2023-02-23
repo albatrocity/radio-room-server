@@ -11,6 +11,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const spotify = require("./spotify");
 const spotifyApi = require("./lib/spotifyApi");
+const refreshSpotifyToken = require("./lib/refreshSpotifyToken");
 
 const PORT = process.env.PORT || 3000;
 const {
@@ -41,8 +42,6 @@ const server = express()
   .use(cookieParser())
   .get("/login", spotify.login)
   .get("/callback", spotify.callback)
-  .get("/refresh_token", spotify.refreshToken)
-  .get("/queue", spotify.queue)
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server, {
@@ -271,6 +270,7 @@ io.on("connection", (socket) => {
   socket.on("queue song", async (uri) => {
     try {
       const data = await spotifyApi.addToQueue(uri);
+      console.log(data);
       socket.emit("event", {
         type: "SONG_QUEUED",
         data,
@@ -287,11 +287,24 @@ io.on("connection", (socket) => {
   });
 
   socket.on("search spotify track", async ({ query, options }) => {
-    const data = await spotifyApi.searchTracks(query, options);
-    socket.emit("event", {
-      type: "TRACK_SEARCH_RESULTS",
-      data: data,
-    });
+    try {
+      const data = await spotifyApi.searchTracks(query, options);
+      socket.emit("event", {
+        type: "TRACK_SEARCH_RESULTS",
+        data: data.body.tracks,
+      });
+    } catch (e) {
+      const token = await refreshSpotifyToken();
+      spotifyApi.setAccessToken(token);
+      socket.emit("event", {
+        type: "TRACK_SEARCH_RESULTS_FAILURE",
+        data: {
+          message:
+            "Something went wrong when trying to search for tracks. You might need to log in to Spotify's OAuth",
+          error: e,
+        },
+      });
+    }
   });
 
   socket.on("set password", (value) => {
@@ -305,7 +318,6 @@ io.on("connection", (socket) => {
   socket.on("set cover", (url) => {
     cover = url;
     meta = { ...meta, cover: url };
-    console.log("set cover", meta);
     io.emit("event", { type: "META", data: { meta } });
   });
 
