@@ -295,7 +295,9 @@ io.on("connection", (socket) => {
       });
     } catch (e) {
       const token = await refreshSpotifyToken();
-      spotifyApi.setAccessToken(token);
+      if (token) {
+        spotifyApi.setAccessToken(token);
+      }
       socket.emit("event", {
         type: "TRACK_SEARCH_RESULTS_FAILURE",
         data: {
