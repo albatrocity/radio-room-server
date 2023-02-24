@@ -78,7 +78,7 @@ async function callback(req, res) {
 
       const { access_token, refresh_token, scope } = data;
 
-      const redisClient = createClient();
+      const redisClient = await createClient();
       await redisClient.set(constants.SPOTIFY_ACCESS_TOKEN, access_token);
       await redisClient.set(constants.SPOTIFY_REFRESH_TOKEN, refresh_token);
       redisClient.disconnect();
