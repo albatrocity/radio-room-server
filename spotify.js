@@ -1,7 +1,7 @@
 const axios = require("axios");
 const qs = require("qs");
 const querystring = require("querystring");
-const { getClient } = require("./redisClient");
+const { createClient } = require("./redisClient");
 const constants = require("./lib/constants");
 
 const client_id = process.env.CLIENT_ID; // Your client id
@@ -78,10 +78,11 @@ async function callback(req, res) {
 
       const { access_token, refresh_token, scope } = data;
 
-      const redisClient = await getClient();
-
+      const redisClient = createClient();
       await redisClient.set(constants.SPOTIFY_ACCESS_TOKEN, access_token);
       await redisClient.set(constants.SPOTIFY_REFRESH_TOKEN, refresh_token);
+      redisClient.disconnect();
+
       res.send({
         access_token: access_token,
       });

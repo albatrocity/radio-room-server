@@ -1,12 +1,10 @@
-const { createClient } = require("redis");
+const { createClient: redisCreateClient } = require("redis");
 
-var client;
-
-async function getClient() {
+async function createClient() {
   if (client) {
     return client;
   }
-  client = createClient({
+  const client = redisCreateClient({
     url: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   });
   await client.connect();
@@ -15,5 +13,5 @@ async function getClient() {
 }
 
 module.exports = {
-  getClient,
+  createClient,
 };
