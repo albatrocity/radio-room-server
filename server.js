@@ -88,6 +88,7 @@ let settings = { ...defaultSettings };
 let cover = null;
 let fetching = false;
 let playlist = [];
+let queue = [];
 let reactions = {
   message: {},
   track: {},
@@ -271,6 +272,7 @@ io.on("connection", (socket) => {
     try {
       const data = await spotifyApi.addToQueue(uri);
       console.log(data);
+      queue = [...queue, { uri, userId: socket.userId }];
       socket.emit("event", {
         type: "SONG_QUEUED",
         data,
@@ -522,7 +524,7 @@ const setMeta = async (station, title, options = {}) => {
   const album = info[2];
   fetching = true;
 
-  if (!artist & !album) {
+  if (!artist && !album) {
     fetching = false;
     meta = { ...station };
     io.emit("event", { type: "META", data: { meta: { ...station } } });
@@ -531,7 +533,16 @@ const setMeta = async (station, title, options = {}) => {
   const release = settings.fetchMeta
     ? await fetchReleaseInfo(`${artist} ${album}`)
     : {};
-  meta = { ...station, artist, album, track, release };
+
+  const queuedTrack = queue.find(({ uri }) => uri === release?.uri);
+  meta = {
+    ...station,
+    artist,
+    album,
+    track,
+    release,
+    dj: queuedTrack?.userId,
+  };
   const content = track
     ? `Up next: ${track} - ${artist} - ${album}`
     : `Up next: ${album}`;
@@ -554,7 +565,10 @@ const setMeta = async (station, title, options = {}) => {
       artist,
       track,
       timestamp: Date.now(),
-      dj: find({ isDj: true }, users),
+      dj: find(
+        queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
+        users
+      ),
     },
     playlist
   );
@@ -571,16 +585,17 @@ setInterval(async () => {
   fetching = true;
 
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-  console.log(station);
   if ((!station || station.bitrate === "0") && !offline) {
     setMeta();
     console.log("set offline");
     offline = true;
     fetching = false;
+    console.log(station);
     return;
   }
 
   if (station && station.title !== meta.title && !offline) {
+    console.log(station);
     await setMeta(station, station.title);
   }
 
@@ -591,6 +606,7 @@ setInterval(async () => {
     station.bitrate !== "" &&
     station.bitrate !== "0"
   ) {
+    console.log(station);
     console.log("set online");
     cover = null;
     offline = false;
