@@ -13,6 +13,8 @@ const spotify = require("./spotify");
 const spotifyApi = require("./lib/spotifyApi");
 const refreshSpotifyToken = require("./lib/refreshSpotifyToken");
 
+const fortyFiveMins = 2700000;
+
 const PORT = process.env.PORT || 3000;
 const {
   reject,
@@ -94,6 +96,7 @@ let reactions = {
   track: {},
 };
 let offline = true;
+let oAuthInterval;
 
 const updateUserAttributes = (userId, attributes) => {
   const user = find({ userId }, users);
@@ -270,6 +273,7 @@ io.on("connection", (socket) => {
 
   socket.on("queue song", async (uri) => {
     try {
+      console.log("uri", uri);
       const data = await spotifyApi.addToQueue(uri);
       console.log(data);
       queue = [...queue, { uri, userId: socket.userId }];
@@ -278,6 +282,8 @@ io.on("connection", (socket) => {
         data,
       });
     } catch (e) {
+      console.log("error");
+      console.log(e);
       socket.emit("event", {
         type: "SONG_QUEUE_FAILURE",
         data: {
@@ -590,6 +596,10 @@ setInterval(async () => {
     console.log("set offline");
     offline = true;
     fetching = false;
+    if (oAuthInterval) {
+      clearInterval(oAuthInterval);
+    }
+    oAuthInterval = null;
     console.log(station);
     return;
   }
@@ -610,7 +620,14 @@ setInterval(async () => {
     console.log("set online");
     cover = null;
     offline = false;
-    await setMeta(station);
+    try {
+      await refreshSpotifyToken();
+      oAuthInterval = setInterval(refreshSpotifyToken, fortyFiveMins);
+    } catch (e) {
+      console.log(e);
+    } finally {
+      await setMeta(station);
+    }
   }
   fetching = false;
 }, 3000);
