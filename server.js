@@ -275,12 +275,16 @@ io.on("connection", (socket) => {
     try {
       console.log("uri", uri);
       const data = await spotifyApi.addToQueue(uri);
-      console.log(data);
+      const user = users.find(({ userId }) => userId === socket.userId);
       queue = [...queue, { uri, userId: socket.userId }];
       socket.emit("event", {
         type: "SONG_QUEUED",
         data,
       });
+      const queueMessage = systemMessage(
+        `${user ? user.username : "Someone"} added a song to the queue`
+      );
+      sendMessage(queueMessage);
     } catch (e) {
       console.log("error");
       console.log(e);
