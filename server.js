@@ -277,6 +277,7 @@ io.on("connection", (socket) => {
       const data = await spotifyApi.addToQueue(uri);
       const user = users.find(({ userId }) => userId === socket.userId);
       queue = [...queue, { uri, userId: socket.userId }];
+      console.log(queue);
       socket.emit("event", {
         type: "SONG_QUEUED",
         data,
@@ -433,6 +434,7 @@ io.on("connection", (socket) => {
 
   socket.on("clear playlist", () => {
     playlist = [];
+    queue = [];
     io.emit("event", { type: "PLAYLIST", data: playlist });
   });
 
