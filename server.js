@@ -574,6 +574,7 @@ const setMeta = async (station, title, options = {}) => {
       album,
       artist,
       track,
+      spotifyData: release,
       timestamp: Date.now(),
       dj: find(
         queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
