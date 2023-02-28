@@ -588,6 +588,7 @@ const setMeta = async (station, title, options = {}) => {
   fetching = false;
   io.emit("event", { type: "META", data: { meta } });
   io.emit("event", { type: "PLAYLIST", data: playlist });
+  queue = queue.filter(({ uri }) => uri !== queuedTrack.uri);
   fetching = false;
 };
 
