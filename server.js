@@ -402,7 +402,7 @@ io.on("connection", (socket) => {
     const socketId = get("id", find({ userId }, users));
     var eventType, message, newUser;
 
-    if (user.isDeputyDj) {
+    if (user?.isDeputyDj) {
       eventType = "END_DEPUTY_DJ_SESSION";
       message = `You are no longer a deputy DJ`;
       newUser = { ...user, isDeputyDj: false };
