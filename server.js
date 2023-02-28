@@ -543,7 +543,7 @@ const setMeta = async (station, title, options = {}) => {
     return;
   }
   const release = settings.fetchMeta
-    ? await fetchReleaseInfo(`${artist} ${album}`)
+    ? await fetchReleaseInfo(`${track} ${artist} ${album}`)
     : {};
 
   const queuedTrack = queue.find(({ uri }) => uri === release?.uri);
