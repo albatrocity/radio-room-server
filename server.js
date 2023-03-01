@@ -91,6 +91,7 @@ let cover = null;
 let fetching = false;
 let playlist = [];
 let queue = [];
+let deputyDjs = [];
 let reactions = {
   message: {},
   track: {},
@@ -151,12 +152,14 @@ io.on("connection", (socket) => {
     socket.userId = userId;
 
     console.log("LOGIN", userId);
+    const isDeputyDj = deputyDjs.includes(userId);
 
     const newUser = {
       username,
       userId,
       id: socket.id,
       isDj: false,
+      isDeputyDj,
       connectedAt: new Date().toISOString(),
     };
     users = uniqBy("userId", users.concat(newUser));
@@ -178,7 +181,11 @@ io.on("connection", (socket) => {
         meta: cover ? { ...meta, cover } : meta,
         playlist,
         reactions,
-        currentUser: { userId: socket.userId, username: socket.username },
+        currentUser: {
+          userId: socket.userId,
+          username: socket.username,
+          isDeputyDj,
+        },
       },
     });
   });
@@ -407,11 +414,13 @@ io.on("connection", (socket) => {
       message = `You are no longer a deputy DJ`;
       newUser = { ...user, isDeputyDj: false };
       users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+      deputyDjs = deputyDjs.filter((x) => x !== userId);
     } else {
       eventType = "START_DEPUTY_DJ_SESSION";
       message = `You've been promoted to a deputy DJ`;
       newUser = { ...user, isDeputyDj: true };
       users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+      deputyDjs = [...deputyDjs, userId];
     }
 
     io.to(socketId).emit(
