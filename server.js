@@ -160,6 +160,7 @@ io.on("connection", (socket) => {
       id: socket.id,
       isDj: false,
       isDeputyDj,
+      status: "participating",
       connectedAt: new Date().toISOString(),
     };
     users = uniqBy("userId", users.concat(newUser));
@@ -502,6 +503,31 @@ io.on("connection", (socket) => {
   socket.on("stop typing", () => {
     typing = compact(uniq(reject({ userId: socket.userId }, typing)));
     socket.broadcast.emit("event", { type: "TYPING", data: { typing } });
+  });
+
+  socket.on("start listening", () => {
+    const { user } = updateUserAttributes(socket.userId, {
+      status: "listening",
+    });
+    io.emit("event", {
+      type: "USER_JOINED",
+      data: {
+        user,
+        users,
+      },
+    });
+  });
+  socket.on("stop listening", () => {
+    const { user } = updateUserAttributes(socket.userId, {
+      status: "participating",
+    });
+    io.emit("event", {
+      type: "USER_JOINED",
+      data: {
+        user,
+        users,
+      },
+    });
   });
 
   // when the user disconnects.. perform this
