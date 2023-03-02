@@ -50,16 +50,8 @@ const io = socketIO(server, {
   cors: {
     origin: [
       "http://localhost:8000",
+      "https://www.listen.show",
       "https://www.ross.show",
-      "https://www.shyboys.live",
-      "https://www.koney.live",
-      "https://www.snacky.live",
-      "https://www.snacky.band",
-      "https://www.snackymusic.com",
-      "https://snacky-radio.netlify.app",
-      "https://www.ripeter.party",
-      "https://ripeter-live.netlify.app",
-      "http://rosss-macbook-pro.local:8000",
     ],
     credentials: true,
   },
