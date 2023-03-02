@@ -185,6 +185,7 @@ io.on("connection", (socket) => {
         currentUser: {
           userId: socket.userId,
           username: socket.username,
+          status: "participating",
           isDeputyDj,
         },
       },
@@ -413,14 +414,12 @@ io.on("connection", (socket) => {
     if (user?.isDeputyDj) {
       eventType = "END_DEPUTY_DJ_SESSION";
       message = `You are no longer a deputy DJ`;
-      newUser = { ...user, isDeputyDj: false };
-      users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+      updateUserAttributes(socket.userId, { isDeputyDj: false });
       deputyDjs = deputyDjs.filter((x) => x !== userId);
     } else {
       eventType = "START_DEPUTY_DJ_SESSION";
       message = `You've been promoted to a deputy DJ`;
-      newUser = { ...user, isDeputyDj: true };
-      users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
+      updateUserAttributes(socket.userId, { isDeputyDj: true });
       deputyDjs = [...deputyDjs, userId];
     }
 
