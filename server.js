@@ -383,8 +383,8 @@ io.on("connection", (socket) => {
     const socketId = get("id", find({ userId }, users));
 
     const newMessage = systemMessage(
-      `Terribly sorry: you have been kicked. I hope you deserved it.`,
-      { status: "critical", type: "alert" }
+      `You have been kicked. I hope you deserved it.`,
+      { status: "error", type: "alert", title: "Kicked" }
     );
 
     io.to(socketId).emit("event", { type: "NEW_MESSAGE", data: newMessage });
@@ -416,7 +416,7 @@ io.on("connection", (socket) => {
       "event",
       {
         type: "NEW_MESSAGE",
-        data: systemMessage(message),
+        data: systemMessage(message, { type: "alert", status: "info" }),
       },
       { status: "info" }
     );
