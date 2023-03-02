@@ -383,14 +383,11 @@ io.on("connection", (socket) => {
     const socketId = get("id", find({ userId }, users));
 
     const newMessage = systemMessage(
-      `Terribly sorry: you have been kicked. I hope you deserved it.`
+      `Terribly sorry: you have been kicked. I hope you deserved it.`,
+      { status: "critical", type: "alert" }
     );
 
-    io.to(socketId).emit(
-      "event",
-      { type: "NEW_MESSAGE", data: newMessage },
-      { status: "critical" }
-    );
+    io.to(socketId).emit("event", { type: "NEW_MESSAGE", data: newMessage });
     io.to(socketId).emit("event", { type: "KICKED" });
 
     if (io.sockets.sockets.get(socketId)) {
