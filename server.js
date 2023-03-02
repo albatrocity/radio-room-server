@@ -396,19 +396,20 @@ io.on("connection", (socket) => {
   });
 
   socket.on("dj deputize user", (userId) => {
-    const user = find({ userId }, users);
     const socketId = get("id", find({ userId }, users));
-    var eventType, message, newUser;
+    var eventType, message, user;
 
-    if (user?.isDeputyDj) {
+    if (deputyDjs.includes(userId)) {
       eventType = "END_DEPUTY_DJ_SESSION";
       message = `You are no longer a deputy DJ`;
-      updateUserAttributes(socket.userId, { isDeputyDj: false });
+      const result = updateUserAttributes(userId, { isDeputyDj: false });
+      user = result.user;
       deputyDjs = deputyDjs.filter((x) => x !== userId);
     } else {
       eventType = "START_DEPUTY_DJ_SESSION";
-      message = `You've been promoted to a deputy DJ`;
-      updateUserAttributes(socket.userId, { isDeputyDj: true });
+      message = `You've been promoted to a deputy DJ. You add song's to the DJ's queue.`;
+      const result = updateUserAttributes(userId, { isDeputyDj: true });
+      user = result.user;
       deputyDjs = [...deputyDjs, userId];
     }
 
@@ -424,7 +425,7 @@ io.on("connection", (socket) => {
     io.emit("event", {
       type: "USER_JOINED",
       data: {
-        user: newUser,
+        user,
         users,
       },
     });
