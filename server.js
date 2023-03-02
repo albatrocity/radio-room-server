@@ -91,11 +91,16 @@ let reactions = {
 let offline = true;
 let oAuthInterval;
 
+const cleanUsers = () => {
+  users = users.filter((user) => !!user.userId);
+  return users;
+};
+
 const updateUserAttributes = (userId, attributes) => {
   const user = find({ userId }, users);
   const newUser = { ...user, ...attributes };
   users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
-  return { users, user: newUser };
+  return { users: cleanUsers(), user: newUser };
 };
 
 const sendMessage = (message) => {
