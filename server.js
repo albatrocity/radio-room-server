@@ -11,6 +11,9 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const spotify = require("./spotify");
 const spotifyApi = require("./lib/spotifyApi");
+const refreshSpotifyToken = require("./lib/refreshSpotifyToken");
+
+const fortyFiveMins = 2700000;
 
 const PORT = process.env.PORT || 3000;
 const {
@@ -44,24 +47,14 @@ const server = express()
   .use(cookieParser())
   .get("/login", spotify.login)
   .get("/callback", spotify.callback)
-  .get("/refresh_token", spotify.refreshToken)
-  .get("/queue", spotify.queue)
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server, {
   cors: {
     origin: [
       "http://localhost:8000",
+      "https://www.listen.show",
       "https://www.ross.show",
-      "https://www.shyboys.live",
-      "https://www.koney.live",
-      "https://www.snacky.live",
-      "https://www.snacky.band",
-      "https://www.snackymusic.com",
-      "https://snacky-radio.netlify.app",
-      "https://www.ripeter.party",
-      "https://ripeter-live.netlify.app",
-      "http://rosss-macbook-pro.local:8000",
     ],
     credentials: true,
   },
@@ -92,17 +85,25 @@ let settings = { ...defaultSettings };
 let cover = null;
 let fetching = false;
 let playlist = [];
+let queue = [];
+let deputyDjs = [];
 let reactions = {
   message: {},
   track: {},
 };
 let offline = true;
+let oAuthInterval;
+
+const cleanUsers = () => {
+  users = users.filter((user) => !!user.userId);
+  return users;
+};
 
 const updateUserAttributes = (userId, attributes) => {
   const user = find({ userId }, users);
   const newUser = { ...user, ...attributes };
   users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
-  return { users, user: newUser };
+  return { users: cleanUsers(), user: newUser };
 };
 
 const sendMessage = (message) => {
@@ -151,12 +152,15 @@ io.on("connection", (socket) => {
     socket.userId = userId;
 
     console.log("LOGIN", userId);
+    const isDeputyDj = deputyDjs.includes(userId);
 
     const newUser = {
       username,
       userId,
       id: socket.id,
       isDj: false,
+      isDeputyDj,
+      status: "participating",
       connectedAt: new Date().toISOString(),
     };
     users = uniqBy("userId", users.concat(newUser));
@@ -178,7 +182,12 @@ io.on("connection", (socket) => {
         meta: cover ? { ...meta, cover } : meta,
         playlist,
         reactions,
-        currentUser: { userId: socket.userId, username: socket.username },
+        currentUser: {
+          userId: socket.userId,
+          username: socket.username,
+          status: "participating",
+          isDeputyDj,
+        },
       },
     });
   });
@@ -273,12 +282,22 @@ io.on("connection", (socket) => {
 
   socket.on("queue song", async (uri) => {
     try {
+      console.log("uri", uri);
       const data = await spotifyApi.addToQueue(uri);
+      const user = users.find(({ userId }) => userId === socket.userId);
+      queue = [...queue, { uri, userId: socket.userId }];
+      console.log(queue);
       socket.emit("event", {
         type: "SONG_QUEUED",
         data,
       });
+      const queueMessage = systemMessage(
+        `${user ? user.username : "Someone"} added a song to the queue`
+      );
+      sendMessage(queueMessage);
     } catch (e) {
+      console.log("error");
+      console.log(e);
       socket.emit("event", {
         type: "SONG_QUEUE_FAILURE",
         data: {
@@ -290,11 +309,26 @@ io.on("connection", (socket) => {
   });
 
   socket.on("search spotify track", async ({ query, options }) => {
-    const data = await spotifyApi.searchTracks(query, options);
-    socket.emit("event", {
-      type: "TRACK_SEARCH_RESULTS",
-      data: data,
-    });
+    try {
+      const data = await spotifyApi.searchTracks(query, options);
+      socket.emit("event", {
+        type: "TRACK_SEARCH_RESULTS",
+        data: data.body.tracks,
+      });
+    } catch (e) {
+      const token = await refreshSpotifyToken();
+      if (token) {
+        spotifyApi.setAccessToken(token);
+      }
+      socket.emit("event", {
+        type: "TRACK_SEARCH_RESULTS_FAILURE",
+        data: {
+          message:
+            "Something went wrong when trying to search for tracks. You might need to log in to Spotify's OAuth",
+          error: e,
+        },
+      });
+    }
   });
 
   socket.on("set password", (value) => {
@@ -308,7 +342,6 @@ io.on("connection", (socket) => {
   socket.on("set cover", (url) => {
     cover = url;
     meta = { ...meta, cover: url };
-    console.log("set cover", meta);
     io.emit("event", { type: "META", data: { meta } });
   });
 
@@ -358,14 +391,11 @@ io.on("connection", (socket) => {
     const socketId = get("id", find({ userId }, users));
 
     const newMessage = systemMessage(
-      `Terribly sorry: you have been kicked. I hope you deserved it.`
+      `You have been kicked. I hope you deserved it.`,
+      { status: "error", type: "alert", title: "Kicked" }
     );
 
-    io.to(socketId).emit(
-      "event",
-      { type: "NEW_MESSAGE", data: newMessage },
-      { status: "critical" }
-    );
+    io.to(socketId).emit("event", { type: "NEW_MESSAGE", data: newMessage });
     io.to(socketId).emit("event", { type: "KICKED" });
 
     if (io.sockets.sockets.get(socketId)) {
@@ -373,15 +403,52 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("dj deputize user", (userId) => {
+    const socketId = get("id", find({ userId }, users));
+    var eventType, message, user;
+
+    if (deputyDjs.includes(userId)) {
+      eventType = "END_DEPUTY_DJ_SESSION";
+      message = `You are no longer a deputy DJ`;
+      const result = updateUserAttributes(userId, { isDeputyDj: false });
+      user = result.user;
+      deputyDjs = deputyDjs.filter((x) => x !== userId);
+    } else {
+      eventType = "START_DEPUTY_DJ_SESSION";
+      message = `You've been promoted to a deputy DJ. You add song's to the DJ's queue.`;
+      const result = updateUserAttributes(userId, { isDeputyDj: true });
+      user = result.user;
+      deputyDjs = [...deputyDjs, userId];
+    }
+
+    io.to(socketId).emit(
+      "event",
+      {
+        type: "NEW_MESSAGE",
+        data: systemMessage(message, { type: "alert", status: "info" }),
+      },
+      { status: "info" }
+    );
+    io.to(socketId).emit("event", { type: eventType });
+    io.emit("event", {
+      type: "USER_JOINED",
+      data: {
+        user,
+        users,
+      },
+    });
+  });
+
   socket.on("clear playlist", () => {
     playlist = [];
+    queue = [];
     io.emit("event", { type: "PLAYLIST", data: playlist });
   });
 
   socket.on("clear messages", () => {
     console.log("CLEAR MESSAGES");
     messages = [];
-    io.emit("event", { type: "SET_MESSAGES", data: [] });
+    io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
   });
 
   socket.on("save playlist", async ({ name, uids }) => {
@@ -445,6 +512,31 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("event", { type: "TYPING", data: { typing } });
   });
 
+  socket.on("start listening", () => {
+    const { user } = updateUserAttributes(socket.userId, {
+      status: "listening",
+    });
+    io.emit("event", {
+      type: "USER_JOINED",
+      data: {
+        user,
+        users,
+      },
+    });
+  });
+  socket.on("stop listening", () => {
+    const { user } = updateUserAttributes(socket.userId, {
+      status: "participating",
+    });
+    io.emit("event", {
+      type: "USER_JOINED",
+      data: {
+        user,
+        users,
+      },
+    });
+  });
+
   // when the user disconnects.. perform this
   socket.on("disconnect", () => {
     console.log("Disconnect", socket.username, socket.id);
@@ -486,16 +578,25 @@ const setMeta = async (station, title, options = {}) => {
   const album = info[2];
   fetching = true;
 
-  if (!artist & !album) {
+  if (!artist && !album) {
     fetching = false;
     meta = { ...station };
     io.emit("event", { type: "META", data: { meta: { ...station } } });
     return;
   }
   const release = settings.fetchMeta
-    ? await fetchReleaseInfo(`${artist} ${album}`)
+    ? await fetchReleaseInfo(`${track} ${artist} ${album}`)
     : {};
-  meta = { ...station, artist, album, track, release };
+
+  const queuedTrack = queue.find(({ uri }) => uri === release?.uri);
+  meta = {
+    ...station,
+    artist,
+    album,
+    track,
+    release,
+    dj: queuedTrack?.userId,
+  };
   const content = track
     ? `Up next: ${track} - ${artist} - ${album}`
     : `Up next: ${album}`;
@@ -517,14 +618,21 @@ const setMeta = async (station, title, options = {}) => {
       album,
       artist,
       track,
+      spotifyData: release,
       timestamp: Date.now(),
-      dj: find({ isDj: true }, users),
+      dj: find(
+        queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
+        users
+      ),
     },
     playlist
   );
   fetching = false;
   io.emit("event", { type: "META", data: { meta } });
   io.emit("event", { type: "PLAYLIST", data: playlist });
+  if (queuedTrack) {
+    queue = queue.filter(({ uri }) => uri !== queuedTrack.uri);
+  }
   fetching = false;
 };
 
@@ -535,16 +643,21 @@ setInterval(async () => {
   fetching = true;
 
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-  console.log(station);
   if ((!station || station.bitrate === "0") && !offline) {
     setMeta();
     console.log("set offline");
     offline = true;
     fetching = false;
+    if (oAuthInterval) {
+      clearInterval(oAuthInterval);
+    }
+    oAuthInterval = null;
+    console.log(station);
     return;
   }
 
   if (station && station.title !== meta.title && !offline) {
+    console.log(station);
     await setMeta(station, station.title);
   }
 
@@ -555,10 +668,18 @@ setInterval(async () => {
     station.bitrate !== "" &&
     station.bitrate !== "0"
   ) {
+    console.log(station);
     console.log("set online");
     cover = null;
     offline = false;
-    await setMeta(station);
+    try {
+      await refreshSpotifyToken();
+      oAuthInterval = setInterval(refreshSpotifyToken, fortyFiveMins);
+    } catch (e) {
+      console.log(e);
+    } finally {
+      await setMeta(station);
+    }
   }
   fetching = false;
 }, 3000);
