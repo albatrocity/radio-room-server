@@ -1,19 +1,21 @@
-const spotifyApi = require("./spotifyApi");
+const spotifyApi = require("../lib/spotifyApi");
 
-export default async function createAndPopulateSpotifyPlaylist(name, uids) {
-  const date_time = new Date(ts);
+async function createAndPopulateSpotifyPlaylist(name, uris) {
+  const date_time = new Date();
   const date = date_time.getDate();
   const month = date_time.getMonth() + 1;
   const year = date_time.getFullYear();
 
   const description = `Group Playlist ${month}-${date}-${year}`;
 
-  const data = await spotifyApi.createPlaylist(name, {
+  const { body } = await spotifyApi.createPlaylist(name, {
     description: description,
     public: true,
   });
 
-  await spotifyApi.addTracksToPlaylist(data.playlist.id, uids);
+  await spotifyApi.addTracksToPlaylist(body.id, uris);
 
-  return data.playlist;
+  return body;
 }
+
+module.exports = createAndPopulateSpotifyPlaylist;

@@ -31,9 +31,7 @@ const {
   get,
 } = require("lodash/fp");
 const { interpret } = require("xstate");
-const {
-  default: createAndPopulateSpotifyPlaylist,
-} = require("./operations/createAndPopulateSpotifyPlaylist");
+const createAndPopulateSpotifyPlaylist = require("./operations/createAndPopulateSpotifyPlaylist");
 
 const service = interpret(radioMachine);
 
@@ -451,13 +449,14 @@ io.on("connection", (socket) => {
     io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
   });
 
-  socket.on("save playlist", async ({ name, uids }) => {
-    console.log("SAVE PLAYLIST");
+  socket.on("save playlist", async ({ name, uris }) => {
+    console.log("SAVE PLAYLIST", name);
     try {
-      const data = await createAndPopulateSpotifyPlaylist(name, uids);
-      socket.emit("event", { type: "PLAYLIST SAVED", data });
+      const data = await createAndPopulateSpotifyPlaylist(name, uris);
+      socket.emit("event", { type: "PLAYLIST_SAVED", data });
     } catch (error) {
-      socket.emit("event", { type: "SAVE PLAYLIST FAILED", error });
+      console.log(error);
+      socket.emit("event", { type: "SAVE_PLAYLIST_FAILED", error });
     }
   });
 
