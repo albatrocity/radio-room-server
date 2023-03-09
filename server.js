@@ -594,6 +594,7 @@ const setMeta = async (station, title, options = {}) => {
     album,
     track,
     release,
+    cover,
     dj: queuedTrack?.userId,
   };
   const content = track
