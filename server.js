@@ -3,7 +3,6 @@ const express = require("express");
 const socketIO = require("socket.io");
 const redisAdapter = require("socket.io-redis");
 const fetchReleaseInfo = require("./lib/fetchReleaseInfo");
-const parseMessage = require("./lib/parseMessage");
 const systemMessage = require("./lib/systemMessage");
 const radioMachine = require("./lib/machines/radioMachine");
 const getStation = require("./lib/getStation");
@@ -12,6 +11,9 @@ const cookieParser = require("cookie-parser");
 const spotify = require("./spotify");
 const spotifyApi = require("./lib/spotifyApi");
 const refreshSpotifyToken = require("./lib/refreshSpotifyToken");
+
+const authHandlers = require("./handlers/authHandlers");
+const messageHandlers = require("./handlers/messageHandlers");
 
 const fortyFiveMins = 2700000;
 
@@ -32,6 +34,7 @@ const {
 } = require("lodash/fp");
 const { interpret } = require("xstate");
 const createAndPopulateSpotifyPlaylist = require("./operations/createAndPopulateSpotifyPlaylist");
+const activityHandlers = require("./handlers/activityHandlers");
 
 const service = interpret(radioMachine);
 
@@ -91,6 +94,20 @@ let reactions = {
 };
 let offline = true;
 let oAuthInterval;
+const dataStores = {
+  settings,
+  deputyDjs,
+  users,
+  messages,
+  typing,
+  meta,
+  cover,
+  fetching,
+  playlist,
+  queue,
+  reactions,
+  defaultSettings,
+};
 
 const cleanUsers = () => {
   users = users.filter((user) => !!user.userId);
@@ -120,113 +137,41 @@ const setPassword = (pw) => {
   }
 };
 
+const createGetter = (key) => (data) => {
+  return dataStores[key];
+};
+const createSetter = (key) => (data) => {
+  dataStores[key] = data;
+  console.log(dataStores);
+};
+const setters = {
+  setDeputyDjs: createSetter("deputyDjs"),
+  setUsers: createSetter("users"),
+  setMessages: createSetter("messages"),
+  setTyping: createSetter("typing"),
+  setSettings: createSetter("settings"),
+};
+const getters = {
+  getUsers: createGetter("users"),
+  getMessages: createGetter("messages"),
+  getSettings: createGetter("settings"),
+  getPlaylist: createGetter("playlist"),
+  getReactions: createGetter("reactions"),
+  getDeputyDjs: createGetter("deputyDjs"),
+  getCover: createGetter("cover"),
+  getMeta: createGetter("meta"),
+  getTyping: createGetter("typing"),
+  getDefaultSettings: createGetter("defaultSettings"),
+};
+
 io.on("connection", (socket) => {
   console.log("CONNECTION");
 
-  socket.on("check password", (submittedPassword) => {
-    socket.emit("event", {
-      type: "SET_PASSWORD_REQUIREMENT",
-      data: {
-        passwordRequired: !isNil(settings.password),
-        passwordAccepted: settings.password
-          ? submittedPassword === settings.password
-          : true,
-      },
-    });
-  });
-
-  socket.on("submit password", (submittedPassword) => {
-    socket.emit("event", {
-      type: "SET_PASSWORD_ACCEPTED",
-      data: {
-        passwordAccepted: settings.password === submittedPassword,
-      },
-    });
-  });
-
-  socket.on("login", ({ username, userId, password }) => {
-    console.log("USERID", userId);
-    socket.username = username;
-    socket.userId = userId;
-
-    console.log("LOGIN", userId);
-    const isDeputyDj = deputyDjs.includes(userId);
-
-    const newUser = {
-      username,
-      userId,
-      id: socket.id,
-      isDj: false,
-      isDeputyDj,
-      status: "participating",
-      connectedAt: new Date().toISOString(),
-    };
-    users = uniqBy("userId", users.concat(newUser));
-    console.log("USERS", users);
-
-    socket.broadcast.emit("event", {
-      type: "USER_JOINED",
-      data: {
-        user: newUser,
-        users,
-      },
-    });
-
-    socket.emit("event", {
-      type: "INIT",
-      data: {
-        users,
-        messages,
-        meta: cover ? { ...meta, cover } : meta,
-        playlist,
-        reactions,
-        currentUser: {
-          userId: socket.userId,
-          username: socket.username,
-          status: "participating",
-          isDeputyDj,
-        },
-      },
-    });
-  });
+  authHandlers(socket, io, getters, setters);
+  messageHandlers(socket, io, getters, setters);
+  activityHandlers(socket, io, getters, setters);
 
   // when the client emits 'new message', this listens and executes
-  socket.on("new message", (data) => {
-    // we tell the client to execute 'new message'
-    const { content, mentions } = parseMessage(data);
-    const payload = {
-      user: find({ id: socket.id }, users) || { username: socket.username },
-      content,
-      mentions,
-      timestamp: new Date().toISOString(),
-    };
-    typing = compact(uniq(reject({ userId: socket.userId }, typing)));
-    io.emit("event", { type: "TYPING", data: { typing } });
-    sendMessage(payload);
-  });
-
-  socket.on("change username", ({ userId, username }) => {
-    const user = find({ userId }, users);
-    const oldUsername = get("username", user);
-    if (user) {
-      const newUser = { ...user, username };
-      users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
-
-      const content = `${oldUsername} transformed into ${username}`;
-      const newMessage = systemMessage(content, {
-        oldUsername,
-        userId,
-      });
-      io.emit("event", {
-        type: "USER_JOINED",
-        data: {
-          user: newUser,
-          users,
-        },
-      });
-      sendMessage(newMessage);
-    }
-  });
 
   socket.on("set DJ", (userId) => {
     const user = find({ userId }, users);
@@ -443,12 +388,6 @@ io.on("connection", (socket) => {
     io.emit("event", { type: "PLAYLIST", data: playlist });
   });
 
-  socket.on("clear messages", () => {
-    console.log("CLEAR MESSAGES");
-    messages = [];
-    io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
-  });
-
   socket.on("save playlist", async ({ name, uris }) => {
     console.log("SAVE PLAYLIST", name);
     try {
@@ -495,69 +434,6 @@ io.on("connection", (socket) => {
       );
       await setMeta(station, get("title", station), { silent: true });
     }
-  });
-
-  // when the client emits 'typing', we broadcast it to others
-  socket.on("typing", () => {
-    typing = compact(
-      uniq(concat(typing, find({ userId: socket.userId }, users)))
-    );
-    socket.broadcast.emit("event", { type: "TYPING", data: { typing } });
-  });
-
-  // when the client emits 'stop typing', we broadcast it to others
-  socket.on("stop typing", () => {
-    typing = compact(uniq(reject({ userId: socket.userId }, typing)));
-    socket.broadcast.emit("event", { type: "TYPING", data: { typing } });
-  });
-
-  socket.on("start listening", () => {
-    const { user } = updateUserAttributes(socket.userId, {
-      status: "listening",
-    });
-    io.emit("event", {
-      type: "USER_JOINED",
-      data: {
-        user,
-        users,
-      },
-    });
-  });
-  socket.on("stop listening", () => {
-    const { user } = updateUserAttributes(socket.userId, {
-      status: "participating",
-    });
-    io.emit("event", {
-      type: "USER_JOINED",
-      data: {
-        user,
-        users,
-      },
-    });
-  });
-
-  // when the user disconnects.. perform this
-  socket.on("disconnect", () => {
-    console.log("Disconnect", socket.username, socket.id);
-    console.log("socket.id", socket.id);
-    const user = find({ userId: socket.userId }, users);
-    if (user && user.isDj) {
-      settings = { ...defaultSettings };
-      io.emit("event", { type: "SETTINGS", data: settings });
-    }
-
-    users = reject({ id: socket.id }, users);
-    console.log("DISCONNETED, UPDATED USER COUNT:", users.length);
-    console.log("USERS", users);
-
-    // echo globally that this client has left
-    socket.broadcast.emit("event", {
-      type: "USER_LEFT",
-      data: {
-        user: { username: socket.username },
-        users,
-      },
-    });
   });
 });
 
