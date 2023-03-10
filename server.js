@@ -9,11 +9,12 @@ const getStation = require("./lib/getStation");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const spotify = require("./spotify");
-const spotifyApi = require("./lib/spotifyApi");
 const refreshSpotifyToken = require("./lib/refreshSpotifyToken");
 
 const authHandlers = require("./handlers/authHandlers");
 const messageHandlers = require("./handlers/messageHandlers");
+const djHandlers = require("./handlers/djHandlers");
+const adminHandlers = require("./handlers/adminHandlers");
 
 const fortyFiveMins = 2700000;
 
@@ -75,8 +76,6 @@ const defaultSettings = {
   donationURL: undefined,
   password: null,
 };
-
-const reactionableTypes = ["message", "track"];
 
 let users = [];
 let messages = [];
@@ -142,26 +141,31 @@ const createGetter = (key) => (data) => {
 };
 const createSetter = (key) => (data) => {
   dataStores[key] = data;
-  console.log(dataStores);
+  return dataStores[key];
 };
 const setters = {
   setDeputyDjs: createSetter("deputyDjs"),
-  setUsers: createSetter("users"),
   setMessages: createSetter("messages"),
-  setTyping: createSetter("typing"),
+  setMeta: createSetter("meta"),
+  setPlaylist: createSetter("playlist"),
+  setQueue: createSetter("queue"),
+  setReactions: createSetter("reactions"),
   setSettings: createSetter("settings"),
+  setTyping: createSetter("typing"),
+  setUsers: createSetter("users"),
 };
 const getters = {
-  getUsers: createGetter("users"),
-  getMessages: createGetter("messages"),
-  getSettings: createGetter("settings"),
-  getPlaylist: createGetter("playlist"),
-  getReactions: createGetter("reactions"),
-  getDeputyDjs: createGetter("deputyDjs"),
   getCover: createGetter("cover"),
-  getMeta: createGetter("meta"),
-  getTyping: createGetter("typing"),
   getDefaultSettings: createGetter("defaultSettings"),
+  getDeputyDjs: createGetter("deputyDjs"),
+  getMessages: createGetter("messages"),
+  getMeta: createGetter("meta"),
+  getPlaylist: createGetter("playlist"),
+  getQueue: createGetter("queue"),
+  getReactions: createGetter("reactions"),
+  getSettings: createGetter("settings"),
+  getTyping: createGetter("typing"),
+  getUsers: createGetter("users"),
 };
 
 io.on("connection", (socket) => {
@@ -170,109 +174,10 @@ io.on("connection", (socket) => {
   authHandlers(socket, io, getters, setters);
   messageHandlers(socket, io, getters, setters);
   activityHandlers(socket, io, getters, setters);
+  djHandlers(socket, io, getters, setters);
+  adminHandlers(socket, io, getters, setters);
 
   // when the client emits 'new message', this listens and executes
-
-  socket.on("set DJ", (userId) => {
-    const user = find({ userId }, users);
-    if (user && user.isDj) {
-      return;
-    }
-    if (userId && user) {
-      const newUser = { ...user, isDj: true };
-      users = uniqBy(
-        "userId",
-        concat(
-          newUser,
-          reject(
-            { userId },
-            map((x) => ({ ...x, isDj: false }), users)
-          )
-        )
-      );
-      const content = `${user.username} is now the DJ`;
-      const newMessage = systemMessage(content, {
-        userId,
-      });
-      sendMessage(newMessage);
-      io.emit("event", {
-        type: "USER_JOINED",
-        data: {
-          user: newUser,
-          users,
-        },
-      });
-    } else {
-      users = uniqBy(
-        "userId",
-        map((x) => ({ ...x, isDj: false }), users)
-      );
-      const content = `There's currently no DJ.`;
-      const newMessage = systemMessage(content, {
-        userId,
-      });
-      sendMessage(newMessage);
-      io.emit("event", {
-        type: "USER_JOINED",
-        data: {
-          users,
-        },
-      });
-    }
-    settings = { ...defaultSettings };
-    io.emit("event", { type: "SETTINGS", data: settings });
-  });
-
-  socket.on("queue song", async (uri) => {
-    try {
-      console.log("uri", uri);
-      const data = await spotifyApi.addToQueue(uri);
-      const user = users.find(({ userId }) => userId === socket.userId);
-      queue = [...queue, { uri, userId: socket.userId }];
-      console.log(queue);
-      socket.emit("event", {
-        type: "SONG_QUEUED",
-        data,
-      });
-      const queueMessage = systemMessage(
-        `${user ? user.username : "Someone"} added a song to the queue`
-      );
-      sendMessage(queueMessage);
-    } catch (e) {
-      console.log("error");
-      console.log(e);
-      socket.emit("event", {
-        type: "SONG_QUEUE_FAILURE",
-        data: {
-          message: "Song could not be queued",
-          error: e.message,
-        },
-      });
-    }
-  });
-
-  socket.on("search spotify track", async ({ query, options }) => {
-    try {
-      const data = await spotifyApi.searchTracks(query, options);
-      socket.emit("event", {
-        type: "TRACK_SEARCH_RESULTS",
-        data: data.body.tracks,
-      });
-    } catch (e) {
-      const token = await refreshSpotifyToken();
-      if (token) {
-        spotifyApi.setAccessToken(token);
-      }
-      socket.emit("event", {
-        type: "TRACK_SEARCH_RESULTS_FAILURE",
-        data: {
-          message:
-            "Something went wrong when trying to search for tracks. You might need to log in to Spotify's OAuth",
-          error: e,
-        },
-      });
-    }
-  });
 
   socket.on("set password", (value) => {
     setPassword(value);
@@ -280,52 +185,6 @@ io.on("connection", (socket) => {
 
   socket.on("fix meta", (title) => {
     setMeta(meta.station, title);
-  });
-
-  socket.on("set cover", (url) => {
-    cover = url;
-    meta = { ...meta, cover: url };
-    io.emit("event", { type: "META", data: { meta } });
-  });
-
-  socket.on("get settings", (url) => {
-    console.log("GET SETTINGS", settings);
-    io.emit("event", { type: "SETTINGS", data: { settings } });
-  });
-
-  socket.on("add reaction", ({ emoji, reactTo, user }) => {
-    if (reactionableTypes.indexOf(reactTo.type) === -1) {
-      return;
-    }
-    reactions = {
-      ...reactions,
-      [reactTo.type]: {
-        ...reactions[reactTo.type],
-        [reactTo.id]: [
-          ...takeRight(199, reactions[reactTo.type][reactTo.id] || []),
-          { emoji: emoji.shortcodes, user: user.userId },
-        ],
-      },
-    };
-    io.emit("event", { type: "REACTIONS", data: { reactions } });
-  });
-
-  socket.on("remove reaction", ({ emoji, reactTo, user }) => {
-    if (reactionableTypes.indexOf(reactTo.type) === -1) {
-      return;
-    }
-
-    reactions = {
-      ...reactions,
-      [reactTo.type]: {
-        ...reactions[reactTo.type],
-        [reactTo.id]: reject(
-          { emoji: emoji.shortcodes, user: user.userId },
-          reactions[reactTo.type][reactTo.id] || []
-        ),
-      },
-    };
-    io.emit("event", { type: "REACTIONS", data: { reactions } });
   });
 
   socket.on("kick user", (user) => {
@@ -344,42 +203,6 @@ io.on("connection", (socket) => {
     if (io.sockets.sockets.get(socketId)) {
       io.sockets.sockets.get(socketId).disconnect();
     }
-  });
-
-  socket.on("dj deputize user", (userId) => {
-    const socketId = get("id", find({ userId }, users));
-    var eventType, message, user;
-
-    if (deputyDjs.includes(userId)) {
-      eventType = "END_DEPUTY_DJ_SESSION";
-      message = `You are no longer a deputy DJ`;
-      const result = updateUserAttributes(userId, { isDeputyDj: false });
-      user = result.user;
-      deputyDjs = deputyDjs.filter((x) => x !== userId);
-    } else {
-      eventType = "START_DEPUTY_DJ_SESSION";
-      message = `You've been promoted to a deputy DJ. You add song's to the DJ's queue.`;
-      const result = updateUserAttributes(userId, { isDeputyDj: true });
-      user = result.user;
-      deputyDjs = [...deputyDjs, userId];
-    }
-
-    io.to(socketId).emit(
-      "event",
-      {
-        type: "NEW_MESSAGE",
-        data: systemMessage(message, { type: "alert", status: "info" }),
-      },
-      { status: "info" }
-    );
-    io.to(socketId).emit("event", { type: eventType });
-    io.emit("event", {
-      type: "USER_JOINED",
-      data: {
-        user,
-        users,
-      },
-    });
   });
 
   socket.on("clear playlist", () => {
@@ -442,8 +265,7 @@ const setMeta = async (station, title, options = {}) => {
   const silent = options.silent || false;
   if (!station) {
     fetching = false;
-    meta = {};
-    io.emit("event", { type: "META", data: { meta } });
+    io.emit("event", { type: "META", data: { meta: setters.setMeta({}) } });
     return;
   }
   // Lookup and emit track meta
@@ -455,8 +277,8 @@ const setMeta = async (station, title, options = {}) => {
 
   if (!artist && !album) {
     fetching = false;
-    meta = { ...station };
-    io.emit("event", { type: "META", data: { meta: { ...station } } });
+    const newMeta = setMeta({ ...station });
+    io.emit("event", { type: "META", data: { meta: newMeta } });
     return;
   }
   const release = settings.fetchMeta
@@ -464,7 +286,7 @@ const setMeta = async (station, title, options = {}) => {
     : {};
 
   const queuedTrack = queue.find(({ uri }) => uri === release?.uri);
-  meta = {
+  const newMeta = {
     ...station,
     artist,
     album,
@@ -473,6 +295,7 @@ const setMeta = async (station, title, options = {}) => {
     cover,
     dj: queuedTrack?.userId,
   };
+  setters.setMeta(newMeta);
   const content = track
     ? `Up next: ${track} - ${artist} - ${album}`
     : `Up next: ${album}`;
@@ -488,26 +311,30 @@ const setMeta = async (station, title, options = {}) => {
     io.emit("event", { type: "NEW_MESSAGE", data: newMessage });
     messages = concat(newMessage, messages);
   }
-  playlist = concat(
-    {
-      text: `${track} - ${artist} - ${album}`,
-      album,
-      artist,
-      track,
-      spotifyData: release,
-      timestamp: Date.now(),
-      dj: find(
-        queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
-        users
-      ),
-    },
-    playlist
+  const newPlaylist = setters.setPlaylist(
+    concat(
+      {
+        text: `${track} - ${artist} - ${album}`,
+        album,
+        artist,
+        track,
+        spotifyData: release,
+        timestamp: Date.now(),
+        dj: find(
+          queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
+          users
+        ),
+      },
+      playlist
+    )
   );
   fetching = false;
-  io.emit("event", { type: "META", data: { meta } });
-  io.emit("event", { type: "PLAYLIST", data: playlist });
+  io.emit("event", { type: "META", data: { meta: newMeta } });
+  io.emit("event", { type: "PLAYLIST", data: newPlaylist });
   if (queuedTrack) {
-    queue = queue.filter(({ uri }) => uri !== queuedTrack.uri);
+    setters.setQueue(
+      getters.getQueue.filter(({ uri }) => uri !== queuedTrack.uri)
+    );
   }
   fetching = false;
 };
@@ -532,7 +359,7 @@ setInterval(async () => {
     return;
   }
 
-  if (station && station.title !== meta.title && !offline) {
+  if (station && station.title !== getters.getMeta().title && !offline) {
     console.log(station);
     await setMeta(station, station.title);
   }
