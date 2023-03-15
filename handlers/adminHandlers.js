@@ -1,10 +1,7 @@
 const { find, concat, reject, map, uniqBy, get } = require("lodash/fp");
 
 const systemMessage = require("../lib/systemMessage");
-const sendMessage = require("../lib/sendMessage");
 const updateUserAttributes = require("../lib/updateUserAttributes");
-const spotifyApi = require("../lib/spotifyApi");
-const refreshSpotifyToken = require("../lib/refreshSpotifyToken");
 const createAndPopulateSpotifyPlaylist = require("../operations/createAndPopulateSpotifyPlaylist");
 const getStation = require("../lib/getStation");
 
