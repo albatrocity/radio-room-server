@@ -223,7 +223,7 @@ const fetchAndSetMeta = async (station, title, options = {}) => {
   io.emit("event", { type: "PLAYLIST", data: newPlaylist });
   if (queuedTrack) {
     setters.setQueue(
-      getters.getQueue.filter(({ uri }) => uri !== queuedTrack.uri)
+      getters.getQueue().filter(({ uri }) => uri !== queuedTrack.uri)
     );
   }
   fetching = false;
