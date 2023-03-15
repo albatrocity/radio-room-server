@@ -173,7 +173,9 @@ const fetchAndSetMeta = async (station, title, options = {}) => {
     ? await fetchReleaseInfo(`${track} ${artist} ${album}`)
     : {};
 
-  const queuedTrack = queue.find(({ uri }) => uri === release?.uri);
+  const queuedTrack = getters
+    .getQueue()
+    .find(({ uri }) => uri === release?.uri);
   const newMeta = {
     ...station,
     artist,
