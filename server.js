@@ -212,7 +212,7 @@ const fetchAndSetMeta = async (station, title, options = {}) => {
         timestamp: Date.now(),
         dj: find(
           queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
-          users
+          getters.getUsers()
         ),
       },
       getters.getPlaylist()
