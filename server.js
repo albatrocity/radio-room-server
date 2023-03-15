@@ -1,4 +1,3 @@
-const util = require("util");
 const express = require("express");
 const socketIO = require("socket.io");
 const redisAdapter = require("socket.io-redis");
@@ -19,22 +18,8 @@ const adminHandlers = require("./handlers/adminHandlers");
 const fortyFiveMins = 2700000;
 
 const PORT = process.env.PORT || 3000;
-const {
-  reject,
-  find,
-  takeRight,
-  take,
-  concat,
-  map,
-  uniq,
-  uniqBy,
-  compact,
-  isEqual,
-  isNil,
-  get,
-} = require("lodash/fp");
+const { find, concat } = require("lodash/fp");
 const { interpret } = require("xstate");
-const createAndPopulateSpotifyPlaylist = require("./operations/createAndPopulateSpotifyPlaylist");
 const activityHandlers = require("./handlers/activityHandlers");
 
 const service = interpret(radioMachine);
@@ -67,8 +52,6 @@ const io = socketIO(server, {
 });
 
 io.adapter(redisAdapter(process.env.REDIS_URL || "redis://127.0.0.1:6379"));
-
-let numUsers = 0;
 
 const defaultSettings = {
   fetchMeta: true,
@@ -108,31 +91,15 @@ const dataStores = {
   defaultSettings,
 };
 
-const cleanUsers = () => {
-  users = users.filter((user) => !!user.userId);
-  return users;
-};
-
-const updateUserAttributes = (userId, attributes) => {
-  const user = find({ userId }, users);
-  const newUser = { ...user, ...attributes };
-  users = uniqBy("userId", concat(newUser, reject({ userId }, users)));
-  return { users: cleanUsers(), user: newUser };
-};
-
-const sendMessage = (message) => {
-  io.emit("event", { type: "NEW_MESSAGE", data: message });
-  console.log("new message", message);
-  messages = take(120, concat(message, messages));
-};
-
 const setPassword = (pw) => {
   if (value === "") {
     console.log("clear password?");
     settings.password = null;
+    return null;
   } else {
     console.log("else set it", value);
     settings.password = pw;
+    return pw;
   }
 };
 
@@ -153,6 +120,8 @@ const setters = {
   setSettings: createSetter("settings"),
   setTyping: createSetter("typing"),
   setUsers: createSetter("users"),
+  setCover: createSetter("cover"),
+  setPassword,
 };
 const getters = {
   getCover: createGetter("cover"),
@@ -175,92 +144,11 @@ io.on("connection", (socket) => {
   messageHandlers(socket, io, getters, setters);
   activityHandlers(socket, io, getters, setters);
   djHandlers(socket, io, getters, setters);
-  adminHandlers(socket, io, getters, setters);
-
-  // when the client emits 'new message', this listens and executes
-
-  socket.on("set password", (value) => {
-    setPassword(value);
-  });
-
-  socket.on("fix meta", (title) => {
-    setMeta(meta.station, title);
-  });
-
-  socket.on("kick user", (user) => {
-    console.log("kick user", user);
-    const { userId } = user;
-    const socketId = get("id", find({ userId }, users));
-
-    const newMessage = systemMessage(
-      `You have been kicked. I hope you deserved it.`,
-      { status: "error", type: "alert", title: "Kicked" }
-    );
-
-    io.to(socketId).emit("event", { type: "NEW_MESSAGE", data: newMessage });
-    io.to(socketId).emit("event", { type: "KICKED" });
-
-    if (io.sockets.sockets.get(socketId)) {
-      io.sockets.sockets.get(socketId).disconnect();
-    }
-  });
-
-  socket.on("clear playlist", () => {
-    playlist = [];
-    queue = [];
-    io.emit("event", { type: "PLAYLIST", data: playlist });
-  });
-
-  socket.on("save playlist", async ({ name, uris }) => {
-    console.log("SAVE PLAYLIST", name);
-    try {
-      const data = await createAndPopulateSpotifyPlaylist(name, uris);
-      socket.emit("event", { type: "PLAYLIST_SAVED", data });
-    } catch (error) {
-      console.log(error);
-      socket.emit("event", { type: "SAVE_PLAYLIST_FAILED", error });
-    }
-  });
-
-  socket.on("settings", async (values) => {
-    const { donationURL, extraInfo, fetchMeta, password } = values;
-    const prevSettings = { ...settings };
-    settings = {
-      fetchMeta,
-      donationURL,
-      extraInfo,
-      password,
-    };
-    io.emit("event", { type: "SETTINGS", data: settings });
-
-    if (
-      prevSettings.donationURL !== values.donationURL ||
-      prevSettings.extraInfo !== values.extraInfo
-    ) {
-      const { user } = updateUserAttributes(socket.userId, {
-        donationURL,
-        extraInfo,
-      });
-      io.emit("event", {
-        type: "USER_JOINED",
-        data: {
-          user,
-          users,
-        },
-      });
-    }
-
-    if (!prevSettings.fetchMeta && values.fetchMeta) {
-      console.log("fetchMeta turned on");
-      const station = await getStation(
-        `${streamURL}/stream?type=http&nocache=4`
-      );
-      await setMeta(station, get("title", station), { silent: true });
-    }
-  });
+  adminHandlers(socket, io, getters, setters, { fetchAndSetMeta });
 });
 
-const setMeta = async (station, title, options = {}) => {
+const fetchAndSetMeta = async (station, title, options = {}) => {
+  console.log("fetchMeta=====", getters.getSettings().fetchMeta);
   console.log("setMeta");
   const silent = options.silent || false;
   if (!station) {
@@ -277,11 +165,11 @@ const setMeta = async (station, title, options = {}) => {
 
   if (!artist && !album) {
     fetching = false;
-    const newMeta = setMeta({ ...station });
+    const newMeta = fetchAndSetMeta({ ...station });
     io.emit("event", { type: "META", data: { meta: newMeta } });
     return;
   }
-  const release = settings.fetchMeta
+  const release = getters.getSettings().fetchMeta
     ? await fetchReleaseInfo(`${track} ${artist} ${album}`)
     : {};
 
@@ -292,7 +180,7 @@ const setMeta = async (station, title, options = {}) => {
     album,
     track,
     release,
-    cover,
+    cover: getters.getCover(),
     dj: queuedTrack?.userId,
   };
   setters.setMeta(newMeta);
@@ -347,7 +235,7 @@ setInterval(async () => {
 
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
   if ((!station || station.bitrate === "0") && !offline) {
-    setMeta();
+    fetchAndSetMeta();
     console.log("set offline");
     offline = true;
     fetching = false;
@@ -361,7 +249,7 @@ setInterval(async () => {
 
   if (station && station.title !== getters.getMeta().title && !offline) {
     console.log(station);
-    await setMeta(station, station.title);
+    await fetchAndSetMeta(station, station.title);
   }
 
   if (
@@ -373,7 +261,7 @@ setInterval(async () => {
   ) {
     console.log(station);
     console.log("set online");
-    cover = null;
+    setters.setCover(null);
     offline = false;
     try {
       await refreshSpotifyToken();
@@ -381,7 +269,7 @@ setInterval(async () => {
     } catch (e) {
       console.log(e);
     } finally {
-      await setMeta(station);
+      await fetchAndSetMeta(station);
     }
   }
   fetching = false;
