@@ -1,4 +1,5 @@
-const { find, concat, reject, map, uniqBy, get } = require("lodash/fp");
+const { find, get } = require("lodash/fp");
+const streamURL = process.env.SERVER_URL;
 
 const systemMessage = require("../lib/systemMessage");
 const updateUserAttributes = require("../lib/updateUserAttributes");
