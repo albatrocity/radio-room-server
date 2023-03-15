@@ -213,7 +213,7 @@ const fetchAndSetMeta = async (station, title, options = {}) => {
           users
         ),
       },
-      playlist
+      getters.getPlaylist()
     )
   );
   fetching = false;
