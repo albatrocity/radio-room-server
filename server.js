@@ -197,7 +197,7 @@ const fetchAndSetMeta = async (station, title, options = {}) => {
 
   if (!silent) {
     io.emit("event", { type: "NEW_MESSAGE", data: newMessage });
-    messages = concat(newMessage, messages);
+    setters.setMessages(concat(newMessage, messages));
   }
   const newPlaylist = setters.setPlaylist(
     concat(
