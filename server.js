@@ -183,7 +183,7 @@ const fetchAndSetMeta = async (station, title, options = {}) => {
     track,
     release,
     cover: getters.getCover(),
-    dj: queuedTrack?.userId,
+    dj: { userId: queuedTrack?.userId, username: queuedTrack?.username },
   };
   setters.setMeta(newMeta);
   const content = track

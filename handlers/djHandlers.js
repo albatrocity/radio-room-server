@@ -112,7 +112,10 @@ module.exports = function djHandlers(
     try {
       const data = await spotifyApi.addToQueue(uri);
       const user = getUsers().find(({ userId }) => userId === socket.userId);
-      setQueue([...getQueue(), { uri, userId: socket.userId }]);
+      setQueue([
+        ...getQueue(),
+        { uri, userId: socket.userId, username: user.username },
+      ]);
       socket.emit("event", {
         type: "SONG_QUEUED",
         data,
