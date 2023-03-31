@@ -110,18 +110,41 @@ module.exports = function djHandlers(
 
   socket.on("queue song", async (uri) => {
     try {
+      const currentUser = getUsers().find(
+        ({ userId }) => userId === socket.userId
+      );
+      const inQueue = getQueue().find((x) => x.uri === uri);
+
+      if (inQueue) {
+        const djUsername =
+          getUsers().find(({ userId }) => userId === inQueue.userId)
+            ?.username || "Someone";
+        socket.emit("event", {
+          type: "SONG_QUEUE_FAILURE",
+          data: {
+            message:
+              inQueue.userId === socket.userId
+                ? "You've already queued that song, please choose another"
+                : `${djUsername} has already queued that song. Please try a different song.`,
+          },
+        });
+        return;
+      }
+
       const data = await spotifyApi.addToQueue(uri);
-      const user = getUsers().find(({ userId }) => userId === socket.userId);
+
       setQueue([
         ...getQueue(),
-        { uri, userId: socket.userId, username: user.username },
+        { uri, userId: socket.userId, username: currentUser?.username },
       ]);
       socket.emit("event", {
         type: "SONG_QUEUED",
         data,
       });
       const queueMessage = systemMessage(
-        `${user ? user.username : "Someone"} added a song to the queue`
+        `${
+          currentUser ? currentUser.username : "Someone"
+        } added a song to the queue`
       );
       sendMessage(io, queueMessage, { getMessages, setMessages });
     } catch (e) {
