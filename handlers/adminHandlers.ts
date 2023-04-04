@@ -1,12 +1,12 @@
-const { find, get } = require("lodash/fp");
+import { find, get } from "lodash/fp";
+import systemMessage from "../lib/systemMessage";
+import updateUserAttributes from "../lib/updateUserAttributes";
+import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
+import getStation from "../lib/getStation";
+
 const streamURL = process.env.SERVER_URL;
 
-const systemMessage = require("../lib/systemMessage");
-const updateUserAttributes = require("../lib/updateUserAttributes");
-const createAndPopulateSpotifyPlaylist = require("../operations/createAndPopulateSpotifyPlaylist");
-const getStation = require("../lib/getStation");
-
-module.exports = function djHandlers(
+function adminHandlers(
   socket,
   io,
   { getUsers, getSettings, getMeta },
@@ -116,4 +116,6 @@ module.exports = function djHandlers(
     setQueue([]);
     io.emit("event", { type: "PLAYLIST", data: [] });
   });
-};
+}
+
+export default adminHandlers;

@@ -1,8 +1,9 @@
-const { reject, find, concat, uniqBy } = require("lodash/fp");
+import { reject, find, concat, uniqBy } from "lodash/fp";
+import { User } from "../types/User";
 
-module.exports = function updateUserAttributes(
-  userId,
-  attributes,
+function updateUserAttributes(
+  userId: string,
+  attributes: Partial<User>,
   { getUsers, setUsers }
 ) {
   const users = getUsers();
@@ -12,4 +13,6 @@ module.exports = function updateUserAttributes(
   const cleanedUsers = newUsers.filter((user) => !!user.userId);
   setUsers(cleanedUsers);
   return { users: cleanedUsers, user: newUser };
-};
+}
+
+export default updateUserAttributes;

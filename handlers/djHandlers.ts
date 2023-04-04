@@ -1,12 +1,12 @@
-const { find, concat, reject, map, uniqBy, get } = require("lodash/fp");
+import { find, concat, reject, map, uniqBy, get } from "lodash/fp";
 
-const systemMessage = require("../lib/systemMessage");
-const sendMessage = require("../lib/sendMessage");
-const updateUserAttributes = require("../lib/updateUserAttributes");
-const spotifyApi = require("../lib/spotifyApi");
-const refreshSpotifyToken = require("../lib/refreshSpotifyToken");
+import systemMessage from "../lib/systemMessage";
+import sendMessage from "../lib/sendMessage";
+import updateUserAttributes from "../lib/updateUserAttributes";
+import spotifyApi from "../lib/spotifyApi";
+import refreshSpotifyToken from "../lib/refreshSpotifyToken";
 
-module.exports = function djHandlers(
+function djHandlers(
   socket,
   io,
   { getUsers, getMessages, getDefaultSettings, getDeputyDjs, getQueue },
@@ -182,4 +182,6 @@ module.exports = function djHandlers(
       });
     }
   });
-};
+}
+
+export default djHandlers;

@@ -1,22 +1,9 @@
-const systemMessage = require("../lib/systemMessage");
-const sendMessage = require("../lib/sendMessage");
+import systemMessage from "../lib/systemMessage";
+import sendMessage from "../lib/sendMessage";
 
-const {
-  reject,
-  find,
-  takeRight,
-  take,
-  concat,
-  map,
-  uniq,
-  uniqBy,
-  compact,
-  isEqual,
-  isNil,
-  get,
-} = require("lodash/fp");
+import { reject, find, concat, uniqBy, isNil, get } from "lodash/fp";
 
-module.exports = function authHandlers(
+function authHandlers(
   socket,
   io,
   {
@@ -28,8 +15,9 @@ module.exports = function authHandlers(
     getDeputyDjs,
     getCover,
     getMeta,
+    getDefaultSettings,
   },
-  { setUsers, setMessages }
+  { setUsers, setMessages, setSettings }
 ) {
   const settings = getSettings();
   socket.on("check password", (submittedPassword) => {
@@ -159,4 +147,6 @@ module.exports = function authHandlers(
       },
     });
   });
-};
+}
+
+export default authHandlers;

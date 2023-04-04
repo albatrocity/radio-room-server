@@ -1,4 +1,4 @@
-const spotifyApi = require("../lib/spotifyApi");
+import spotifyApi from "../lib/spotifyApi";
 
 async function createAndPopulateSpotifyPlaylist(name, uris) {
   const date_time = new Date();
@@ -18,4 +18,4 @@ async function createAndPopulateSpotifyPlaylist(name, uris) {
   return body;
 }
 
-module.exports = createAndPopulateSpotifyPlaylist;
+export default createAndPopulateSpotifyPlaylist;

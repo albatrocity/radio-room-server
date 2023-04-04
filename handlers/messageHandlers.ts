@@ -1,36 +1,12 @@
-const systemMessage = require("../lib/systemMessage");
-const parseMessage = require("../lib/parseMessage");
-const sendMessage = require("../lib/sendMessage");
+import parseMessage from "../lib/parseMessage";
+import sendMessage from "../lib/sendMessage";
 
-const {
-  reject,
-  find,
-  takeRight,
-  take,
-  concat,
-  map,
-  uniq,
-  uniqBy,
-  compact,
-  isEqual,
-  isNil,
-  get,
-} = require("lodash/fp");
+const { reject, find, concat, uniq, compact } = require("lodash/fp");
 
-module.exports = function authHandlers(
+function authHandlers(
   socket,
   io,
-  {
-    getUsers,
-    getMessages,
-    getPlaylist,
-    getReactions,
-    getSettings,
-    getDeputyDjs,
-    getCover,
-    getMeta,
-    getTyping,
-  },
+  { getUsers, getMessages, getTyping },
   { setUsers, setMessages, setTyping }
 ) {
   socket.on("new message", (data) => {
@@ -77,4 +53,6 @@ module.exports = function authHandlers(
       data: { typing: newTyping },
     });
   });
-};
+}
+
+export default authHandlers;

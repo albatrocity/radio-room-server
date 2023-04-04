@@ -1,22 +1,19 @@
-const spotifyApi = require("./spotifyApi");
-const { createClient } = require("../redisClient");
+import spotifyApi from "./spotifyApi";
+import { createClient } from "../redisClient";
 
-const constants = require("./constants");
+import { SPOTIFY_REFRESH_TOKEN, SPOTIFY_ACCESS_TOKEN } from "./constants";
 
 async function refreshSpotifyToken() {
   console.log("refresh OAuth token");
   const redisClient = await createClient();
 
-  const refreshToken = await redisClient.get(constants.SPOTIFY_REFRESH_TOKEN);
+  const refreshToken = await redisClient.get(SPOTIFY_REFRESH_TOKEN);
   if (refreshToken) {
     spotifyApi.setRefreshToken(refreshToken);
 
     const data = await spotifyApi.refreshAccessToken();
     spotifyApi.setAccessToken(data.body["access_token"]);
-    await redisClient.set(
-      constants.SPOTIFY_ACCESS_TOKEN,
-      data.body["access_token"]
-    );
+    await redisClient.set(SPOTIFY_ACCESS_TOKEN, data.body["access_token"]);
     redisClient.disconnect();
     return data.body["access_token"];
   }
@@ -24,4 +21,4 @@ async function refreshSpotifyToken() {
   return null;
 }
 
-module.exports = refreshSpotifyToken;
+export default refreshSpotifyToken;
