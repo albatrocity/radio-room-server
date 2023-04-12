@@ -1,6 +1,6 @@
 import express from "express";
 import { Server, Socket } from "socket.io";
-import { createAdapter, RedisAdapter } from "@socket.io/redis-adapter";
+import { createAdapter } from "@socket.io/redis-adapter";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { find } from "lodash/fp";
@@ -58,6 +58,8 @@ const pubClient = createClient({
 });
 const subClient = pubClient.duplicate();
 const redisAdapter = createAdapter(pubClient, subClient);
+
+// eslint-disable-next-line
 io.adapter(redisAdapter);
 
 const defaultSettings: Settings = {
@@ -71,6 +73,7 @@ let offline = true;
 let oAuthInterval: NodeJS.Timer | null;
 
 const dataStores: DataStores = {
+  station: undefined,
   settings: { ...defaultSettings },
   deputyDjs: [],
   users: [],
@@ -103,7 +106,7 @@ io.on("connection", (socket: Socket) => {
 
 const fetchAndSetMeta = async (
   station?: Station,
-  title: string,
+  title?: string,
   options: FetchMetaOptions = {}
 ) => {
   console.log("fetchMeta=====", getters.getSettings().fetchMeta);

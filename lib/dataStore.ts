@@ -5,7 +5,7 @@ import { QueuedTrack } from "../types/QueuedTrack";
 import { Reaction } from "../types/Reaction";
 import { Settings } from "../types/Settings";
 import { Station } from "types/Station";
-import { DataStores } from "types/DataStores";
+import { DataStores, Setter, Getter } from "types/DataStores";
 
 export function createGetter<T>(dataStores: DataStores, key: keyof DataStores) {
   return (): T => {
@@ -31,7 +31,10 @@ export function createGetters(dataStores: DataStores) {
   };
 }
 
-export function createSetter<T>(dataStores: DataStores, key: keyof DataStores) {
+export function createSetter<T>(
+  dataStores: DataStores,
+  key: keyof DataStores
+): Setter<T> {
   return (data: T) => {
     dataStores[key] = data;
     return dataStores[key];
@@ -49,7 +52,7 @@ export function createSetters(dataStores: DataStores) {
     setSettings: createSetter<Settings>(dataStores, "settings"),
     setTyping: createSetter<User[]>(dataStores, "typing"),
     setUsers: createSetter<User[]>(dataStores, "users"),
-    setCover: createSetter<string>(dataStores, "cover"),
+    setCover: createSetter<string | null>(dataStores, "cover"),
     setFetching: createSetter<boolean>(dataStores, "fetching"),
     setPassword: (pw: string) => setPassword(dataStores, pw),
     setStation: createSetter<Station>(dataStores, "station"),

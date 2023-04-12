@@ -21,5 +21,8 @@ export type DataStores = {
     track: {};
   };
   defaultSettings: Settings;
-  station: Station;
+  station?: Station;
 };
+
+export type Setter<T> = (data: T) => void;
+export type Getter<T> = () => T;

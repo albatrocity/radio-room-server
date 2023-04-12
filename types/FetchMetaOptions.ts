@@ -1,1 +1,3 @@
-export type FetchMetaOptions = {};
+export type FetchMetaOptions = {
+  silent?: boolean;
+};

@@ -2,10 +2,12 @@ import systemMessage from "../lib/systemMessage";
 import sendMessage from "../lib/sendMessage";
 
 import { reject, find, concat, uniqBy, isNil, get } from "lodash/fp";
+import { Server, Socket } from "socket.io";
+import { Setter, Getter } from "types/DataStores";
 
 function authHandlers(
-  socket,
-  io,
+  socket: Socket,
+  io: Server,
   {
     getUsers,
     getMessages,
@@ -16,8 +18,8 @@ function authHandlers(
     getCover,
     getMeta,
     getDefaultSettings,
-  },
-  { setUsers, setMessages, setSettings }
+  }: Record<string, Setter<any>>,
+  { setUsers, setMessages, setSettings }: Record<string, Getter<any>
 ) {
   const settings = getSettings();
   socket.on("check password", (submittedPassword) => {
