@@ -58,10 +58,8 @@ const pubClient = createClient({
   url: process.env.REDIS_URL || "redis://127.0.0.1:6379",
 });
 const subClient = pubClient.duplicate();
-const redisAdapter = createAdapter(pubClient, subClient);
 
-// eslint-disable-next-line
-io.adapter(redisAdapter);
+io.adapter(createAdapter(pubClient, subClient));
 
 const defaultSettings: Settings = {
   fetchMeta: true,
