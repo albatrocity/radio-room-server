@@ -2,11 +2,13 @@ import systemMessage from "../lib/systemMessage";
 import sendMessage from "../lib/sendMessage";
 
 import { reject, find, concat, uniqBy, isNil, get } from "lodash/fp";
-import { Server, Socket } from "socket.io";
-import { Setter, Getter } from "types/DataStores";
+import { Server } from "socket.io";
+import { Setters, Getters } from "types/DataStores";
+import { RadioSocket } from "types/RadioSocket";
+import { User } from "types/User";
 
 function authHandlers(
-  socket: Socket,
+  socket: RadioSocket,
   io: Server,
   {
     getUsers,
@@ -18,8 +20,8 @@ function authHandlers(
     getCover,
     getMeta,
     getDefaultSettings,
-  }: Record<string, Setter<any>>,
-  { setUsers, setMessages, setSettings }: Record<string, Getter<any>
+  }: Getters,
+  { setUsers, setMessages, setSettings }: Setters
 ) {
   const settings = getSettings();
   socket.on("check password", (submittedPassword) => {
@@ -60,7 +62,7 @@ function authHandlers(
       id: socket.id,
       isDj: false,
       isDeputyDj,
-      status: "participating",
+      status: "participating" as const,
       connectedAt: new Date().toISOString(),
     };
     const newUsers = uniqBy("userId", users.concat(newUser));
@@ -98,7 +100,7 @@ function authHandlers(
     const user = find({ userId }, users);
     const oldUsername = get("username", user);
     if (user) {
-      const newUser = { ...user, username };
+      const newUser: User = { ...user, username };
       const newUsers = uniqBy(
         "userId",
         concat(newUser, reject({ userId }, users))
@@ -123,7 +125,6 @@ function authHandlers(
     }
   });
 
-  // when the user disconnects.. perform this
   socket.on("disconnect", () => {
     console.log("Disconnect", socket.username, socket.id);
     console.log("socket.id", socket.id);
@@ -135,12 +136,10 @@ function authHandlers(
       io.emit("event", { type: "SETTINGS", data: newSettings });
     }
 
-    const newUsers = reject({ id: socket.id }, users);
+    const newUsers = reject({ userId: socket.id }, users);
     setUsers(newUsers);
     console.log("DISCONNETED, UPDATED USER COUNT:", newUsers.length);
-    console.log("USERS", newUsers);
 
-    // echo globally that this client has left
     socket.broadcast.emit("event", {
       type: "USER_LEFT",
       data: {

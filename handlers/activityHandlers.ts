@@ -2,16 +2,18 @@ import { takeRight, reject } from "lodash/fp";
 
 import updateUserAttributes from "../lib/updateUserAttributes";
 import { REACTIONABLE_TYPES } from "../lib/constants";
-import { EmojiReaction } from "../types/EmojiReaction";
 import { ReactionSubject } from "../types/ReactionSubject";
 import { Emoji } from "@emoji-mart/data";
 import { User } from "../types/User";
+import { RadioSocket } from "types/RadioSocket";
+import { Server } from "socket.io";
+import { Getters, Setters } from "types/DataStores";
 
 function activityHandlers(
-  socket,
-  io,
-  { getUsers, getReactions },
-  { setUsers, setReactions }
+  socket: RadioSocket,
+  io: Server,
+  { getUsers, getReactions }: Getters,
+  { setUsers, setReactions }: Setters
 ) {
   socket.on("start listening", () => {
     const { user, users } = updateUserAttributes(

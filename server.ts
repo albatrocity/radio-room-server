@@ -1,5 +1,5 @@
 import express from "express";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -23,6 +23,7 @@ import { FetchMetaOptions } from "./types/FetchMetaOptions";
 import { Settings } from "./types/Settings";
 import { DataStores } from "./types/DataStores";
 import { Station } from "types/Station";
+import { RadioSocket } from "types/RadioSocket";
 
 const fortyFiveMins = 2700000;
 
@@ -94,7 +95,7 @@ const dataStores: DataStores = {
 const getters = createGetters(dataStores);
 const setters = createSetters(dataStores);
 
-io.on("connection", (socket: Socket) => {
+io.on("connection", (socket: RadioSocket) => {
   console.log("CONNECTION");
 
   authHandlers(socket, io, getters, setters);

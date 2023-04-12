@@ -2,18 +2,27 @@ import { User } from "../types/User";
 import { ChatMessage } from "../types/ChatMessage";
 import { PlaylistTrack } from "../types/PlaylistTrack";
 import { QueuedTrack } from "../types/QueuedTrack";
-import { Reaction } from "../types/Reaction";
 import { Settings } from "../types/Settings";
 import { Station } from "types/Station";
-import { DataStores, Setter, Getter } from "types/DataStores";
+import {
+  DataStores,
+  Setter,
+  Getter,
+  Setters,
+  Getters,
+  ReactionStore,
+} from "types/DataStores";
 
-export function createGetter<T>(dataStores: DataStores, key: keyof DataStores) {
+export function createGetter<T>(
+  dataStores: DataStores,
+  key: keyof DataStores
+): Getter<T> {
   return (): T => {
     return dataStores[key];
   };
 }
 
-export function createGetters(dataStores: DataStores) {
+export function createGetters(dataStores: DataStores): Getters {
   return {
     getCover: createGetter<string>(dataStores, "cover"),
     getDefaultSettings: createGetter<Settings>(dataStores, "defaultSettings"),
@@ -22,7 +31,7 @@ export function createGetters(dataStores: DataStores) {
     getMeta: createGetter<any>(dataStores, "meta"),
     getPlaylist: createGetter<PlaylistTrack[]>(dataStores, "playlist"),
     getQueue: createGetter<QueuedTrack[]>(dataStores, "queue"),
-    getReactions: createGetter<Reaction[]>(dataStores, "reactions"),
+    getReactions: createGetter<ReactionStore>(dataStores, "reactions"),
     getSettings: createGetter<Settings>(dataStores, "settings"),
     getTyping: createGetter<User[]>(dataStores, "typing"),
     getUsers: createGetter<User[]>(dataStores, "users"),
@@ -41,14 +50,14 @@ export function createSetter<T>(
   };
 }
 
-export function createSetters(dataStores: DataStores) {
+export function createSetters(dataStores: DataStores): Setters {
   return {
     setDeputyDjs: createSetter<User["userId"][]>(dataStores, "deputyDjs"),
     setMessages: createSetter<ChatMessage[]>(dataStores, "messages"),
     setMeta: createSetter<any>(dataStores, "meta"),
     setPlaylist: createSetter<PlaylistTrack[]>(dataStores, "playlist"),
     setQueue: createSetter<QueuedTrack[]>(dataStores, "queue"),
-    setReactions: createSetter<Reaction[]>(dataStores, "reactions"),
+    setReactions: createSetter<ReactionStore>(dataStores, "reactions"),
     setSettings: createSetter<Settings>(dataStores, "settings"),
     setTyping: createSetter<User[]>(dataStores, "typing"),
     setUsers: createSetter<User[]>(dataStores, "users"),

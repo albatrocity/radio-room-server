@@ -1,13 +1,16 @@
+import { RadioSocket } from "types/RadioSocket";
 import parseMessage from "../lib/parseMessage";
 import sendMessage from "../lib/sendMessage";
+import { Server } from "socket.io";
+import { Getters, Setters } from "types/DataStores";
 
 const { reject, find, concat, uniq, compact } = require("lodash/fp");
 
 function authHandlers(
-  socket,
-  io,
-  { getUsers, getMessages, getTyping },
-  { setUsers, setMessages, setTyping }
+  socket: RadioSocket,
+  io: Server,
+  { getUsers, getMessages, getTyping }: Getters,
+  { setUsers, setMessages, setTyping }: Setters
 ) {
   socket.on("new message", (data) => {
     // we tell the client to execute 'new message'

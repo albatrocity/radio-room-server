@@ -1,15 +1,20 @@
 import { find, get } from "lodash/fp";
 import systemMessage from "../lib/systemMessage";
-import updateUserAttributes from "../lib/updateUserAttributes";
+// import updateUserAttributes from "../lib/updateUserAttributes";
 import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
 import getStation from "../lib/getStation";
+import { RadioSocket } from "types/RadioSocket";
+import { Server } from "socket.io";
+import { Getters, Setters } from "types/DataStores";
+import { FetchMetaOptions } from "types/FetchMetaOptions";
+import { Station } from "types/Station";
 
 const streamURL = process.env.SERVER_URL;
 
 function adminHandlers(
-  socket,
-  io,
-  { getUsers, getSettings, getMeta },
+  socket: RadioSocket,
+  io: Server,
+  { getUsers, getSettings, getMeta }: Getters,
   {
     setUsers,
     setSettings,
@@ -18,8 +23,16 @@ function adminHandlers(
     setCover,
     setPlaylist,
     setQueue,
-  },
-  { fetchAndSetMeta }
+  }: Setters,
+  {
+    fetchAndSetMeta,
+  }: {
+    fetchAndSetMeta: (
+      station?: Station,
+      title?: string,
+      options?: FetchMetaOptions
+    ) => void;
+  }
 ) {
   socket.on("set cover", (url) => {
     setCover(url);
@@ -37,7 +50,7 @@ function adminHandlers(
   });
 
   socket.on("fix meta", (title) => {
-    fetchAndSetMeta(meta.station, title);
+    fetchAndSetMeta(getMeta().station, title);
   });
 
   socket.on("kick user", (user) => {
@@ -54,7 +67,7 @@ function adminHandlers(
     io.to(socketId).emit("event", { type: "KICKED" });
 
     if (io.sockets.sockets.get(socketId)) {
-      io.sockets.sockets.get(socketId).disconnect();
+      io.sockets.sockets.get(socketId)?.disconnect();
     }
   });
 
@@ -85,21 +98,22 @@ function adminHandlers(
       prevSettings.donationURL !== values.donationURL ||
       prevSettings.extraInfo !== values.extraInfo
     ) {
-      const { user } = updateUserAttributes(
-        socket.userId,
-        {
-          donationURL,
-          extraInfo,
-        },
-        { getUsers, setUsers }
-      );
-      io.emit("event", {
-        type: "USER_JOINED",
-        data: {
-          user,
-          users: getUsers(),
-        },
-      });
+      setSettings(newSettings);
+      // const { user } = updateUserAttributes(
+      //   socket.userId,
+      //   {
+      //     donationURL,
+      //     extraInfo,
+      //   },
+      //   { getUsers, setUsers }
+      // );
+      // io.emit("event", {
+      //   type: "USER_JOINED",
+      //   data: {
+      //     user,
+      //     users: getUsers(),
+      //   },
+      // });
     }
 
     if (!prevSettings.fetchMeta && values.fetchMeta) {

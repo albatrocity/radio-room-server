@@ -5,12 +5,21 @@ import sendMessage from "../lib/sendMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
 import spotifyApi from "../lib/spotifyApi";
 import refreshSpotifyToken from "../lib/refreshSpotifyToken";
+import { RadioSocket } from "types/RadioSocket";
+import { Server } from "socket.io";
+import { Getters, Setters } from "types/DataStores";
 
 function djHandlers(
-  socket,
-  io,
-  { getUsers, getMessages, getDefaultSettings, getDeputyDjs, getQueue },
-  { setUsers, setMessages, setSettings, setDeputyDjs, setQueue }
+  socket: RadioSocket,
+  io: Server,
+  {
+    getUsers,
+    getMessages,
+    getDefaultSettings,
+    getDeputyDjs,
+    getQueue,
+  }: Getters,
+  { setUsers, setMessages, setSettings, setDeputyDjs, setQueue }: Setters
 ) {
   socket.on("set DJ", (userId) => {
     const users = getUsers();
@@ -154,7 +163,7 @@ function djHandlers(
         type: "SONG_QUEUE_FAILURE",
         data: {
           message: "Song could not be queued",
-          error: e.message,
+          error: e,
         },
       });
     }

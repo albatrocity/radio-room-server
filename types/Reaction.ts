@@ -1,4 +1,6 @@
+import { User } from "./User";
+
 export interface Reaction {
-  type: string;
-  id: string;
+  emoji: string[];
+  user: User["userId"];
 }
