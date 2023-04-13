@@ -1,37 +1,15 @@
-const systemMessage = require("../lib/systemMessage");
-const parseMessage = require("../lib/parseMessage");
-const sendMessage = require("../lib/sendMessage");
+import parseMessage from "../lib/parseMessage";
+import sendMessage from "../lib/sendMessage";
+import { Server, Socket } from "socket.io";
+import { Getters, Setters } from "types/DataStores";
 
-const {
-  reject,
-  find,
-  takeRight,
-  take,
-  concat,
-  map,
-  uniq,
-  uniqBy,
-  compact,
-  isEqual,
-  isNil,
-  get,
-} = require("lodash/fp");
+const { reject, find, concat, uniq, compact } = require("lodash/fp");
 
-module.exports = function authHandlers(
-  socket,
-  io,
-  {
-    getUsers,
-    getMessages,
-    getPlaylist,
-    getReactions,
-    getSettings,
-    getDeputyDjs,
-    getCover,
-    getMeta,
-    getTyping,
-  },
-  { setUsers, setMessages, setTyping }
+function authHandlers(
+  socket: Socket,
+  io: Server,
+  { getUsers, getMessages, getTyping }: Getters,
+  { setUsers, setMessages, setTyping }: Setters
 ) {
   socket.on("new message", (data) => {
     // we tell the client to execute 'new message'
@@ -39,12 +17,16 @@ module.exports = function authHandlers(
     const typing = getTyping();
     const { content, mentions } = parseMessage(data);
     const payload = {
-      user: find({ id: socket.id }, users) || { username: socket.username },
+      user: find({ id: socket.id }, users) || {
+        username: socket.data.username,
+      },
       content,
       mentions,
       timestamp: new Date().toISOString(),
     };
-    const newTyping = compact(uniq(reject({ userId: socket.userId }, typing)));
+    const newTyping = compact(
+      uniq(reject({ userId: socket.data.userId }, typing))
+    );
     setTyping(newTyping);
     io.emit("event", { type: "TYPING", data: { typing: newTyping } });
     sendMessage(io, payload, { getMessages, setMessages });
@@ -58,7 +40,9 @@ module.exports = function authHandlers(
 
   socket.on("typing", () => {
     const newTyping = compact(
-      uniq(concat(getTyping(), find({ userId: socket.userId }, getUsers())))
+      uniq(
+        concat(getTyping(), find({ userId: socket.data.userId }, getUsers()))
+      )
     );
     setTyping(newTyping);
     socket.broadcast.emit("event", {
@@ -69,7 +53,7 @@ module.exports = function authHandlers(
 
   socket.on("stop typing", () => {
     const newTyping = compact(
-      uniq(reject({ userId: socket.userId }, getTyping()))
+      uniq(reject({ userId: socket.data.userId }, getTyping()))
     );
     setTyping(newTyping);
     socket.broadcast.emit("event", {
@@ -77,4 +61,6 @@ module.exports = function authHandlers(
       data: { typing: newTyping },
     });
   });
-};
+}
+
+export default authHandlers;

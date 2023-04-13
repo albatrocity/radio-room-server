@@ -1,6 +1,6 @@
-const { createClient: redisCreateClient } = require("redis");
+import { createClient as redisCreateClient } from "redis";
 
-async function createClient() {
+export async function createClient() {
   const client = redisCreateClient({
     url: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   });
@@ -8,7 +8,3 @@ async function createClient() {
 
   return client;
 }
-
-module.exports = {
-  createClient,
-};

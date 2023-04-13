@@ -1,8 +1,10 @@
-const axios = require("axios");
-const qs = require("qs");
-const querystring = require("querystring");
-const { createClient } = require("./redisClient");
-const constants = require("./lib/constants");
+import axios from "axios";
+import qs from "qs";
+import querystring from "querystring";
+import { createClient } from "./redisClient";
+import { SPOTIFY_ACCESS_TOKEN, SPOTIFY_REFRESH_TOKEN } from "./lib/constants";
+import { Request } from "express";
+import { Response } from "express";
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const client_secret = process.env.CLIENT_SECRET; // Your secret
@@ -10,7 +12,7 @@ const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
 const stateKey = "spotify_auth_state";
 
-function generateRandomString(length) {
+function generateRandomString(length: number) {
   var text = "";
   const possible =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -21,7 +23,7 @@ function generateRandomString(length) {
   return text;
 }
 
-function login(req, res) {
+export function login(req: Request, res: Response) {
   console.log("LOGIN============");
   const state = generateRandomString(16);
   res.cookie(stateKey, state);
@@ -41,7 +43,7 @@ function login(req, res) {
   );
 }
 
-async function callback(req, res) {
+export async function callback(req: Request, res: Response) {
   // your application requests refresh and access tokens
   // after checking the state parameter
 
@@ -76,11 +78,11 @@ async function callback(req, res) {
         }),
       });
 
-      const { access_token, refresh_token, scope } = data;
+      const { access_token, refresh_token } = data;
 
       const redisClient = await createClient();
-      await redisClient.set(constants.SPOTIFY_ACCESS_TOKEN, access_token);
-      await redisClient.set(constants.SPOTIFY_REFRESH_TOKEN, refresh_token);
+      await redisClient.set(SPOTIFY_ACCESS_TOKEN, access_token);
+      await redisClient.set(SPOTIFY_REFRESH_TOKEN, refresh_token);
       redisClient.disconnect();
 
       res.send({
@@ -94,8 +96,3 @@ async function callback(req, res) {
     }
   }
 }
-
-module.exports = {
-  login,
-  callback,
-};

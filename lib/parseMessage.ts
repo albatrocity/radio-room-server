@@ -1,15 +1,12 @@
-const { map } = require("lodash/fp");
+import { map } from "lodash/fp";
 
 const parseMessage = (message = "") => {
   const mentionRegex = /([])|\@\[(.*?)\]\(.*?\)/gm;
   const idRegex = /(\(.*\))/gm;
   const mentionMatches = (message || "").match(mentionRegex);
   const mentions = map(
-    x =>
-      x
-        .match(idRegex)[0]
-        .replace(/(\()/gm, "")
-        .replace(/(\))/gm, ""),
+    (x) =>
+      (x.match(idRegex) || "")?.[0].replace(/(\()/gm, "").replace(/(\))/gm, ""),
     mentionMatches
   );
 
@@ -17,8 +14,8 @@ const parseMessage = (message = "") => {
 
   return {
     mentions,
-    content
+    content,
   };
 };
 
-module.exports = parseMessage;
+export default parseMessage;

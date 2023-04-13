@@ -1,16 +1,24 @@
-const { find, concat, reject, map, uniqBy, get } = require("lodash/fp");
+import { find, concat, reject, map, uniqBy, get } from "lodash/fp";
 
-const systemMessage = require("../lib/systemMessage");
-const sendMessage = require("../lib/sendMessage");
-const updateUserAttributes = require("../lib/updateUserAttributes");
-const spotifyApi = require("../lib/spotifyApi");
-const refreshSpotifyToken = require("../lib/refreshSpotifyToken");
+import systemMessage from "../lib/systemMessage";
+import sendMessage from "../lib/sendMessage";
+import updateUserAttributes from "../lib/updateUserAttributes";
+import spotifyApi from "../lib/spotifyApi";
+import refreshSpotifyToken from "../lib/refreshSpotifyToken";
+import { Server, Socket } from "socket.io";
+import { Getters, Setters } from "types/DataStores";
 
-module.exports = function djHandlers(
-  socket,
-  io,
-  { getUsers, getMessages, getDefaultSettings, getDeputyDjs, getQueue },
-  { setUsers, setMessages, setSettings, setDeputyDjs, setQueue }
+function djHandlers(
+  socket: Socket,
+  io: Server,
+  {
+    getUsers,
+    getMessages,
+    getDefaultSettings,
+    getDeputyDjs,
+    getQueue,
+  }: Getters,
+  { setUsers, setMessages, setSettings, setDeputyDjs, setQueue }: Setters
 ) {
   socket.on("set DJ", (userId) => {
     const users = getUsers();
@@ -111,7 +119,7 @@ module.exports = function djHandlers(
   socket.on("queue song", async (uri) => {
     try {
       const currentUser = getUsers().find(
-        ({ userId }) => userId === socket.userId
+        ({ userId }) => userId === socket.data.userId
       );
       const inQueue = getQueue().find((x) => x.uri === uri);
 
@@ -123,7 +131,7 @@ module.exports = function djHandlers(
           type: "SONG_QUEUE_FAILURE",
           data: {
             message:
-              inQueue.userId === socket.userId
+              inQueue.userId === socket.data.userId
                 ? "You've already queued that song, please choose another"
                 : `${djUsername} has already queued that song. Please try a different song.`,
           },
@@ -135,7 +143,7 @@ module.exports = function djHandlers(
 
       setQueue([
         ...getQueue(),
-        { uri, userId: socket.userId, username: currentUser?.username },
+        { uri, userId: socket.data.userId, username: currentUser?.username },
       ]);
       socket.emit("event", {
         type: "SONG_QUEUED",
@@ -154,7 +162,7 @@ module.exports = function djHandlers(
         type: "SONG_QUEUE_FAILURE",
         data: {
           message: "Song could not be queued",
-          error: e.message,
+          error: e,
         },
       });
     }
@@ -182,4 +190,6 @@ module.exports = function djHandlers(
       });
     }
   });
-};
+}
+
+export default djHandlers;

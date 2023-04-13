@@ -1,24 +1,14 @@
-const systemMessage = require("../lib/systemMessage");
-const sendMessage = require("../lib/sendMessage");
+import systemMessage from "../lib/systemMessage";
+import sendMessage from "../lib/sendMessage";
 
-const {
-  reject,
-  find,
-  takeRight,
-  take,
-  concat,
-  map,
-  uniq,
-  uniqBy,
-  compact,
-  isEqual,
-  isNil,
-  get,
-} = require("lodash/fp");
+import { reject, find, concat, uniqBy, isNil, get } from "lodash/fp";
+import { Server, Socket } from "socket.io";
+import { Setters, Getters } from "types/DataStores";
+import { User } from "types/User";
 
-module.exports = function authHandlers(
-  socket,
-  io,
+function authHandlers(
+  socket: Socket,
+  io: Server,
   {
     getUsers,
     getMessages,
@@ -28,8 +18,9 @@ module.exports = function authHandlers(
     getDeputyDjs,
     getCover,
     getMeta,
-  },
-  { setUsers, setMessages }
+    getDefaultSettings,
+  }: Getters,
+  { setUsers, setMessages, setSettings }: Setters
 ) {
   const settings = getSettings();
   socket.on("check password", (submittedPassword) => {
@@ -58,8 +49,8 @@ module.exports = function authHandlers(
     const users = getUsers();
     console.log("GET USERS", users);
     console.log("USERID", userId);
-    socket.username = username;
-    socket.userId = userId;
+    socket.data.username = username;
+    socket.data.userId = userId;
 
     console.log("LOGIN", userId);
     const isDeputyDj = getDeputyDjs().includes(userId);
@@ -70,7 +61,7 @@ module.exports = function authHandlers(
       id: socket.id,
       isDj: false,
       isDeputyDj,
-      status: "participating",
+      status: "participating" as const,
       connectedAt: new Date().toISOString(),
     };
     const newUsers = uniqBy("userId", users.concat(newUser));
@@ -93,8 +84,8 @@ module.exports = function authHandlers(
         playlist: getPlaylist(),
         reactions: getReactions(),
         currentUser: {
-          userId: socket.userId,
-          username: socket.username,
+          userId: socket.data.userId,
+          username: socket.data.username,
           status: "participating",
           isDeputyDj,
         },
@@ -108,7 +99,7 @@ module.exports = function authHandlers(
     const user = find({ userId }, users);
     const oldUsername = get("username", user);
     if (user) {
-      const newUser = { ...user, username };
+      const newUser: User = { ...user, username };
       const newUsers = uniqBy(
         "userId",
         concat(newUser, reject({ userId }, users))
@@ -133,30 +124,26 @@ module.exports = function authHandlers(
     }
   });
 
-  // when the user disconnects.. perform this
   socket.on("disconnect", () => {
-    console.log("Disconnect", socket.username, socket.id);
-    console.log("socket.id", socket.id);
     const users = getUsers();
-    const user = find({ userId: socket.userId }, users);
+    const user = find({ userId: socket.data.userId }, users);
     if (user && user.isDj) {
       const newSettings = { ...getDefaultSettings() };
       setSettings(newSettings);
       io.emit("event", { type: "SETTINGS", data: newSettings });
     }
 
-    const newUsers = reject({ id: socket.id }, users);
+    const newUsers = reject({ userId: socket.data.userId }, users);
     setUsers(newUsers);
-    console.log("DISCONNETED, UPDATED USER COUNT:", newUsers.length);
-    console.log("USERS", newUsers);
 
-    // echo globally that this client has left
     socket.broadcast.emit("event", {
       type: "USER_LEFT",
       data: {
-        user: { username: socket.username },
+        user: { username: socket.data.username },
         users: newUsers,
       },
     });
   });
-};
+}
+
+export default authHandlers;

@@ -1,5 +1,5 @@
-const { createClient } = require("../redisClient");
-const SpotifyWebApi = require("spotify-web-api-node");
+import { createClient } from "../redisClient";
+import SpotifyWebApi from "spotify-web-api-node";
 
 const SPOTIFY_ACCESS_TOKEN = "spotifyAccessToken";
 
@@ -23,9 +23,11 @@ const spotifyApi = new SpotifyWebApi({
 async function setApiToken() {
   const token = await getSpotifyToken();
   console.log(`set token ${token}`);
-  spotifyApi.setAccessToken(token);
+  if (token) {
+    spotifyApi.setAccessToken(token);
+  }
 }
 
 setApiToken();
 
-module.exports = spotifyApi;
+export default spotifyApi;
