@@ -3,15 +3,13 @@ import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { find } from "lodash/fp";
 import { createClient } from "redis";
 
-import fetchReleaseInfo from "./lib/fetchReleaseInfo";
-import systemMessage from "./lib/systemMessage";
-import getStation from "./lib/getStation";
-import refreshSpotifyToken from "./lib/refreshSpotifyToken";
+import getStation from "./operations/getStation";
+import refreshSpotifyToken from "./operations/refreshSpotifyToken";
 import { login, callback } from "./spotify";
 import { createGetters, createSetters } from "./lib/dataStore";
+import fetchAndSetMeta from "./operations/fetchAndSetMeta";
 
 import activityHandlers from "./handlers/activityHandlers";
 import authHandlers from "./handlers/authHandlers";
@@ -19,10 +17,8 @@ import messageHandlers from "./handlers/messageHandlers";
 import djHandlers from "./handlers/djHandlers";
 import adminHandlers from "./handlers/adminHandlers";
 
-import { FetchMetaOptions } from "./types/FetchMetaOptions";
 import { Settings } from "./types/Settings";
 import { DataStores } from "./types/DataStores";
-import { Station } from "types/Station";
 
 const fortyFiveMins = 2700000;
 
@@ -100,93 +96,8 @@ io.on("connection", (socket) => {
   messageHandlers(socket, io, getters, setters);
   activityHandlers(socket, io, getters, setters);
   djHandlers(socket, io, getters, setters);
-  adminHandlers(socket, io, getters, setters, { fetchAndSetMeta });
+  adminHandlers(socket, io, getters, setters);
 });
-
-const fetchAndSetMeta = async (
-  station?: Station,
-  title?: string,
-  options: FetchMetaOptions = {}
-) => {
-  console.log("fetchMeta=====", getters.getSettings().fetchMeta);
-  console.log("setMeta");
-  const silent = options.silent || false;
-  if (!station) {
-    setters.setFetching(false);
-    io.emit("event", { type: "META", data: { meta: setters.setMeta({}) } });
-    return;
-  }
-  // Lookup and emit track meta
-  const info = (title || station.title || "").split("|");
-  const track = info[0];
-  const artist = info[1];
-  const album = info[2];
-  setters.setFetching(false);
-
-  if (!artist && !album) {
-    setters.setFetching(false);
-    const newMeta = fetchAndSetMeta({ ...station });
-    io.emit("event", { type: "META", data: { meta: newMeta } });
-    return;
-  }
-  const release = getters.getSettings().fetchMeta
-    ? await fetchReleaseInfo(`${track} ${artist} ${album}`)
-    : {};
-
-  const queuedTrack = getters
-    .getQueue()
-    .find(({ uri }) => uri === release?.uri);
-  const newMeta = {
-    ...station,
-    artist,
-    album,
-    track,
-    release,
-    cover: getters.getCover(),
-    dj: queuedTrack?.userId
-      ? { userId: queuedTrack.userId, username: queuedTrack.username }
-      : null,
-  };
-  setters.setMeta(newMeta);
-  const content = track
-    ? `Up next: ${track} - ${artist} - ${album}`
-    : `Up next: ${album}`;
-
-  const newMessage = systemMessage(content, {
-    artist,
-    album,
-    track,
-    release,
-  });
-
-  if (!silent) {
-    io.emit("event", { type: "NEW_MESSAGE", data: newMessage });
-    setters.setMessages([...getters.getMessages(), newMessage]);
-  }
-  const newPlaylist = setters.setPlaylist([
-    ...getters.getPlaylist(),
-    {
-      text: `${track} - ${artist} - ${album}`,
-      album,
-      artist,
-      track,
-      spotifyData: release,
-      timestamp: Date.now(),
-      dj: find(
-        queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
-        getters.getUsers()
-      ),
-    },
-  ]);
-  setters.setFetching(false);
-  io.emit("event", { type: "META", data: { meta: newMeta } });
-  io.emit("event", { type: "PLAYLIST", data: newPlaylist });
-  if (queuedTrack) {
-    setters.setQueue(
-      getters.getQueue().filter(({ uri }) => uri !== queuedTrack.uri)
-    );
-  }
-};
 
 setInterval(async () => {
   if (getters.getFetching()) {
@@ -196,7 +107,7 @@ setInterval(async () => {
 
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
   if ((!station || station.bitrate === "0") && !offline) {
-    fetchAndSetMeta();
+    fetchAndSetMeta({ getters, setters, io });
     console.log("set offline");
     offline = true;
     setters.setFetching(false);
@@ -210,7 +121,7 @@ setInterval(async () => {
 
   if (station && station.title !== getters.getMeta().title && !offline) {
     console.log(station);
-    await fetchAndSetMeta(station, station.title);
+    await fetchAndSetMeta({ getters, setters, io }, station, station.title);
   }
 
   if (
@@ -230,7 +141,7 @@ setInterval(async () => {
     } catch (e) {
       console.log(e);
     } finally {
-      await fetchAndSetMeta(station);
+      await fetchAndSetMeta({ getters, setters, io }, station);
     }
   }
   setters.setFetching(false);

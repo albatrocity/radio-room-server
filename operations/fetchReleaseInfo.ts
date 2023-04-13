@@ -1,4 +1,4 @@
-import spotifyApi from "./spotifyApi";
+import spotifyApi from "../lib/spotifyApi";
 
 const fetchReleaseInfo = async (query: string) => {
   try {

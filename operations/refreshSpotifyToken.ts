@@ -1,7 +1,7 @@
-import spotifyApi from "./spotifyApi";
+import spotifyApi from "../lib/spotifyApi";
 import { createClient } from "../redisClient";
 
-import { SPOTIFY_REFRESH_TOKEN, SPOTIFY_ACCESS_TOKEN } from "./constants";
+import { SPOTIFY_REFRESH_TOKEN, SPOTIFY_ACCESS_TOKEN } from "../lib/constants";
 
 async function refreshSpotifyToken() {
   console.log("refresh OAuth token");

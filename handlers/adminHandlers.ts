@@ -1,38 +1,30 @@
 import { find, get } from "lodash/fp";
-import systemMessage from "../lib/systemMessage";
-// import updateUserAttributes from "../lib/updateUserAttributes";
-import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
-import getStation from "../lib/getStation";
 import { Server, Socket } from "socket.io";
+
+import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
+import getStation from "../operations/getStation";
+import fetchAndSetMeta from "../operations/fetchAndSetMeta";
+import systemMessage from "../lib/systemMessage";
+
 import { Getters, Setters } from "types/DataStores";
-import { FetchMetaOptions } from "types/FetchMetaOptions";
-import { Station } from "types/Station";
 
 const streamURL = process.env.SERVER_URL;
 
 function adminHandlers(
   socket: Socket,
   io: Server,
-  { getUsers, getSettings, getMeta }: Getters,
-  {
-    setUsers,
+  getters: Getters,
+  setters: Setters
+) {
+  const { getUsers, getSettings, getMeta } = getters;
+  const {
     setSettings,
     setMeta,
     setPassword,
     setCover,
     setPlaylist,
     setQueue,
-  }: Setters,
-  {
-    fetchAndSetMeta,
-  }: {
-    fetchAndSetMeta: (
-      station?: Station,
-      title?: string,
-      options?: FetchMetaOptions
-    ) => void;
-  }
-) {
+  } = setters;
   socket.on("set cover", (url) => {
     setCover(url);
     const newMeta = { ...getMeta(), cover: url };
@@ -49,7 +41,7 @@ function adminHandlers(
   });
 
   socket.on("fix meta", (title) => {
-    fetchAndSetMeta(getMeta().station, title);
+    fetchAndSetMeta({ getters, setters, io }, getMeta().station, title);
   });
 
   socket.on("kick user", (user) => {
@@ -98,21 +90,6 @@ function adminHandlers(
       prevSettings.extraInfo !== values.extraInfo
     ) {
       setSettings(newSettings);
-      // const { user } = updateUserAttributes(
-      //   socket.data.userId,
-      //   {
-      //     donationURL,
-      //     extraInfo,
-      //   },
-      //   { getUsers, setUsers }
-      // );
-      // io.emit("event", {
-      //   type: "USER_JOINED",
-      //   data: {
-      //     user,
-      //     users: getUsers(),
-      //   },
-      // });
     }
 
     if (!prevSettings.fetchMeta && values.fetchMeta) {
@@ -120,7 +97,12 @@ function adminHandlers(
       const station = await getStation(
         `${streamURL}/stream?type=http&nocache=4`
       );
-      await fetchAndSetMeta(station, get("title", station), { silent: true });
+      await fetchAndSetMeta(
+        { getters, setters, io },
+        station,
+        get("title", station),
+        { silent: true }
+      );
     }
   });
 

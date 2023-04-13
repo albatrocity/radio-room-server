@@ -1,11 +1,11 @@
 import { find, concat, reject, map, uniqBy, get } from "lodash/fp";
+import { Server, Socket } from "socket.io";
 
+import refreshSpotifyToken from "../operations/refreshSpotifyToken";
 import systemMessage from "../lib/systemMessage";
 import sendMessage from "../lib/sendMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
 import spotifyApi from "../lib/spotifyApi";
-import refreshSpotifyToken from "../lib/refreshSpotifyToken";
-import { Server, Socket } from "socket.io";
 import { Getters, Setters } from "types/DataStores";
 
 function djHandlers(
