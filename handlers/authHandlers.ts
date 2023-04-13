@@ -47,12 +47,9 @@ function authHandlers(
   // login
   socket.on("login", ({ username, userId, password }) => {
     const users = getUsers();
-    console.log("GET USERS", users);
-    console.log("USERID", userId);
     socket.data.username = username;
     socket.data.userId = userId;
 
-    console.log("LOGIN", userId);
     const isDeputyDj = getDeputyDjs().includes(userId);
 
     const newUser = {
@@ -95,7 +92,6 @@ function authHandlers(
 
   socket.on("change username", ({ userId, username }) => {
     const users = getUsers();
-    console.log("change username", users);
     const user = find({ userId }, users);
     const oldUsername = get("username", user);
     if (user) {
@@ -111,8 +107,6 @@ function authHandlers(
         oldUsername,
         userId,
       });
-      console.log("CHANGE USERNAME");
-      console.log(newUsers);
       io.emit("event", {
         type: "USER_JOINED",
         data: {

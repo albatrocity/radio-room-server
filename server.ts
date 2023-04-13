@@ -91,7 +91,6 @@ const getters = createGetters(dataStores);
 const setters = createSetters(dataStores);
 
 io.on("connection", (socket) => {
-  console.log("CONNECTION");
   authHandlers(socket, io, getters, setters);
   messageHandlers(socket, io, getters, setters);
   activityHandlers(socket, io, getters, setters);
@@ -108,19 +107,16 @@ setInterval(async () => {
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
   if ((!station || station.bitrate === "0") && !offline) {
     fetchAndSetMeta({ getters, setters, io });
-    console.log("set offline");
     offline = true;
     setters.setFetching(false);
     if (oAuthInterval) {
       clearInterval(oAuthInterval);
     }
     oAuthInterval = null;
-    console.log(station);
     return;
   }
 
   if (station && station.title !== getters.getMeta().title && !offline) {
-    console.log(station);
     await fetchAndSetMeta({ getters, setters, io }, station, station.title);
   }
 
@@ -131,8 +127,6 @@ setInterval(async () => {
     station.bitrate !== "" &&
     station.bitrate !== "0"
   ) {
-    console.log(station);
-    console.log("set online");
     setters.setCover(null);
     offline = false;
     try {

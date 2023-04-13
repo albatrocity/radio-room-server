@@ -33,7 +33,6 @@ function authHandlers(
   });
 
   socket.on("clear messages", () => {
-    console.log("CLEAR MESSAGES");
     setMessages([]);
     io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
   });

@@ -45,7 +45,6 @@ function adminHandlers(
   });
 
   socket.on("kick user", (user) => {
-    console.log("kick user", user);
     const { userId } = user;
     const socketId = get("id", find({ userId }, getUsers()));
 
@@ -63,12 +62,10 @@ function adminHandlers(
   });
 
   socket.on("save playlist", async ({ name, uris }) => {
-    console.log("SAVE PLAYLIST", name);
     try {
       const data = await createAndPopulateSpotifyPlaylist(name, uris);
       socket.emit("event", { type: "PLAYLIST_SAVED", data });
     } catch (error) {
-      console.log(error);
       socket.emit("event", { type: "SAVE_PLAYLIST_FAILED", error });
     }
   });
@@ -93,7 +90,6 @@ function adminHandlers(
     }
 
     if (!prevSettings.fetchMeta && values.fetchMeta) {
-      console.log("fetchMeta turned on");
       const station = await getStation(
         `${streamURL}/stream?type=http&nocache=4`
       );

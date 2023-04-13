@@ -156,7 +156,6 @@ function djHandlers(
       );
       sendMessage(io, queueMessage, { getMessages, setMessages });
     } catch (e) {
-      console.log("error");
       console.log(e);
       socket.emit("event", {
         type: "SONG_QUEUE_FAILURE",

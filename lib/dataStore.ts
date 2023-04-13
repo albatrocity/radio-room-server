@@ -70,11 +70,9 @@ export function createSetters(dataStores: DataStores): Setters {
 
 const setPassword = (dataStores: DataStores, pw: string) => {
   if (pw === "") {
-    console.log("clear password?");
     dataStores.settings.password = null;
     return null;
   } else {
-    console.log("else set it", pw);
     dataStores.settings.password = pw;
     return pw;
   }

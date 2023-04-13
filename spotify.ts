@@ -24,7 +24,6 @@ function generateRandomString(length: number) {
 }
 
 export function login(req: Request, res: Response) {
-  console.log("LOGIN============");
   const state = generateRandomString(16);
   res.cookie(stateKey, state);
 
@@ -89,7 +88,6 @@ export async function callback(req: Request, res: Response) {
         access_token: access_token,
       });
     } catch (e) {
-      console.log("e!", e);
       res.send({
         error: e,
       });

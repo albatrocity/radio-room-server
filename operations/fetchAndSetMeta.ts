@@ -14,8 +14,6 @@ export default async function fetchAndSetMeta(
   title?: string,
   options: FetchMetaOptions = {}
 ) {
-  console.log("fetchMeta=====", getters.getSettings().fetchMeta);
-  console.log("setMeta");
   const silent = options.silent || false;
   if (!station) {
     setters.setFetching(false);
