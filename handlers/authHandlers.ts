@@ -125,8 +125,6 @@ function authHandlers(
   });
 
   socket.on("disconnect", () => {
-    console.log("Disconnect", socket.data.username, socket.id);
-    console.log("socket.id", socket.id);
     const users = getUsers();
     const user = find({ userId: socket.data.userId }, users);
     if (user && user.isDj) {
@@ -135,9 +133,8 @@ function authHandlers(
       io.emit("event", { type: "SETTINGS", data: newSettings });
     }
 
-    const newUsers = reject({ userId: socket.id }, users);
+    const newUsers = reject({ userId: socket.data.userId }, users);
     setUsers(newUsers);
-    console.log("DISCONNETED, UPDATED USER COUNT:", newUsers.length);
 
     socket.broadcast.emit("event", {
       type: "USER_LEFT",
