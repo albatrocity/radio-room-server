@@ -1,13 +1,12 @@
-import { RadioSocket } from "types/RadioSocket";
 import parseMessage from "../lib/parseMessage";
 import sendMessage from "../lib/sendMessage";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { Getters, Setters } from "types/DataStores";
 
 const { reject, find, concat, uniq, compact } = require("lodash/fp");
 
 function authHandlers(
-  socket: RadioSocket,
+  socket: Socket,
   io: Server,
   { getUsers, getMessages, getTyping }: Getters,
   { setUsers, setMessages, setTyping }: Setters
@@ -18,12 +17,16 @@ function authHandlers(
     const typing = getTyping();
     const { content, mentions } = parseMessage(data);
     const payload = {
-      user: find({ id: socket.id }, users) || { username: socket.username },
+      user: find({ id: socket.id }, users) || {
+        username: socket.data.username,
+      },
       content,
       mentions,
       timestamp: new Date().toISOString(),
     };
-    const newTyping = compact(uniq(reject({ userId: socket.userId }, typing)));
+    const newTyping = compact(
+      uniq(reject({ userId: socket.data.userId }, typing))
+    );
     setTyping(newTyping);
     io.emit("event", { type: "TYPING", data: { typing: newTyping } });
     sendMessage(io, payload, { getMessages, setMessages });
@@ -37,7 +40,9 @@ function authHandlers(
 
   socket.on("typing", () => {
     const newTyping = compact(
-      uniq(concat(getTyping(), find({ userId: socket.userId }, getUsers())))
+      uniq(
+        concat(getTyping(), find({ userId: socket.data.userId }, getUsers()))
+      )
     );
     setTyping(newTyping);
     socket.broadcast.emit("event", {
@@ -48,7 +53,7 @@ function authHandlers(
 
   socket.on("stop typing", () => {
     const newTyping = compact(
-      uniq(reject({ userId: socket.userId }, getTyping()))
+      uniq(reject({ userId: socket.data.userId }, getTyping()))
     );
     setTyping(newTyping);
     socket.broadcast.emit("event", {

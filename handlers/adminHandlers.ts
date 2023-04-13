@@ -3,8 +3,7 @@ import systemMessage from "../lib/systemMessage";
 // import updateUserAttributes from "../lib/updateUserAttributes";
 import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
 import getStation from "../lib/getStation";
-import { RadioSocket } from "types/RadioSocket";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { Getters, Setters } from "types/DataStores";
 import { FetchMetaOptions } from "types/FetchMetaOptions";
 import { Station } from "types/Station";
@@ -12,7 +11,7 @@ import { Station } from "types/Station";
 const streamURL = process.env.SERVER_URL;
 
 function adminHandlers(
-  socket: RadioSocket,
+  socket: Socket,
   io: Server,
   { getUsers, getSettings, getMeta }: Getters,
   {
@@ -100,7 +99,7 @@ function adminHandlers(
     ) {
       setSettings(newSettings);
       // const { user } = updateUserAttributes(
-      //   socket.userId,
+      //   socket.data.userId,
       //   {
       //     donationURL,
       //     extraInfo,

@@ -5,19 +5,18 @@ import { REACTIONABLE_TYPES } from "../lib/constants";
 import { ReactionSubject } from "../types/ReactionSubject";
 import { Emoji } from "@emoji-mart/data";
 import { User } from "../types/User";
-import { RadioSocket } from "types/RadioSocket";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { Getters, Setters } from "types/DataStores";
 
 function activityHandlers(
-  socket: RadioSocket,
+  socket: Socket,
   io: Server,
   { getUsers, getReactions }: Getters,
   { setUsers, setReactions }: Setters
 ) {
   socket.on("start listening", () => {
     const { user, users } = updateUserAttributes(
-      socket.userId,
+      socket.data.userId,
       {
         status: "listening",
       },
@@ -33,7 +32,7 @@ function activityHandlers(
   });
   socket.on("stop listening", () => {
     const { user, users } = updateUserAttributes(
-      socket.userId,
+      socket.data.userId,
       {
         status: "participating",
       },

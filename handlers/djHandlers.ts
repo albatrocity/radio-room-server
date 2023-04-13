@@ -5,12 +5,11 @@ import sendMessage from "../lib/sendMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
 import spotifyApi from "../lib/spotifyApi";
 import refreshSpotifyToken from "../lib/refreshSpotifyToken";
-import { RadioSocket } from "types/RadioSocket";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { Getters, Setters } from "types/DataStores";
 
 function djHandlers(
-  socket: RadioSocket,
+  socket: Socket,
   io: Server,
   {
     getUsers,
@@ -120,7 +119,7 @@ function djHandlers(
   socket.on("queue song", async (uri) => {
     try {
       const currentUser = getUsers().find(
-        ({ userId }) => userId === socket.userId
+        ({ userId }) => userId === socket.data.userId
       );
       const inQueue = getQueue().find((x) => x.uri === uri);
 
@@ -132,7 +131,7 @@ function djHandlers(
           type: "SONG_QUEUE_FAILURE",
           data: {
             message:
-              inQueue.userId === socket.userId
+              inQueue.userId === socket.data.userId
                 ? "You've already queued that song, please choose another"
                 : `${djUsername} has already queued that song. Please try a different song.`,
           },
@@ -144,7 +143,7 @@ function djHandlers(
 
       setQueue([
         ...getQueue(),
-        { uri, userId: socket.userId, username: currentUser?.username },
+        { uri, userId: socket.data.userId, username: currentUser?.username },
       ]);
       socket.emit("event", {
         type: "SONG_QUEUED",

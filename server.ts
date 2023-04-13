@@ -23,7 +23,6 @@ import { FetchMetaOptions } from "./types/FetchMetaOptions";
 import { Settings } from "./types/Settings";
 import { DataStores } from "./types/DataStores";
 import { Station } from "types/Station";
-import { RadioSocket } from "types/RadioSocket";
 
 const fortyFiveMins = 2700000;
 
@@ -93,9 +92,8 @@ const dataStores: DataStores = {
 const getters = createGetters(dataStores);
 const setters = createSetters(dataStores);
 
-io.on("connection", (socket: RadioSocket) => {
+io.on("connection", (socket) => {
   console.log("CONNECTION");
-
   authHandlers(socket, io, getters, setters);
   messageHandlers(socket, io, getters, setters);
   activityHandlers(socket, io, getters, setters);

@@ -2,13 +2,12 @@ import systemMessage from "../lib/systemMessage";
 import sendMessage from "../lib/sendMessage";
 
 import { reject, find, concat, uniqBy, isNil, get } from "lodash/fp";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { Setters, Getters } from "types/DataStores";
-import { RadioSocket } from "types/RadioSocket";
 import { User } from "types/User";
 
 function authHandlers(
-  socket: RadioSocket,
+  socket: Socket,
   io: Server,
   {
     getUsers,
@@ -50,8 +49,8 @@ function authHandlers(
     const users = getUsers();
     console.log("GET USERS", users);
     console.log("USERID", userId);
-    socket.username = username;
-    socket.userId = userId;
+    socket.data.username = username;
+    socket.data.userId = userId;
 
     console.log("LOGIN", userId);
     const isDeputyDj = getDeputyDjs().includes(userId);
@@ -85,8 +84,8 @@ function authHandlers(
         playlist: getPlaylist(),
         reactions: getReactions(),
         currentUser: {
-          userId: socket.userId,
-          username: socket.username,
+          userId: socket.data.userId,
+          username: socket.data.username,
           status: "participating",
           isDeputyDj,
         },
@@ -126,10 +125,10 @@ function authHandlers(
   });
 
   socket.on("disconnect", () => {
-    console.log("Disconnect", socket.username, socket.id);
+    console.log("Disconnect", socket.data.username, socket.id);
     console.log("socket.id", socket.id);
     const users = getUsers();
-    const user = find({ userId: socket.userId }, users);
+    const user = find({ userId: socket.data.userId }, users);
     if (user && user.isDj) {
       const newSettings = { ...getDefaultSettings() };
       setSettings(newSettings);
@@ -143,7 +142,7 @@ function authHandlers(
     socket.broadcast.emit("event", {
       type: "USER_LEFT",
       data: {
-        user: { username: socket.username },
+        user: { username: socket.data.username },
         users: newUsers,
       },
     });
