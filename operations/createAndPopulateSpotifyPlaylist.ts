@@ -3,7 +3,7 @@ import spotifyApi from "../lib/spotifyApi";
 
 async function createAndPopulateSpotifyPlaylist(
   name: string,
-  uris: SpotifyEntity["uri"]
+  uris: SpotifyEntity["uri"][]
 ) {
   const date_time = new Date();
   const date = date_time.getDate();

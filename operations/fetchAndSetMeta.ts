@@ -1,15 +1,15 @@
 import { find } from "lodash/fp";
 import { Server } from "socket.io";
 
-import { Station } from "../types/Station";
+import { getters, setters } from "../lib/dataStore";
 import { FetchMetaOptions } from "../types/FetchMetaOptions";
-import { Getters, Setters } from "../types/DataStores";
+import { Station } from "../types/Station";
 
-import fetchReleaseInfo from "./fetchReleaseInfo";
 import systemMessage from "../lib/systemMessage";
+import fetchReleaseInfo from "./fetchReleaseInfo";
 
 export default async function fetchAndSetMeta(
-  { getters, setters, io }: { getters: Getters; setters: Setters; io: Server },
+  { io }: { io: Server },
   station?: Station,
   title?: string,
   options: FetchMetaOptions = {}
@@ -29,7 +29,7 @@ export default async function fetchAndSetMeta(
 
   if (!artist && !album) {
     setters.setFetching(false);
-    const newMeta = fetchAndSetMeta({ getters, setters, io }, { ...station });
+    const newMeta = fetchAndSetMeta({ io }, { ...station });
     io.emit("event", { type: "META", data: { meta: newMeta } });
     return;
   }
