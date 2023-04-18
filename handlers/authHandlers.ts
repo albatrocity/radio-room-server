@@ -6,24 +6,11 @@ import { getters, setters } from "../lib/dataStore";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 
-const {
-  getSettings,
-  getUsers,
-  getDeputyDjs,
-  getMessages,
-  getCover,
-  getPlaylist,
-  getReactions,
-  getMeta,
-  getDefaultSettings,
-} = getters;
-const { setUsers, setMessages, setSettings } = setters;
-
 export function checkPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
-  const settings = getSettings();
+  const settings = getters.getSettings();
   console.log("CHECK PASSWORD!!!!");
   socket.emit("event", {
     type: "SET_PASSWORD_REQUIREMENT",
@@ -40,7 +27,7 @@ export function submitPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
-  const settings = getSettings();
+  const settings = getters.getSettings();
   socket.emit("event", {
     type: "SET_PASSWORD_ACCEPTED",
     data: {
@@ -57,11 +44,12 @@ export function login(
     password,
   }: { username: User["username"]; userId: User["userId"]; password?: string }
 ) {
-  const users = getUsers();
+  const users = getters.getUsers();
+
   socket.data.username = username;
   socket.data.userId = userId;
 
-  const isDeputyDj = getDeputyDjs().includes(userId);
+  const isDeputyDj = getters.getDeputyDjs().includes(userId);
 
   const newUser = {
     username,
@@ -73,7 +61,7 @@ export function login(
     connectedAt: new Date().toISOString(),
   };
   const newUsers = uniqBy("userId", users.concat(newUser));
-  setUsers(newUsers);
+  setters.setUsers(newUsers);
 
   socket.broadcast.emit("event", {
     type: "USER_JOINED",
@@ -87,10 +75,12 @@ export function login(
     type: "INIT",
     data: {
       users: newUsers,
-      messages: getMessages(),
-      meta: getCover() ? { ...getMeta(), cover: getCover() } : getMeta(),
-      playlist: getPlaylist(),
-      reactions: getReactions(),
+      messages: getters.getMessages(),
+      meta: getters.getCover()
+        ? { ...getters.getMeta(), cover: getters.getCover() }
+        : getters.getMeta(),
+      playlist: getters.getPlaylist(),
+      reactions: getters.getReactions(),
       currentUser: {
         userId: socket.data.userId,
         username: socket.data.username,
@@ -105,7 +95,7 @@ export function changeUsername(
   { socket, io }: HandlerConnections,
   { userId, username }: { userId: User["userId"]; username: User["username"] }
 ) {
-  const users = getUsers();
+  const users = getters.getUsers();
   const user = find({ userId }, users);
   const oldUsername = get("username", user);
   if (user) {
@@ -114,7 +104,7 @@ export function changeUsername(
       "userId",
       concat(newUser, reject({ userId }, users))
     );
-    setUsers(newUsers);
+    setters.setUsers(newUsers);
 
     const content = `${oldUsername} transformed into ${username}`;
     const newMessage = systemMessage(content, {
@@ -133,16 +123,16 @@ export function changeUsername(
 }
 
 export function disconnect({ socket, io }: HandlerConnections) {
-  const users = getUsers();
+  const users = getters.getUsers();
   const user = find({ userId: socket.data.userId }, users);
   if (user && user.isDj) {
-    const newSettings = { ...getDefaultSettings() };
-    setSettings(newSettings);
+    const newSettings = { ...getters.getDefaultSettings() };
+    setters.setSettings(newSettings);
     io.emit("event", { type: "SETTINGS", data: newSettings });
   }
 
   const newUsers = reject({ userId: socket.data.userId }, users);
-  setUsers(newUsers);
+  setters.setUsers(newUsers);
 
   socket.broadcast.emit("event", {
     type: "USER_LEFT",

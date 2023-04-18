@@ -20,7 +20,7 @@ export const defaultSettings: Settings = {
   password: null,
 };
 
-export const dataStores: DataStores = {
+const initialState = {
   station: undefined,
   settings: { ...defaultSettings },
   deputyDjs: [],
@@ -38,6 +38,15 @@ export const dataStores: DataStores = {
   },
   defaultSettings,
 };
+
+export const dataStores: DataStores = { ...initialState };
+
+export function resetDataStores() {
+  let t: keyof DataStores;
+  for (t in dataStores) {
+    dataStores[t] = initialState[t];
+  }
+}
 
 export function createGetter<T>(
   dataStores: DataStores,
