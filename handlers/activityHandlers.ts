@@ -9,9 +9,6 @@ import { HandlerConnections } from "../types/HandlerConnections";
 import { ReactionSubject } from "../types/ReactionSubject";
 import { User } from "../types/User";
 
-const { getReactions } = getters;
-const { setReactions } = setters;
-
 export function startListening({ socket, io }: HandlerConnections) {
   const { user, users } = updateUserAttributes(socket.data.userId, {
     status: "listening",
@@ -53,7 +50,7 @@ export function addReaction(
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
     return;
   }
-  const currentReactions = getReactions();
+  const currentReactions = getters.getReactions();
   const newReactions = {
     ...currentReactions,
     [reactTo.type]: {
@@ -64,7 +61,7 @@ export function addReaction(
       ],
     },
   };
-  const reactions = setReactions(newReactions);
+  const reactions = setters.setReactions(newReactions);
   io.emit("event", { type: "REACTIONS", data: { reactions } });
 }
 
@@ -83,7 +80,7 @@ export function removeReaction(
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
     return;
   }
-  const currentReactions = getReactions();
+  const currentReactions = getters.getReactions();
 
   const newReactions = {
     ...currentReactions,
@@ -95,6 +92,6 @@ export function removeReaction(
       ),
     },
   };
-  const reactions = setReactions(newReactions);
+  const reactions = setters.setReactions(newReactions);
   io.emit("event", { type: "REACTIONS", data: { reactions } });
 }
