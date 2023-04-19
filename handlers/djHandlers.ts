@@ -12,19 +12,16 @@ import { SearchOptions } from "../types/SpotifyApi";
 import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
-const { setUsers, setMessages, setSettings, setDeputyDjs, setQueue } = setters;
-const { getUsers, getMessages, getDefaultSettings, getDeputyDjs, getQueue } =
-  getters;
-
 export function setDj(
   { io, socket }: HandlerConnections,
-  userId: User["userId"]
+  userId?: User["userId"]
 ) {
-  const users = getUsers();
+  const users = getters.getUsers();
   const user = find({ userId }, users);
   if (user && user.isDj) {
     return;
   }
+
   if (userId && user) {
     const newUser = { ...user, isDj: true };
     const newUsers = uniqBy(
@@ -37,7 +34,7 @@ export function setDj(
         )
       )
     );
-    setUsers(newUsers);
+    setters.setUsers(newUsers);
     const content = `${user.username} is now the DJ`;
     const newMessage = systemMessage(content, {
       userId,
@@ -55,7 +52,7 @@ export function setDj(
       "userId",
       map((x) => ({ ...x, isDj: false }), users)
     );
-    setUsers(newUsers);
+    setters.setUsers(newUsers);
     const content = `There's currently no DJ.`;
     const newMessage = systemMessage(content, {
       userId,
@@ -68,8 +65,8 @@ export function setDj(
       },
     });
   }
-  const newSettings = { ...getDefaultSettings() };
-  setSettings(newSettings);
+  const newSettings = { ...getters.getDefaultSettings() };
+  setters.setSettings(newSettings);
   io.emit("event", { type: "SETTINGS", data: newSettings });
 }
 
@@ -77,20 +74,20 @@ export function djDeputizeUser(
   { socket, io }: HandlerConnections,
   userId: User["userId"]
 ) {
-  const deputyDjs = getDeputyDjs();
-  const socketId = get("id", find({ userId }, getUsers()));
+  const deputyDjs = getters.getDeputyDjs();
+  const socketId = get("id", find({ userId }, getters.getUsers()));
   var eventType, message, isDeputyDj;
 
   if (deputyDjs.includes(userId)) {
     eventType = "END_DEPUTY_DJ_SESSION";
     message = `You are no longer a deputy DJ`;
     isDeputyDj = false;
-    setDeputyDjs(deputyDjs.filter((x) => x !== userId));
+    setters.setDeputyDjs(deputyDjs.filter((x) => x !== userId));
   } else {
     eventType = "START_DEPUTY_DJ_SESSION";
     message = `You've been promoted to a deputy DJ. You add song's to the DJ's queue.`;
     isDeputyDj = true;
-    setDeputyDjs([...deputyDjs, userId]);
+    setters.setDeputyDjs([...deputyDjs, userId]);
   }
 
   const { user, users } = updateUserAttributes(userId, { isDeputyDj });
@@ -119,15 +116,15 @@ export async function queueSong(
   uri: SpotifyEntity["uri"]
 ) {
   try {
-    const currentUser = getUsers().find(
-      ({ userId }) => userId === socket.data.userId
-    );
-    const inQueue = getQueue().find((x) => x.uri === uri);
+    const currentUser = getters
+      .getUsers()
+      .find(({ userId }) => userId === socket.data.userId);
+    const inQueue = getters.getQueue().find((x) => x.uri === uri);
 
     if (inQueue) {
       const djUsername =
-        getUsers().find(({ userId }) => userId === inQueue.userId)?.username ||
-        "Someone";
+        getters.getUsers().find(({ userId }) => userId === inQueue.userId)
+          ?.username || "Someone";
       socket.emit("event", {
         type: "SONG_QUEUE_FAILURE",
         data: {
@@ -142,8 +139,8 @@ export async function queueSong(
 
     const data = await spotifyApi.addToQueue(uri);
 
-    setQueue([
-      ...getQueue(),
+    setters.setQueue([
+      ...getters.getQueue(),
       { uri, userId: socket.data.userId, username: currentUser?.username },
     ]);
     socket.emit("event", {
@@ -151,7 +148,8 @@ export async function queueSong(
       data,
     });
     const queueMessage = systemMessage(
-      `${currentUser ? currentUser.username : "Someone"
+      `${
+        currentUser ? currentUser.username : "Someone"
       } added a song to the queue`
     );
     sendMessage(io, queueMessage);
@@ -173,6 +171,7 @@ export async function searchSpotifyTrack(
 ) {
   try {
     const data = await spotifyApi.searchTracks(query, options);
+    console.log("DATA!!!!!", data);
     socket.emit("event", {
       type: "TRACK_SEARCH_RESULTS",
       data: data.body.tracks,
