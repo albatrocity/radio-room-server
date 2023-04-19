@@ -12,40 +12,33 @@ import { User } from "../types/User";
 
 import { getters, setters } from "../lib/dataStore";
 
-const { getUsers, getSettings: getSettingsData, getMeta } = getters;
-const {
-  setSettings,
-  setMeta,
-  setPassword: setPasswordData,
-  setCover: setCoverData,
-  setPlaylist,
-  setQueue,
-} = setters;
-
 const streamURL = process.env.SERVER_URL;
 
 export function setCover({ io }: HandlerConnections, url: string) {
-  setCoverData(url);
-  const newMeta = { ...getMeta(), cover: url };
-  const meta = setMeta(newMeta);
+  setters.setCover(url);
+  const newMeta = { ...getters.getMeta(), cover: url };
+  const meta = setters.setMeta(newMeta);
   io.emit("event", { type: "META", data: { meta } });
 }
 
 export function getSettings({ io }: HandlerConnections) {
-  io.emit("event", { type: "SETTINGS", data: { settings: getSettingsData() } });
+  io.emit("event", {
+    type: "SETTINGS",
+    data: { settings: getters.getSettings() },
+  });
 }
 
 export function setPassword(connections: HandlerConnections, value: string) {
-  setPasswordData(value);
+  setters.setPassword(value);
 }
 
 export function fixMeta({ io }: HandlerConnections, title?: string) {
-  fetchAndSetMeta({ io }, getMeta().station, title);
+  fetchAndSetMeta({ io }, getters.getMeta().station, title);
 }
 
 export function kickUser({ io }: HandlerConnections, user: User) {
   const { userId } = user;
-  const socketId = get("id", find({ userId }, getUsers()));
+  const socketId = get("id", find({ userId }, getters.getUsers()));
 
   const newMessage = systemMessage(
     `You have been kicked. I hope you deserved it.`,
@@ -77,21 +70,21 @@ export async function settings(
   values: Settings
 ) {
   const { donationURL, extraInfo, fetchMeta, password } = values;
-  const prevSettings = { ...getSettingsData() };
+  const prevSettings = { ...getters.getSettings() };
   const newSettings = {
     fetchMeta,
     donationURL,
     extraInfo,
     password,
   };
-  setSettings(newSettings);
+  setters.setSettings(newSettings);
   io.emit("event", { type: "SETTINGS", data: newSettings });
 
   if (
     prevSettings.donationURL !== values.donationURL ||
     prevSettings.extraInfo !== values.extraInfo
   ) {
-    setSettings(newSettings);
+    setters.setSettings(newSettings);
   }
 
   if (!prevSettings.fetchMeta && values.fetchMeta) {
@@ -103,7 +96,7 @@ export async function settings(
 }
 
 export function clearPlaylist({ socket, io }: HandlerConnections) {
-  setPlaylist([]);
-  setQueue([]);
+  setters.setPlaylist([]);
+  setters.setQueue([]);
   io.emit("event", { type: "PLAYLIST", data: [] });
 }
