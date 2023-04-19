@@ -171,7 +171,6 @@ export async function searchSpotifyTrack(
 ) {
   try {
     const data = await spotifyApi.searchTracks(query, options);
-    console.log("DATA!!!!!", data);
     socket.emit("event", {
       type: "TRACK_SEARCH_RESULTS",
       data: data.body.tracks,
