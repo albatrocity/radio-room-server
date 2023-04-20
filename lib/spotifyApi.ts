@@ -28,6 +28,8 @@ async function setApiToken() {
   }
 }
 
-setApiToken();
+if (process.env.NODE_ENV !== "test") {
+  setApiToken();
+}
 
 export default spotifyApi;

@@ -1,65 +1,65 @@
+import { compact, concat, find, reject, uniq } from "lodash/fp";
+import { getters, setters } from "../lib/dataStore";
 import parseMessage from "../lib/parseMessage";
 import sendMessage from "../lib/sendMessage";
-import { Server, Socket } from "socket.io";
-import { Getters, Setters } from "types/DataStores";
 
-const { reject, find, concat, uniq, compact } = require("lodash/fp");
+import { HandlerConnections } from "../types/HandlerConnections";
+import { User } from "../types/User";
 
-function authHandlers(
-  socket: Socket,
-  io: Server,
-  { getUsers, getMessages, getTyping }: Getters,
-  { setUsers, setMessages, setTyping }: Setters
+export function newMessage(
+  { socket, io }: HandlerConnections,
+  message: string
 ) {
-  socket.on("new message", (data) => {
-    // we tell the client to execute 'new message'
-    const users = getUsers();
-    const typing = getTyping();
-    const { content, mentions } = parseMessage(data);
-    const payload = {
-      user: find({ id: socket.id }, users) || {
-        username: socket.data.username,
-      },
-      content,
-      mentions,
-      timestamp: new Date().toISOString(),
-    };
-    const newTyping = compact(
-      uniq(reject({ userId: socket.data.userId }, typing))
-    );
-    setTyping(newTyping);
-    io.emit("event", { type: "TYPING", data: { typing: newTyping } });
-    sendMessage(io, payload, { getMessages, setMessages });
-  });
+  const users = getters.getUsers();
+  const typing = getters.getTyping();
+  const { content, mentions } = parseMessage(message);
+  const fallbackUser: User = {
+    username: socket.data.username,
+    userId: socket.data.userId,
+  };
+  const payload = {
+    user:
+      users.find(({ userId }) => userId === socket.data.userId) || fallbackUser,
+    content,
+    mentions,
+    timestamp: new Date().toISOString(),
+  };
+  const newTyping = compact(
+    uniq(reject({ userId: socket.data.userId }, typing))
+  );
+  setters.setTyping(newTyping);
+  io.emit("event", { type: "TYPING", data: { typing: newTyping } });
+  sendMessage(io, payload);
+}
 
-  socket.on("clear messages", () => {
-    setMessages([]);
-    io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
-  });
+export function clearMessages({ socket, io }: HandlerConnections) {
+  setters.setMessages([]);
+  io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
+}
 
-  socket.on("typing", () => {
-    const newTyping = compact(
-      uniq(
-        concat(getTyping(), find({ userId: socket.data.userId }, getUsers()))
+export function startTyping({ socket, io }: HandlerConnections) {
+  const newTyping = compact(
+    uniq(
+      concat(
+        getters.getTyping(),
+        find({ userId: socket.data.userId }, getters.getUsers())
       )
-    );
-    setTyping(newTyping);
-    socket.broadcast.emit("event", {
-      type: "TYPING",
-      data: { typing: newTyping },
-    });
-  });
-
-  socket.on("stop typing", () => {
-    const newTyping = compact(
-      uniq(reject({ userId: socket.data.userId }, getTyping()))
-    );
-    setTyping(newTyping);
-    socket.broadcast.emit("event", {
-      type: "TYPING",
-      data: { typing: newTyping },
-    });
+    )
+  );
+  setters.setTyping(newTyping);
+  socket.broadcast.emit("event", {
+    type: "TYPING",
+    data: { typing: newTyping },
   });
 }
 
-export default authHandlers;
+export function stopTyping({ socket, io }: HandlerConnections) {
+  const newTyping = compact(
+    uniq(reject({ userId: socket.data.userId }, getters.getTyping()))
+  );
+  setters.setTyping(newTyping);
+  socket.broadcast.emit("event", {
+    type: "TYPING",
+    data: { typing: newTyping },
+  });
+}

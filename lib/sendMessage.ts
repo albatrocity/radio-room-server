@@ -1,23 +1,13 @@
-import { take, concat } from "lodash/fp";
+import { concat, take } from "lodash/fp";
 import { Server } from "socket.io";
 import { ChatMessage } from "types/ChatMessage";
-import { Getters, Setters } from "types/DataStores";
+import { getters, setters } from "./dataStore";
 
-function sendMessage(
-  io: Server,
-  message: ChatMessage,
-  {
-    getMessages,
-    setMessages,
-  }: {
-    getMessages: Getters["getMessages"];
-    setMessages: Setters["setMessages"];
-  }
-) {
+function sendMessage(io: Server, message: ChatMessage) {
   io.emit("event", { type: "NEW_MESSAGE", data: message });
-  const messages = getMessages();
+  const messages = getters.getMessages();
   const newMessages = take(120, concat(message, messages));
-  setMessages(newMessages);
+  setters.setMessages(newMessages);
   return newMessages;
 }
 

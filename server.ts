@@ -1,24 +1,21 @@
-import express from "express";
-import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
-import cors from "cors";
 import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
 import { createClient } from "redis";
+import { Server } from "socket.io";
 
+import { getters, setters } from "./lib/dataStore";
+import fetchAndSetMeta from "./operations/fetchAndSetMeta";
 import getStation from "./operations/getStation";
 import refreshSpotifyToken from "./operations/refreshSpotifyToken";
-import { login, callback } from "./spotify";
-import { createGetters, createSetters } from "./lib/dataStore";
-import fetchAndSetMeta from "./operations/fetchAndSetMeta";
+import { callback, login } from "./spotify";
 
-import activityHandlers from "./handlers/activityHandlers";
-import authHandlers from "./handlers/authHandlers";
-import messageHandlers from "./handlers/messageHandlers";
-import djHandlers from "./handlers/djHandlers";
-import adminHandlers from "./handlers/adminHandlers";
-
-import { Settings } from "./types/Settings";
-import { DataStores } from "./types/DataStores";
+import activityController from "./controllers/activityController";
+import adminController from "./controllers/adminController";
+import authController from "./controllers/authController";
+import djController from "./controllers/djController";
+import messageController from "./controllers/messageController";
 
 const fortyFiveMins = 2700000;
 
@@ -58,44 +55,15 @@ subClient.connect();
 
 io.adapter(createAdapter(pubClient, subClient));
 
-const defaultSettings: Settings = {
-  fetchMeta: true,
-  extraInfo: undefined,
-  donationURL: undefined,
-  password: null,
-};
-
 let offline = true;
 let oAuthInterval: NodeJS.Timer | null;
 
-const dataStores: DataStores = {
-  station: undefined,
-  settings: { ...defaultSettings },
-  deputyDjs: [],
-  users: [],
-  messages: [],
-  typing: [],
-  meta: {},
-  cover: null,
-  fetching: false,
-  playlist: [],
-  queue: [],
-  reactions: {
-    message: {},
-    track: {},
-  },
-  defaultSettings,
-};
-
-const getters = createGetters(dataStores);
-const setters = createSetters(dataStores);
-
 io.on("connection", (socket) => {
-  authHandlers(socket, io, getters, setters);
-  messageHandlers(socket, io, getters, setters);
-  activityHandlers(socket, io, getters, setters);
-  djHandlers(socket, io, getters, setters);
-  adminHandlers(socket, io, getters, setters);
+  authController(socket, io);
+  messageController(socket, io);
+  activityController(socket, io);
+  djController(socket, io);
+  adminController(socket, io);
 });
 
 setInterval(async () => {
@@ -106,7 +74,7 @@ setInterval(async () => {
 
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
   if ((!station || station.bitrate === "0") && !offline) {
-    fetchAndSetMeta({ getters, setters, io });
+    fetchAndSetMeta({ io });
     offline = true;
     setters.setFetching(false);
     if (oAuthInterval) {
@@ -117,7 +85,7 @@ setInterval(async () => {
   }
 
   if (station && station.title !== getters.getMeta().title && !offline) {
-    await fetchAndSetMeta({ getters, setters, io }, station, station.title);
+    await fetchAndSetMeta({ io }, station, station.title);
   }
 
   if (
@@ -135,7 +103,7 @@ setInterval(async () => {
     } catch (e) {
       console.log(e);
     } finally {
-      await fetchAndSetMeta({ getters, setters, io }, station);
+      await fetchAndSetMeta({ io }, station);
     }
   }
   setters.setFetching(false);

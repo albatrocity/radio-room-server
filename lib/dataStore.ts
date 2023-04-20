@@ -1,17 +1,52 @@
-import { User } from "../types/User";
+import {
+  DataStores,
+  Getter,
+  Getters,
+  ReactionStore,
+  Setter,
+  Setters,
+} from "types/DataStores";
+import { Station } from "types/Station";
 import { ChatMessage } from "../types/ChatMessage";
 import { PlaylistTrack } from "../types/PlaylistTrack";
 import { QueuedTrack } from "../types/QueuedTrack";
 import { Settings } from "../types/Settings";
-import { Station } from "types/Station";
-import {
-  DataStores,
-  Setter,
-  Getter,
-  Setters,
-  Getters,
-  ReactionStore,
-} from "types/DataStores";
+import { User } from "../types/User";
+
+export const defaultSettings: Settings = {
+  fetchMeta: true,
+  extraInfo: undefined,
+  donationURL: undefined,
+  password: null,
+};
+
+const initialState = {
+  station: undefined,
+  settings: { ...defaultSettings },
+  deputyDjs: [],
+  users: [],
+  messages: [],
+  typing: [],
+  meta: {},
+  cover: null,
+  fetching: false,
+  playlist: [],
+  queue: [],
+  reactions: {
+    message: {},
+    track: {},
+  },
+  defaultSettings,
+};
+
+export const dataStores: DataStores = { ...initialState };
+
+export function resetDataStores() {
+  let t: keyof DataStores;
+  for (t in dataStores) {
+    dataStores[t] = initialState[t];
+  }
+}
 
 export function createGetter<T>(
   dataStores: DataStores,
@@ -77,3 +112,6 @@ const setPassword = (dataStores: DataStores, pw: string) => {
     return pw;
   }
 };
+
+export const getters = createGetters(dataStores);
+export const setters = createSetters(dataStores);
