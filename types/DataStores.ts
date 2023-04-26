@@ -6,6 +6,7 @@ import { Settings } from "./Settings";
 import { Station } from "./Station";
 import { User } from "./User";
 import { ReactionableType } from "../lib/constants";
+import { TriggerAction } from "./Triggers";
 
 export type ReactionStore = Record<
   ReactionableType,
@@ -29,6 +30,7 @@ export type DataStores = {
   };
   defaultSettings: Settings;
   station?: Station;
+  triggerActions: TriggerAction<Reaction | ChatMessage>[];
 };
 
 export type Setter<T> = (data: T) => void;
@@ -48,6 +50,7 @@ export type Getters = {
   getUsers: Getter<User[]>;
   getFetching: Getter<boolean>;
   getStation: Getter<Station>;
+  getTriggerActions: Getter<TriggerAction<Reaction | ChatMessage>[]>;
 };
 export type Setters = {
   setDeputyDjs: Setter<User["userId"][]>;
@@ -63,4 +66,5 @@ export type Setters = {
   setFetching: Setter<boolean>;
   setPassword: (pw: string) => string | null;
   setStation: Setter<Station>;
+  setTriggerActions: Setter<TriggerAction<Reaction | ChatMessage>[]>;
 };
