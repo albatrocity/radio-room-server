@@ -166,7 +166,7 @@ describe("adminHandlers", () => {
       });
     });
 
-    it("fetches meta if fetchMeta is being turned on", async () => {
+    it("calls fetchAndSetMeta if fetchMeta is being turned on or off", async () => {
       (getStation as jest.Mock).mockResolvedValueOnce({
         bitrate: 1,
       });

@@ -14,6 +14,7 @@ export default async function fetchAndSetMeta(
   title?: string,
   options: FetchMetaOptions = {}
 ) {
+  const { fetchMeta } = getters.getSettings();
   const silent = options.silent || false;
   if (!station) {
     setters.setFetching(false);
@@ -22,18 +23,20 @@ export default async function fetchAndSetMeta(
   }
   // Lookup and emit track meta
   const info = (title || station.title || "").split("|");
-  const track = info[0];
-  const artist = info[1];
-  const album = info[2];
+  const sourceTrack = info[0];
+  const sourceArtist = info[1];
+  const sourceAlbum = info[2];
+  const fallbackTrack = info[3];
+  const fallbackArtist = info[4];
+  const fallbackAlbum = info[5];
   setters.setFetching(false);
 
-  if (!artist && !album) {
-    setters.setFetching(false);
-    const newMeta = fetchAndSetMeta({ io }, { ...station });
-    io.emit("event", { type: "META", data: { meta: newMeta } });
-    return;
-  }
-  const release = getters.getSettings().fetchMeta
+  const useSpotify = sourceArtist && sourceAlbum && fetchMeta;
+  const track = sourceTrack || fallbackTrack;
+  const artist = sourceArtist || fallbackArtist;
+  const album = sourceAlbum || fallbackAlbum;
+
+  const release = useSpotify
     ? await fetchReleaseInfo(`${track} ${artist} ${album}`)
     : {};
 
@@ -53,7 +56,9 @@ export default async function fetchAndSetMeta(
   };
   setters.setMeta(newMeta);
   const content = track
-    ? `Up next: ${track} - ${artist} - ${album}`
+    ? `Up next: ${track}${artist ? ` - ${album}` : ""}${
+        album ? ` - ${album}` : ""
+      }`
     : `Up next: ${album}`;
 
   const newMessage = systemMessage(content, {
