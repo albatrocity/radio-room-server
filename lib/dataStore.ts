@@ -15,32 +15,9 @@ import { User } from "../types/User";
 import { TriggerAction } from "types/Triggers";
 import { Reaction } from "types/Reaction";
 
-export const defaultSettings: Settings = {
-  fetchMeta: true,
-  extraInfo: undefined,
-  donationURL: undefined,
-  password: null,
-};
+import defaultState from "../config/defaultState";
 
-const initialState = {
-  station: undefined,
-  settings: { ...defaultSettings },
-  deputyDjs: [],
-  users: [],
-  messages: [],
-  typing: [],
-  meta: {},
-  cover: null,
-  fetching: false,
-  playlist: [],
-  queue: [],
-  reactions: {
-    message: {},
-    track: {},
-  },
-  triggerActions: [],
-  defaultSettings,
-};
+const initialState: DataStores = defaultState;
 
 export const dataStores: DataStores = { ...initialState };
 

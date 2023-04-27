@@ -6,12 +6,7 @@ import {
   queueSong,
   searchSpotifyTrack,
 } from "./djHandlers";
-import {
-  getters,
-  setters,
-  resetDataStores,
-  defaultSettings,
-} from "../lib/dataStore";
+import { setters, resetDataStores } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
 import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";

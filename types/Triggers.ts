@@ -1,7 +1,7 @@
 import { ChatMessage } from "./ChatMessage";
 import { User } from "./User";
 import { Track } from "./Track";
-import { Reaction } from "./Reaction";
+import { Reaction, ReactionPayload } from "./Reaction";
 import { PlaylistTrack } from "./PlaylistTrack";
 
 export type TriggerSourceEvent<T> = {
@@ -57,3 +57,7 @@ export type WithTriggerMeta<T, S> = T & {
     template?: string;
   };
 };
+
+export type AppTriggerAction =
+  | TriggerAction<ReactionPayload>
+  | TriggerAction<ChatMessage>;

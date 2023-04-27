@@ -6,10 +6,11 @@ import {
   startTyping,
   stopTyping,
 } from "./messageHandlers";
-import { getters, setters, resetDataStores } from "../lib/dataStore";
+import { setters, resetDataStores } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 
 jest.mock("../lib/sendMessage");
+jest.mock("../operations/processTriggerAction");
 
 afterEach(() => {
   jest.restoreAllMocks();

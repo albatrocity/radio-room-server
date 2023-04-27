@@ -1,12 +1,8 @@
 import { describe, test } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
 import { login, changeUsername, disconnect } from "./authHandlers";
-import {
-  getters,
-  setters,
-  resetDataStores,
-  defaultSettings,
-} from "../lib/dataStore";
+import { setters, resetDataStores } from "../lib/dataStore";
+import { defaultSettings } from "../config/defaultState";
 import sendMessage from "../lib/sendMessage";
 
 jest.mock("../lib/sendMessage");

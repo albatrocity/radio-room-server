@@ -1,12 +1,12 @@
 import { ChatMessage } from "./ChatMessage";
 import { PlaylistTrack } from "./PlaylistTrack";
 import { QueuedTrack } from "./QueuedTrack";
-import { Reaction } from "./Reaction";
+import { Reaction, ReactionPayload } from "./Reaction";
 import { Settings } from "./Settings";
 import { Station } from "./Station";
 import { User } from "./User";
 import { ReactionableType } from "../lib/constants";
-import { TriggerAction } from "./Triggers";
+import { AppTriggerAction, TriggerAction } from "./Triggers";
 
 export type ReactionStore = Record<
   ReactionableType,
@@ -30,7 +30,7 @@ export type DataStores = {
   };
   defaultSettings: Settings;
   station?: Station;
-  triggerActions: TriggerAction<Reaction | ChatMessage>[];
+  triggerActions: AppTriggerAction[];
 };
 
 export type Setter<T> = (data: T) => void;

@@ -1,5 +1,5 @@
 import { ReactionSubject } from "./ReactionSubject";
-import { Emoji } from "@emoji-mart/data";
+import { Emoji } from "./Emoji";
 import { User } from "./User";
 
 export interface EmojiReaction {

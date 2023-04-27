@@ -77,7 +77,7 @@ const maggie = {
 
 const thumbsDownEmoji = {
   name: "thumbs_down",
-  shortcodes: [":-1:", ":thumbs_down:"],
+  shortcodes: ":-1:",
   id: "thumbs_down",
   keywords: [],
   skins: [],
@@ -104,8 +104,8 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: marge.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: marge.userId },
               ],
             },
           });
@@ -118,7 +118,7 @@ describe("processReactionTrigger", () => {
         test("calls when threshold is met", () => {
           const reaction = stubReaction({
             meta: {
-              sourcesOnSubject: [{ emoji: [":-1:"], user: marge.userId }],
+              sourcesOnSubject: [{ emoji: ":-1:", user: marge.userId }],
             },
           });
 
@@ -141,9 +141,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -157,8 +157,8 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -182,9 +182,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -198,8 +198,8 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -222,7 +222,7 @@ describe("processReactionTrigger", () => {
         test("skips when threshold is not met", () => {
           const reaction = stubReaction({
             meta: {
-              sourcesOnSubject: [{ emoji: [":-1:"], user: marge.userId }],
+              sourcesOnSubject: [{ emoji: ":-1:", user: marge.userId }],
             },
           });
 
@@ -235,9 +235,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -260,7 +260,7 @@ describe("processReactionTrigger", () => {
         test("skips when threshold is not met", () => {
           const reaction = stubReaction({
             meta: {
-              sourcesOnSubject: [{ emoji: [":-1:"], user: marge.userId }],
+              sourcesOnSubject: [{ emoji: ":-1:", user: marge.userId }],
             },
           });
 
@@ -273,9 +273,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -300,9 +300,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":+1:"], user: marge.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":+1:", user: marge.userId },
               ],
             },
           });
@@ -316,9 +316,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":+1:"], user: marge.userId },
-                { emoji: [":+1:"], user: marge.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":+1:", user: marge.userId },
+                { emoji: ":+1:", user: marge.userId },
               ],
             },
           });
@@ -342,11 +342,11 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":-1:"], user: maggie.userId },
-                { emoji: [":+1:"], user: bart.userId },
-                { emoji: [":+1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":-1:", user: maggie.userId },
+                { emoji: ":+1:", user: bart.userId },
+                { emoji: ":+1:", user: homer.userId },
               ],
             },
           });
@@ -360,10 +360,10 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":+1:"], user: bart.userId },
-                { emoji: [":+1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":+1:", user: bart.userId },
+                { emoji: ":+1:", user: homer.userId },
               ],
             },
           });
@@ -387,9 +387,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -403,8 +403,8 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":+1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":+1:", user: homer.userId },
               ],
             },
           });
@@ -428,8 +428,8 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":+1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":+1:", user: homer.userId },
               ],
             },
           });
@@ -443,10 +443,10 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":+1:"], user: maggie.userId },
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: lisa.userId },
-                { emoji: [":-1:"], user: homer.userId },
+                { emoji: ":+1:", user: maggie.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: lisa.userId },
+                { emoji: ":-1:", user: homer.userId },
               ],
             },
           });
@@ -470,9 +470,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":+1:"], user: bart.userId },
-                { emoji: [":+1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":+1:", user: bart.userId },
+                { emoji: ":+1:", user: homer.userId },
               ],
             },
           });
@@ -486,9 +486,9 @@ describe("processReactionTrigger", () => {
           const reaction = stubReaction({
             meta: {
               sourcesOnSubject: [
-                { emoji: [":-1:"], user: marge.userId },
-                { emoji: [":-1:"], user: bart.userId },
-                { emoji: [":+1:"], user: homer.userId },
+                { emoji: ":-1:", user: marge.userId },
+                { emoji: ":-1:", user: bart.userId },
+                { emoji: ":+1:", user: homer.userId },
               ],
             },
           });
@@ -515,9 +515,9 @@ describe("processReactionTrigger", () => {
       const reaction = stubReaction({
         meta: {
           sourcesOnSubject: [
-            { emoji: [":+1:"], user: marge.userId },
-            { emoji: [":+1:"], user: homer.userId },
-            { emoji: [":-1:"], user: maggie.userId },
+            { emoji: ":+1:", user: marge.userId },
+            { emoji: ":+1:", user: homer.userId },
+            { emoji: ":-1:", user: maggie.userId },
           ],
           compareTo: {
             listeners: [marge, homer, lisa],
@@ -534,8 +534,8 @@ describe("processReactionTrigger", () => {
       const reaction = stubReaction({
         meta: {
           sourcesOnSubject: [
-            { emoji: [":-1:"], user: marge.userId },
-            { emoji: [":-1:"], user: homer.userId },
+            { emoji: ":-1:", user: marge.userId },
+            { emoji: ":-1:", user: homer.userId },
           ],
           compareTo: {
             listeners: [marge, homer],
@@ -552,8 +552,8 @@ describe("processReactionTrigger", () => {
       const reaction = stubReaction({
         meta: {
           sourcesOnSubject: [
-            { emoji: [":-1:"], user: marge.userId },
-            { emoji: [":-1:"], user: homer.userId },
+            { emoji: ":-1:", user: marge.userId },
+            { emoji: ":-1:", user: homer.userId },
           ],
           compareTo: {
             listeners: [marge, homer],

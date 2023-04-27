@@ -11,10 +11,7 @@ import { Reaction, ReactionPayload } from "types/Reaction";
 import { Server } from "socket.io";
 import { ChatMessage } from "types/ChatMessage";
 
-function getThresholdValue<S, T>(
-  count: number,
-  conditions: TriggerConditions<T>
-) {
+function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   if (conditions.thresholdType === "count") {
     return conditions.threshold;
   }
@@ -31,7 +28,11 @@ function meetsThreshold<S, T>(
     ? data.meta.compareTo?.[conditions.compareTo] || data.meta.sourcesOnSubject
     : data.meta.sourcesOnSubject;
 
-  const threshValue = getThresholdValue<S, T>(compareTo.length, conditions);
+  const threshValue = getThresholdValue<T>(compareTo.length, conditions);
+  console.log("compareTo", compareTo);
+  console.log("threshValue", threshValue);
+  console.log("count", count);
+  console.log("comparator", conditions.comparator);
 
   switch (conditions.comparator) {
     case "<":
