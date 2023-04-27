@@ -1,7 +1,7 @@
 import { ChatMessage } from "./ChatMessage";
 import { User } from "./User";
 import { Track } from "./Track";
-import { Reaction, ReactionPayload } from "./Reaction";
+import { Reaction } from "./Reaction";
 import { PlaylistTrack } from "./PlaylistTrack";
 
 export type TriggerSourceEvent<T> = {
@@ -9,7 +9,7 @@ export type TriggerSourceEvent<T> = {
   type: TriggerEventType;
 };
 
-type CompareTo = {
+export type CompareTo = {
   listeners?: User[];
   users?: User[];
   messages?: ChatMessage[];
@@ -39,6 +39,7 @@ export interface TriggerConditions<T> {
   threshold: number;
   thresholdType: `percent` | `count`;
   qualifier: (source: T) => boolean;
+  maxTimes: number;
 }
 
 export interface TriggerAction<T> {
@@ -47,6 +48,9 @@ export interface TriggerAction<T> {
   type: TriggerActionType;
   target?: TriggerTarget;
   conditions: TriggerConditions<T>;
+  meta?: {
+    template?: string;
+  };
 }
 
 export type WithTriggerMeta<T, S> = T & {
@@ -59,5 +63,5 @@ export type WithTriggerMeta<T, S> = T & {
 };
 
 export type AppTriggerAction =
-  | TriggerAction<ReactionPayload>
+  | TriggerAction<Reaction>
   | TriggerAction<ChatMessage>;

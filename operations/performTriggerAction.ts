@@ -19,7 +19,7 @@ export default function performTriggerAction<S, T>(
       return targetTrackUri ? likeSpotifyTrack(targetTrackUri) : undefined;
     case "sendMessage":
       const message = parseMessage(
-        data.meta.template || `${trigger.type} action was triggered`
+        trigger.meta?.template || `${trigger.type} action was triggered`
       );
       return sendMessage(
         io,

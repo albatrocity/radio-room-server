@@ -34,7 +34,7 @@ export function newMessage(
   sendMessage(io, payload);
   processTriggerAction<ChatMessage>(
     {
-      type: "reaction",
+      type: "message",
       data: payload,
     },
     io

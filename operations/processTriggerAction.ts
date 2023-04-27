@@ -19,6 +19,19 @@ function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   return count * (conditions.threshold / 100);
 }
 
+function getCompareTo(target?: TriggerTarget) {
+  return {
+    listeners: getters
+      .getUsers()
+      .filter(({ status }) => status === "listening"),
+    users: getters.getUsers(),
+    messages: getters.getMessages(),
+    reactions: target
+      ? getters.getReactions()[target?.type][target?.id] || []
+      : [],
+  };
+}
+
 function meetsThreshold<S, T>(
   count: number,
   conditions: TriggerConditions<T>,
@@ -29,10 +42,6 @@ function meetsThreshold<S, T>(
     : data.meta.sourcesOnSubject;
 
   const threshValue = getThresholdValue<T>(compareTo.length, conditions);
-  console.log("compareTo", compareTo);
-  console.log("threshValue", threshValue);
-  console.log("count", count);
-  console.log("comparator", conditions.comparator);
 
   switch (conditions.comparator) {
     case "<":
@@ -77,6 +86,7 @@ export function processReactionTriggers(
         ...data,
         meta: {
           sourcesOnSubject: currentReactions,
+          compareTo: getCompareTo(t.target),
           target,
         },
       },
@@ -99,7 +109,9 @@ export function processMessageTriggers(
         ...data,
         meta: {
           sourcesOnSubject: currentMessages,
+          compareTo: getCompareTo(t.target),
           target,
+          ...t.meta,
         },
       },
       t,
@@ -117,11 +129,15 @@ export function processTriggerAction<T>(
     case "reaction":
       return processReactionTriggers(
         data as ReactionPayload,
-        triggerActions,
+        triggerActions.filter((a) => a.on === "reaction"),
         io
       );
     case "message":
-      return processMessageTriggers(data as ChatMessage, triggerActions, io);
+      return processMessageTriggers(
+        data as ChatMessage,
+        triggerActions.filter((a) => a.on === "message"),
+        io
+      );
   }
 }
 
