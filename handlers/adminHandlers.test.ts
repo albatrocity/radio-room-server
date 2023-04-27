@@ -14,12 +14,12 @@ import { getters, setters, resetDataStores } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import fetchAndSetMeta from "../operations/fetchAndSetMeta";
 import getStation from "../operations/getStation";
-import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
+import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi");
 jest.mock("../operations/fetchAndSetMeta");
-jest.mock("../operations/createAndPopulateSpotifyPlaylist");
+jest.mock("../operations/spotify/createAndPopulateSpotifyPlaylist");
 jest.mock("../operations/getStation");
 
 afterEach(() => {
@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 describe("adminHandlers", () => {
-  const { socket, io, broadcastEmit, emit, toEmit } = makeSocket();
+  const { socket, io, emit, toEmit } = makeSocket();
 
   describe("setCover", () => {
     it("sets cover value", () => {

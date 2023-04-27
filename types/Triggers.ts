@@ -1,18 +1,28 @@
+import { ChatMessage } from "./ChatMessage";
+import { User } from "./User";
+import { Track } from "./Track";
+import { Reaction } from "./Reaction";
+import { PlaylistTrack } from "./PlaylistTrack";
+
 export type TriggerSourceEvent<T> = {
   data: T;
   type: TriggerEventType;
 };
 
+type CompareTo = {
+  listeners?: User[];
+  users?: User[];
+  messages?: ChatMessage[];
+  tracks?: Track[];
+  reactions?: Reaction[];
+};
+
 export type ResourceIdentifier = string | `latest`;
-export type TriggerActionType =
-  | `skipTrack`
-  | `likeTrack`
-  | `addTrackToPlaylist`
-  | `sendMessage`;
+export type TriggerActionType = `skipTrack` | `likeTrack` | `sendMessage`;
 
 export interface TriggerTarget {
-  type: `playlist` | `track`;
-  id: string;
+  type: `track`;
+  id: ResourceIdentifier;
 }
 
 export type TriggerSubjectType = `track` | `message`;
@@ -24,14 +34,8 @@ export interface TriggerSubject {
 }
 
 export interface TriggerConditions<T> {
-  determiner?:
-    | `listeners`
-    | `users`
-    | `messages`
-    | `tracks`
-    | `reactions`
-    | TriggerSubject;
-  quantifier: `<` | `<=` | `=` | `>` | `>=`;
+  compareTo?: keyof CompareTo;
+  comparator: `<` | `<=` | `=` | `>` | `>=`;
   threshold: number;
   thresholdType: `percent` | `count`;
   qualifier: (source: T) => boolean;
@@ -44,3 +48,12 @@ export interface TriggerAction<T> {
   target?: TriggerTarget;
   conditions: TriggerConditions<T>;
 }
+
+export type WithTriggerMeta<T, S> = T & {
+  meta: {
+    sourcesOnSubject: S[];
+    compareTo?: CompareTo;
+    target?: PlaylistTrack;
+    template?: string;
+  };
+};

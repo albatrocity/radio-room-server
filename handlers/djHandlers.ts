@@ -5,7 +5,7 @@ import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
 import systemMessage from "../lib/systemMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
-import refreshSpotifyToken from "../operations/refreshSpotifyToken";
+import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
@@ -154,7 +154,6 @@ export async function queueSong(
     );
     sendMessage(io, queueMessage);
   } catch (e) {
-    console.log(e);
     socket.emit("event", {
       type: "SONG_QUEUE_FAILURE",
       data: {

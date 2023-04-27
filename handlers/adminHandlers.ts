@@ -1,7 +1,7 @@
 import { find, get } from "lodash/fp";
 
 import systemMessage from "../lib/systemMessage";
-import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
+import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 import fetchAndSetMeta from "../operations/fetchAndSetMeta";
 import getStation from "../operations/getStation";
 

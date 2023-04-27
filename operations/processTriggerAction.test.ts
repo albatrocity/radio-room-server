@@ -1,13 +1,13 @@
 import { describe, test, afterEach } from "@jest/globals";
-import { TriggerAction } from "../types/Triggers";
-import { processReactionTrigger } from "./processTrigger";
+import { TriggerAction, WithTriggerMeta } from "../types/Triggers";
+import { processTrigger } from "./processTriggerAction";
 import { Reaction, ReactionPayload } from "../types/Reaction";
 import performTriggerAction from "./performTriggerAction";
-import { WithMeta } from "../types/Utility";
-import { Emoji } from "@emoji-mart/data";
-import { User } from "../types/User";
+import { makeSocket } from "../lib/testHelpers";
 
 jest.mock("./performTriggerAction");
+
+const { io } = makeSocket();
 
 function stubTrigger({
   on = "reaction",
@@ -17,8 +17,8 @@ function stubTrigger({
   },
   type = "skipTrack",
   conditions = {
-    determiner: "listeners",
-    quantifier: ">",
+    compareTo: "listeners",
+    comparator: ">",
     threshold: 2,
     thresholdType: "count",
     qualifier: (source) => source.emoji.includes(":-1:"),
@@ -42,7 +42,7 @@ function stubReaction({
   meta = {
     sourcesOnSubject: [],
   },
-}: Partial<WithMeta<ReactionPayload, Reaction>>): WithMeta<
+}: Partial<WithTriggerMeta<ReactionPayload, Reaction>>): WithTriggerMeta<
   ReactionPayload,
   Reaction
 > {
@@ -89,12 +89,12 @@ afterEach(() => {
 });
 
 describe("processReactionTrigger", () => {
-  describe("conditions", () => {
+  describe("determined on main resource", () => {
     describe("count", () => {
       describe("<", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: "<",
+            comparator: "<",
             threshold: 2,
             thresholdType: "count",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -110,7 +110,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -122,7 +122,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -131,7 +131,7 @@ describe("processReactionTrigger", () => {
       describe("<=", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: "<=",
+            comparator: "<=",
             threshold: 2,
             thresholdType: "count",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -148,7 +148,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -163,7 +163,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -172,7 +172,7 @@ describe("processReactionTrigger", () => {
       describe("=", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: "=",
+            comparator: "=",
             threshold: 2,
             thresholdType: "count",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -189,7 +189,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -204,7 +204,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -213,7 +213,7 @@ describe("processReactionTrigger", () => {
       describe(">", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: ">",
+            comparator: ">",
             threshold: 2,
             thresholdType: "count",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -226,7 +226,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -242,7 +242,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -251,7 +251,7 @@ describe("processReactionTrigger", () => {
       describe(">=", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: ">=",
+            comparator: ">=",
             threshold: 2,
             thresholdType: "count",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -264,7 +264,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -280,7 +280,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -290,7 +290,7 @@ describe("processReactionTrigger", () => {
       describe("<", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: "<",
+            comparator: "<",
             threshold: 50,
             thresholdType: "percent",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -307,7 +307,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -323,7 +323,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -332,7 +332,7 @@ describe("processReactionTrigger", () => {
       describe("<=", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: "<=",
+            comparator: "<=",
             threshold: 50,
             thresholdType: "percent",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -351,7 +351,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -368,7 +368,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -377,7 +377,7 @@ describe("processReactionTrigger", () => {
       describe("=", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: "=",
+            comparator: "=",
             threshold: 50,
             thresholdType: "percent",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -394,7 +394,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -409,7 +409,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -418,7 +418,7 @@ describe("processReactionTrigger", () => {
       describe(">", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: ">",
+            comparator: ">",
             threshold: 50,
             thresholdType: "percent",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -434,7 +434,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -451,7 +451,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
@@ -460,7 +460,7 @@ describe("processReactionTrigger", () => {
       describe(">=", () => {
         const trigger = stubTrigger({
           conditions: {
-            quantifier: ">=",
+            comparator: ">=",
             threshold: 50,
             thresholdType: "percent",
             qualifier: (source) => source.emoji.includes(":-1:"),
@@ -477,7 +477,7 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).not.toHaveBeenCalled();
         });
@@ -493,11 +493,88 @@ describe("processReactionTrigger", () => {
             },
           });
 
-          processReactionTrigger(reaction, trigger);
+          processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
 
           expect(performTriggerAction).toHaveBeenCalled();
         });
       });
+    });
+  });
+
+  describe("compareTo", () => {
+    const trigger = stubTrigger({
+      conditions: {
+        compareTo: "listeners",
+        comparator: ">",
+        threshold: 50,
+        thresholdType: "percent",
+        qualifier: (source) => source.emoji.includes(":-1:"),
+      },
+    });
+    test("skips when threshold is not met", () => {
+      const reaction = stubReaction({
+        meta: {
+          sourcesOnSubject: [
+            { emoji: [":+1:"], user: marge.userId },
+            { emoji: [":+1:"], user: homer.userId },
+            { emoji: [":-1:"], user: maggie.userId },
+          ],
+          compareTo: {
+            listeners: [marge, homer, lisa],
+          },
+        },
+      });
+
+      processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
+
+      expect(performTriggerAction).not.toHaveBeenCalled();
+    });
+
+    test("calls when threshold is met", () => {
+      const reaction = stubReaction({
+        meta: {
+          sourcesOnSubject: [
+            { emoji: [":-1:"], user: marge.userId },
+            { emoji: [":-1:"], user: homer.userId },
+          ],
+          compareTo: {
+            listeners: [marge, homer],
+          },
+        },
+      });
+
+      processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
+
+      expect(performTriggerAction).toHaveBeenCalled();
+    });
+
+    test("reads from the correct compareTo", () => {
+      const reaction = stubReaction({
+        meta: {
+          sourcesOnSubject: [
+            { emoji: [":-1:"], user: marge.userId },
+            { emoji: [":-1:"], user: homer.userId },
+          ],
+          compareTo: {
+            listeners: [marge, homer],
+            users: [marge, homer, lisa, bart, maggie],
+          },
+        },
+      });
+
+      const trigger = stubTrigger({
+        conditions: {
+          compareTo: "users",
+          comparator: ">",
+          threshold: 50,
+          thresholdType: "percent",
+          qualifier: (source) => source.emoji.includes(":-1:"),
+        },
+      });
+
+      processTrigger<ReactionPayload, Reaction>(reaction, trigger, io);
+
+      expect(performTriggerAction).not.toHaveBeenCalled();
     });
   });
 });

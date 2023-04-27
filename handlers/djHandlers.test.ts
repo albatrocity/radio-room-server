@@ -14,7 +14,7 @@ import {
 } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
-import refreshSpotifyToken from "../operations/refreshSpotifyToken";
+import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi", () => ({
@@ -22,7 +22,7 @@ jest.mock("../lib/spotifyApi", () => ({
   searchTracks: jest.fn(),
   setRefreshToken: jest.fn(),
 }));
-jest.mock("../operations/refreshSpotifyToken");
+jest.mock("../operations/spotify/refreshSpotifyToken");
 
 afterEach(() => {
   jest.restoreAllMocks();
