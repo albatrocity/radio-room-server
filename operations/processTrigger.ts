@@ -8,9 +8,23 @@ import {
 import { Reaction, ReactionPayload } from "types/Reaction";
 import { WithMeta } from "types/Utility";
 
-function meetsThreshold<T>(count: number, conditions: TriggerConditions<T>) {
-  const threshValue =
-    conditions.thresholdType === "count" ? conditions.threshold : 0;
+function getThresholdValue<S, T>(
+  conditions: TriggerConditions<T>,
+  data: WithMeta<S, T>
+) {
+  if (conditions.thresholdType === "count") {
+    return conditions.threshold;
+  }
+
+  return data.meta.sourcesOnSubject.length * (conditions.threshold / 100);
+}
+
+function meetsThreshold<S, T>(
+  count: number,
+  conditions: TriggerConditions<T>,
+  data: WithMeta<S, T>
+) {
+  const threshValue = getThresholdValue<S, T>(conditions, data);
 
   switch (conditions.quantifier) {
     case "<":
@@ -34,7 +48,13 @@ export function processReactionTrigger(
     trigger.conditions.qualifier(x)
   );
 
-  if (meetsThreshold<Reaction>(eligible.length, trigger.conditions)) {
+  if (
+    meetsThreshold<ReactionPayload, Reaction>(
+      eligible.length,
+      trigger.conditions,
+      data
+    )
+  ) {
     performTriggerAction<ReactionPayload, Reaction>(data, trigger);
   }
 }

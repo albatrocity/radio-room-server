@@ -24,7 +24,13 @@ export interface TriggerSubject {
 }
 
 export interface TriggerConditions<T> {
-  determiner: `listeners` | `users` | `messages` | `tracks` | TriggerSubject;
+  determiner?:
+    | `listeners`
+    | `users`
+    | `messages`
+    | `tracks`
+    | `reactions`
+    | TriggerSubject;
   quantifier: `<` | `<=` | `=` | `>` | `>=`;
   threshold: number;
   thresholdType: `percent` | `count`;
