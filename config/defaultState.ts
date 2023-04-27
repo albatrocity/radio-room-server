@@ -26,6 +26,7 @@ const initialState: DataStores = {
     track: {},
   },
   triggerActions: defaultTriggerActions,
+  triggerEvents: [],
   defaultSettings,
 };
 

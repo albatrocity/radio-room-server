@@ -1,3 +1,4 @@
+import { ChatMessage } from "types/ChatMessage";
 import { Reaction } from "../types/Reaction";
 import { TriggerAction } from "../types/Triggers";
 
@@ -72,4 +73,29 @@ const clowns: TriggerAction<Reaction> = {
   },
 };
 
-export default [skipUnlikedTracks, likeTrack, clowns];
+const mess: TriggerAction<ChatMessage> = {
+  type: "sendMessage",
+  on: "message",
+  subject: {
+    type: "track",
+    id: "latest",
+  },
+  target: {
+    type: "track",
+    id: "latest",
+  },
+  conditions: {
+    comparator: ">=",
+    threshold: 1,
+    thresholdType: "count",
+    qualifier(source) {
+      return source.content.includes("clowns");
+    },
+    maxTimes: 1,
+  },
+  meta: {
+    template: "NO TALKING ABOUT CLOWNS!",
+  },
+};
+
+export default [skipUnlikedTracks, likeTrack, clowns, mess];

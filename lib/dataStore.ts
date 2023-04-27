@@ -12,10 +12,10 @@ import { PlaylistTrack } from "../types/PlaylistTrack";
 import { QueuedTrack } from "../types/QueuedTrack";
 import { Settings } from "../types/Settings";
 import { User } from "../types/User";
-import { TriggerAction } from "types/Triggers";
-import { Reaction } from "types/Reaction";
+import { AppTriggerAction } from "types/Triggers";
 
 import defaultState from "../config/defaultState";
+import { WithTimestamp } from "types/Utility";
 
 const initialState: DataStores = defaultState;
 
@@ -52,9 +52,13 @@ export function createGetters(dataStores: DataStores): Getters {
     getUsers: createGetter<User[]>(dataStores, "users"),
     getFetching: createGetter<boolean>(dataStores, "fetching"),
     getStation: createGetter<Station>(dataStores, "station"),
-    getTriggerActions: createGetter<TriggerAction<Reaction | ChatMessage>[]>(
+    getTriggerActions: createGetter<AppTriggerAction[]>(
       dataStores,
       "triggerActions"
+    ),
+    getTriggerEvents: createGetter<WithTimestamp<AppTriggerAction>[]>(
+      dataStores,
+      "triggerEvents"
     ),
   };
 }
@@ -84,9 +88,13 @@ export function createSetters(dataStores: DataStores): Setters {
     setFetching: createSetter<boolean>(dataStores, "fetching"),
     setPassword: (pw: string) => setPassword(dataStores, pw),
     setStation: createSetter<Station>(dataStores, "station"),
-    setTriggerActions: createSetter<TriggerAction<Reaction | ChatMessage>[]>(
+    setTriggerActions: createSetter<AppTriggerAction[]>(
       dataStores,
       "triggerActions"
+    ),
+    setTriggerEvents: createSetter<WithTimestamp<AppTriggerAction>[]>(
+      dataStores,
+      "triggerEvents"
     ),
   };
 }

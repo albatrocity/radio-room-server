@@ -6,6 +6,7 @@ import {
   TriggerConditions,
   WithTriggerMeta,
   TriggerTarget,
+  AppTriggerAction,
 } from "../types/Triggers";
 import { Reaction, ReactionPayload } from "types/Reaction";
 import { Server } from "socket.io";
@@ -34,9 +35,24 @@ function getCompareTo(target?: TriggerTarget) {
 
 function meetsThreshold<S, T>(
   count: number,
-  conditions: TriggerConditions<T>,
+  trigger: TriggerAction<T>,
   data: WithTriggerMeta<S, T>
 ) {
+  const { conditions } = trigger;
+
+  const instances = getters.getTriggerEvents().filter((event) => {
+    return (
+      event.on === trigger.on &&
+      event.conditions === trigger.conditions &&
+      event.subject === trigger.subject &&
+      event.type === trigger.type
+    );
+  });
+
+  if (conditions.maxTimes && instances.length >= conditions.maxTimes) {
+    return false;
+  }
+
   const compareTo = conditions.compareTo
     ? data.meta.compareTo?.[conditions.compareTo] || data.meta.sourcesOnSubject
     : data.meta.sourcesOnSubject;
@@ -66,14 +82,14 @@ export function processTrigger<S, T>(
     trigger.conditions.qualifier(x)
   );
 
-  if (meetsThreshold<S, T>(eligible.length, trigger.conditions, data)) {
+  if (meetsThreshold<S, T>(eligible.length, trigger, data)) {
     performTriggerAction<S, T>(data, trigger, io);
   }
 }
 
 export function processReactionTriggers(
   data: ReactionPayload,
-  triggers: TriggerAction<Reaction>[],
+  triggers: AppTriggerAction[],
   io: Server
 ) {
   triggers.map((t) => {
@@ -90,7 +106,7 @@ export function processReactionTriggers(
           target,
         },
       },
-      t,
+      t as TriggerAction<Reaction>,
       io
     );
   });
@@ -98,7 +114,7 @@ export function processReactionTriggers(
 
 export function processMessageTriggers(
   data: ChatMessage,
-  triggers: TriggerAction<ChatMessage>[],
+  triggers: AppTriggerAction[],
   io: Server
 ) {
   triggers.map((t) => {
@@ -114,7 +130,7 @@ export function processMessageTriggers(
           ...t.meta,
         },
       },
-      t,
+      t as TriggerAction<ChatMessage>,
       io
     );
   });

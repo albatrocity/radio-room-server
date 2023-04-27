@@ -1,12 +1,13 @@
 import { ChatMessage } from "./ChatMessage";
 import { PlaylistTrack } from "./PlaylistTrack";
 import { QueuedTrack } from "./QueuedTrack";
-import { Reaction, ReactionPayload } from "./Reaction";
+import { Reaction } from "./Reaction";
 import { Settings } from "./Settings";
 import { Station } from "./Station";
 import { User } from "./User";
 import { ReactionableType } from "../lib/constants";
 import { AppTriggerAction, TriggerAction } from "./Triggers";
+import { WithTimestamp } from "./Utility";
 
 export type ReactionStore = Record<
   ReactionableType,
@@ -31,6 +32,7 @@ export type DataStores = {
   defaultSettings: Settings;
   station?: Station;
   triggerActions: AppTriggerAction[];
+  triggerEvents: WithTimestamp<AppTriggerAction>[];
 };
 
 export type Setter<T> = (data: T) => void;
@@ -50,7 +52,8 @@ export type Getters = {
   getUsers: Getter<User[]>;
   getFetching: Getter<boolean>;
   getStation: Getter<Station>;
-  getTriggerActions: Getter<TriggerAction<Reaction | ChatMessage>[]>;
+  getTriggerActions: Getter<AppTriggerAction[]>;
+  getTriggerEvents: Getter<WithTimestamp<AppTriggerAction>[]>;
 };
 export type Setters = {
   setDeputyDjs: Setter<User["userId"][]>;
@@ -66,5 +69,6 @@ export type Setters = {
   setFetching: Setter<boolean>;
   setPassword: (pw: string) => string | null;
   setStation: Setter<Station>;
-  setTriggerActions: Setter<TriggerAction<Reaction | ChatMessage>[]>;
+  setTriggerActions: Setter<AppTriggerAction[]>;
+  setTriggerEvents: Setter<WithTimestamp<AppTriggerAction>[]>;
 };
