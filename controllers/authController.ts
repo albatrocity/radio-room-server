@@ -29,7 +29,6 @@ export default function authController(socket: Socket, io: Server) {
       userId: User["userId"];
       password?: string;
     }) => {
-      console.log("LOGIN!!!!");
       login({ socket, io }, { username, userId, password });
     }
   );

@@ -23,6 +23,9 @@ const skipUnlikedTracks: TriggerAction<Reaction> = {
     compareTo: "listeners",
     maxTimes: 1,
   },
+  meta: {
+    messageTemplate: "{{target.title}} was democratically skipped",
+  },
 };
 
 const likeTrack: TriggerAction<Reaction> = {
@@ -69,7 +72,7 @@ const clowns: TriggerAction<Reaction> = {
     maxTimes: Infinity,
   },
   meta: {
-    template: "There are too many clowns in here.",
+    messageTemplate: "There are too many clowns in here.",
   },
 };
 
@@ -94,7 +97,7 @@ const mess: TriggerAction<ChatMessage> = {
     maxTimes: 1,
   },
   meta: {
-    template: "NO TALKING ABOUT CLOWNS!",
+    messageTemplate: "NO TALKING ABOUT CLOWNS!",
   },
 };
 

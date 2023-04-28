@@ -12,6 +12,27 @@ import systemMessage from "../lib/systemMessage";
 import parseMessage from "../lib/parseMessage";
 import { WithTimestamp } from "types/Utility";
 
+function sendMetaMessage<S, T>(
+  data: WithTriggerMeta<S, T>,
+  trigger: TriggerAction<T>,
+  io: Server
+) {
+  if (trigger.meta?.messageTemplate) {
+    const message = parseMessage(trigger.meta.messageTemplate);
+    sendMessage(
+      io,
+      systemMessage(
+        message.content,
+        {
+          status: "info",
+          title: `${trigger.type} action was triggered`,
+        },
+        message.mentions
+      )
+    );
+  }
+}
+
 export default function performTriggerAction<S, T>(
   data: WithTriggerMeta<S, T>,
   trigger: TriggerAction<T>,
@@ -21,23 +42,25 @@ export default function performTriggerAction<S, T>(
   switch (trigger.type) {
     case "skipTrack":
       skipSpotifyTrack();
+      sendMetaMessage<S, T>(data, trigger, io);
     case "likeTrack":
       targetTrackUri ? likeSpotifyTrack(targetTrackUri) : undefined;
+      sendMetaMessage<S, T>(data, trigger, io);
     case "sendMessage":
-      const message = parseMessage(
-        trigger.meta?.template || `${trigger.type} action was triggered`
-      );
-      sendMessage(
-        io,
-        systemMessage(
-          message.content,
-          {
-            status: "info",
-            title: `${trigger.type} action was triggered`,
-          },
-          message.mentions
-        )
-      );
+      if (trigger.meta?.messageTemplate) {
+        const message = parseMessage(trigger.meta.messageTemplate);
+        sendMessage(
+          io,
+          systemMessage(
+            message.content,
+            {
+              status: "info",
+              title: `${trigger.type} action was triggered`,
+            },
+            message.mentions
+          )
+        );
+      }
   }
   setters.setTriggerEvents([
     ...getters.getTriggerEvents(),

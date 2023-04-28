@@ -49,7 +49,7 @@ export interface TriggerAction<T> {
   target?: TriggerTarget;
   conditions: TriggerConditions<T>;
   meta?: {
-    template?: string;
+    messageTemplate?: string;
   };
 }
 
@@ -58,7 +58,7 @@ export type WithTriggerMeta<T, S> = T & {
     sourcesOnSubject: S[];
     compareTo?: CompareTo;
     target?: PlaylistTrack;
-    template?: string;
+    messageTemplate?: string;
   };
 };
 

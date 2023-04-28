@@ -41,8 +41,6 @@ export function addReaction(
   { io }: HandlerConnections,
   { emoji, reactTo, user }: ReactionPayload
 ) {
-  console.log("REACTION EVENT");
-  console.log(emoji);
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
     return;
   }
