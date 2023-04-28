@@ -6,12 +6,10 @@ import {
   addReaction,
   removeReaction,
 } from "./activityHandlers";
-import updateUserAttributes from "../lib/updateUserAttributes";
-import { getters, setters, resetDataStores } from "../lib/dataStore";
-import defaultState from "../config/defaultState";
-import sendMessage from "../lib/sendMessage";
+import { setters, resetDataStores } from "../lib/dataStore";
 
 jest.mock("../lib/sendMessage");
+jest.mock("../operations/performTriggerAction");
 
 afterEach(() => {
   jest.restoreAllMocks();

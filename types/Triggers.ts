@@ -39,7 +39,7 @@ export interface TriggerConditions<T> {
   threshold: number;
   thresholdType: `percent` | `count`;
   qualifier: (source: T) => boolean;
-  maxTimes: number;
+  maxTimes?: number;
 }
 
 export interface TriggerAction<T> {

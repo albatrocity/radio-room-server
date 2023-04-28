@@ -168,14 +168,12 @@ export async function searchSpotifyTrack(
   { query, options }: { query: string; options: SearchOptions }
 ) {
   try {
-    console.log(spotifyApi);
     const data = await spotifyApi.searchTracks(query, options);
     socket.emit("event", {
       type: "TRACK_SEARCH_RESULTS",
       data: data.body.tracks,
     });
   } catch (e) {
-    console.log(e);
     const token = await refreshSpotifyToken();
     if (token) {
       spotifyApi.setAccessToken(token);

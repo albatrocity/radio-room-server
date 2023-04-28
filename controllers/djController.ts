@@ -22,7 +22,7 @@ export default function djController(socket: Socket, io: Server) {
     queueSong({ socket, io }, uri)
   );
 
-  socket.on("search spotify track", (query: string, options: any) =>
-    searchSpotifyTrack({ socket, io }, { query, options })
+  socket.on("search spotify track", (query: { query: string; options: any }) =>
+    searchSpotifyTrack({ socket, io }, query)
   );
 }
