@@ -6,11 +6,11 @@ import {
   TriggerConditions,
   WithTriggerMeta,
   TriggerTarget,
-  AppTriggerAction,
 } from "../types/Triggers";
 import { Reaction, ReactionPayload } from "types/Reaction";
 import { Server } from "socket.io";
 import { ChatMessage } from "types/ChatMessage";
+import { PlaylistTrack } from "types/PlaylistTrack";
 
 function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   if (conditions.thresholdType === "count") {
@@ -35,19 +35,25 @@ function getCompareTo(target?: TriggerTarget) {
 
 function meetsThreshold<S, T>(
   count: number,
-  trigger: TriggerAction<T>,
+  trigger: TriggerAction,
   data: WithTriggerMeta<S, T>
 ) {
   const { conditions } = trigger;
 
-  const instances = getters.getTriggerEvents().filter((event) => {
-    return (
-      event.on === trigger.on &&
-      event.conditions === trigger.conditions &&
-      event.subject === trigger.subject &&
-      event.type === trigger.type
-    );
-  });
+  const instances = getters
+    .getTriggerEvents()
+    [trigger.subject.type].filter((event) => {
+      return (
+        event.on === trigger.on &&
+        event.conditions === trigger.conditions &&
+        event.subject === trigger.subject &&
+        event.target === trigger.target &&
+        event.type === trigger.type
+      );
+    });
+
+  console.log("instances");
+  console.log(instances);
 
   if (conditions.maxTimes && instances.length >= conditions.maxTimes) {
     return false;
@@ -57,7 +63,7 @@ function meetsThreshold<S, T>(
     ? data.meta.compareTo?.[conditions.compareTo] || data.meta.sourcesOnSubject
     : data.meta.sourcesOnSubject;
 
-  const threshValue = getThresholdValue<T>(compareTo.length, conditions);
+  const threshValue = getThresholdValue<S>(compareTo.length, conditions);
 
   switch (conditions.comparator) {
     case "<":
@@ -75,7 +81,7 @@ function meetsThreshold<S, T>(
 
 export function processTrigger<S, T>(
   data: WithTriggerMeta<S, T>,
-  trigger: TriggerAction<T>,
+  trigger: TriggerAction,
   io: Server
 ) {
   const eligible = data.meta.sourcesOnSubject.filter((x) =>
@@ -89,7 +95,7 @@ export function processTrigger<S, T>(
 
 export function processReactionTriggers(
   data: ReactionPayload,
-  triggers: AppTriggerAction[],
+  triggers: TriggerAction[],
   io: Server
 ) {
   triggers.map((t) => {
@@ -97,6 +103,10 @@ export function processReactionTriggers(
       data.reactTo.id
     ];
     const target = getActionTarget(t.target);
+    const trigger = captureTriggerTarget<ReactionPayload, Reaction>(
+      t as TriggerAction,
+      data
+    );
     return processTrigger<ReactionPayload, Reaction>(
       {
         ...data,
@@ -104,9 +114,10 @@ export function processReactionTriggers(
           sourcesOnSubject: currentReactions,
           compareTo: getCompareTo(t.target),
           target,
+          ...trigger.meta,
         },
       },
-      t as TriggerAction<Reaction>,
+      trigger as TriggerAction,
       io
     );
   });
@@ -114,12 +125,16 @@ export function processReactionTriggers(
 
 export function processMessageTriggers(
   data: ChatMessage,
-  triggers: AppTriggerAction[],
+  triggers: TriggerAction[],
   io: Server
 ) {
   triggers.map((t) => {
     const currentMessages = getters.getMessages();
     const target = getActionTarget(t.target);
+    const trigger = captureTriggerTarget<ChatMessage, ChatMessage>(
+      t as TriggerAction,
+      data
+    );
     return processTrigger<ChatMessage, ChatMessage>(
       {
         ...data,
@@ -127,16 +142,19 @@ export function processMessageTriggers(
           sourcesOnSubject: currentMessages,
           compareTo: getCompareTo(t.target),
           target,
-          ...t.meta,
+          ...trigger.meta,
         },
       },
-      t as TriggerAction<ChatMessage>,
+      trigger as TriggerAction,
       io
     );
   });
 }
 
-export function processTriggerAction<T>(
+/**
+ * Finds and executes all relevant triggers for the source event
+ */
+export function processTriggerAction(
   { type, data }: TriggerSourceEvent<T>,
   io: Server
 ) {
@@ -157,6 +175,9 @@ export function processTriggerAction<T>(
   }
 }
 
+/**
+ * Finds and returns the full Target of the Trigger
+ */
 function getActionTarget(target?: TriggerTarget) {
   if (!target) {
     return undefined;
@@ -175,4 +196,31 @@ function getTargetTrack(target: TriggerTarget) {
   } else {
     return playlist.find((t) => t.spotifyData?.uri === target.id);
   }
+}
+
+/**
+ * Returns Trigger with identified Target if using the 'latest' id alias
+ */
+function captureTriggerTarget<S, T>(trigger: TriggerAction, data: S) {
+  if (trigger.target?.id === "latest") {
+    const target = getActionTarget(trigger.target);
+    return {
+      ...trigger,
+      target: {
+        type: trigger.target.type,
+        id: getTriggerTargetId(trigger.target, target),
+      },
+    };
+  }
+  return trigger;
+}
+
+function getTriggerTargetId(
+  target: TriggerTarget,
+  foundTarget?: PlaylistTrack
+) {
+  if (target.type === "track") {
+    return foundTarget?.spotifyData?.uri;
+  }
+  return undefined;
 }

@@ -1,4 +1,3 @@
-import { SpotifyEntity } from "../../types/SpotifyEntity";
 import spotifyApi from "../../lib/spotifyApi";
 
 async function skipSpotifyTrack() {

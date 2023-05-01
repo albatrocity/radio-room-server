@@ -3,6 +3,7 @@ import { User } from "./User";
 import { Track } from "./Track";
 import { Reaction } from "./Reaction";
 import { PlaylistTrack } from "./PlaylistTrack";
+import { WithTimestamp } from "./Utility";
 
 export type TriggerSourceEvent<T> = {
   data: T;
@@ -33,25 +34,36 @@ export interface TriggerSubject {
   id: ResourceIdentifier;
 }
 
-export interface TriggerConditions<T> {
+export type TriggerConditions<T> = {
   compareTo?: keyof CompareTo;
   comparator: `<` | `<=` | `=` | `>` | `>=`;
   threshold: number;
   thresholdType: `percent` | `count`;
   qualifier: (source: T) => boolean;
   maxTimes?: number;
-}
+};
 
-export interface TriggerAction<T> {
-  on: TriggerEventType;
-  subject: TriggerSubject;
-  type: TriggerActionType;
-  target?: TriggerTarget;
-  conditions: TriggerConditions<T>;
-  meta?: {
-    messageTemplate?: string;
-  };
-}
+export type TriggerAction =
+  | {
+      on: "reaction";
+      subject: TriggerSubject;
+      type: TriggerActionType;
+      target?: TriggerTarget;
+      conditions: TriggerConditions<Reaction>;
+      meta?: {
+        messageTemplate?: string;
+      };
+    }
+  | {
+      on: "message";
+      subject: TriggerSubject;
+      type: TriggerActionType;
+      target?: TriggerTarget;
+      conditions: TriggerConditions<ChatMessage>;
+      meta?: {
+        messageTemplate?: string;
+      };
+    };
 
 export type WithTriggerMeta<T, S> = T & {
   meta: {
@@ -62,6 +74,23 @@ export type WithTriggerMeta<T, S> = T & {
   };
 };
 
-export type AppTriggerAction =
-  | TriggerAction<Reaction>
-  | TriggerAction<ChatMessage>;
+export type TriggerEvent = WithTimestamp<
+  | {
+      id: ResourceIdentifier;
+      type: TriggerActionType;
+      target: TriggerTarget;
+      subject: TriggerSubject;
+      on: "reaction";
+      conditions: TriggerConditions<Reaction>;
+    }
+  | {
+      id: ResourceIdentifier;
+      type: TriggerActionType;
+      target: TriggerTarget;
+      subject: TriggerSubject;
+      on: "message";
+      conditions: TriggerConditions<ChatMessage>;
+    }
+>;
+
+export type TriggerEventsStore = Record<TriggerSubjectType, TriggerEvent[]>;

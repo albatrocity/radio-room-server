@@ -21,9 +21,13 @@ function stubTrigger({
     comparator: ">",
     threshold: 2,
     thresholdType: "count",
-    qualifier: (source) => source.emoji.includes(":-1:"),
+    qualifier: {
+      sourceAttribute: "emoji",
+      determiner: ":-1:",
+      comparator: "includes",
+    },
   },
-}: Partial<TriggerAction<Reaction>>) {
+}: Partial<TriggerAction>) {
   return {
     on,
     subject,

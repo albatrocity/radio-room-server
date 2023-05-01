@@ -1,8 +1,6 @@
-import { ChatMessage } from "types/ChatMessage";
-import { Reaction } from "../types/Reaction";
 import { TriggerAction } from "../types/Triggers";
 
-const skipUnlikedTracks: TriggerAction<Reaction> = {
+const skipUnlikedTracks: TriggerAction = {
   type: "skipTrack",
   on: "reaction",
   subject: {
@@ -17,8 +15,10 @@ const skipUnlikedTracks: TriggerAction<Reaction> = {
     comparator: ">",
     threshold: 50,
     thresholdType: "percent",
-    qualifier(source) {
-      return source.emoji == ":-1:";
+    qualifier: {
+      sourceAttribute: "emoji",
+      comparator: "equals",
+      determiner: ":-1:",
     },
     compareTo: "listeners",
     maxTimes: 1,
@@ -28,7 +28,7 @@ const skipUnlikedTracks: TriggerAction<Reaction> = {
   },
 };
 
-const likeTrack: TriggerAction<Reaction> = {
+const likeTrack: TriggerAction = {
   type: "likeTrack",
   on: "reaction",
   subject: {
@@ -43,15 +43,17 @@ const likeTrack: TriggerAction<Reaction> = {
     comparator: ">",
     threshold: 50,
     thresholdType: "percent",
-    qualifier(source) {
-      return source.emoji == ":+1:";
+    qualifier: {
+      sourceAttribute: "emoji",
+      comparator: "equals",
+      determiner: ":+1:",
     },
     compareTo: "listeners",
     maxTimes: 1,
   },
 };
 
-const clowns: TriggerAction<Reaction> = {
+const clowns: TriggerAction = {
   type: "sendMessage",
   on: "reaction",
   subject: {
@@ -66,8 +68,10 @@ const clowns: TriggerAction<Reaction> = {
     comparator: ">=",
     threshold: 1,
     thresholdType: "count",
-    qualifier(source) {
-      return source.emoji == ":clown_face:";
+    qualifier: {
+      sourceAttribute: "emoji",
+      comparator: "equals",
+      determiner: ":clown_face:",
     },
     maxTimes: Infinity,
   },
@@ -76,7 +80,7 @@ const clowns: TriggerAction<Reaction> = {
   },
 };
 
-const mess: TriggerAction<ChatMessage> = {
+const mess: TriggerAction = {
   type: "sendMessage",
   on: "message",
   subject: {
@@ -91,8 +95,10 @@ const mess: TriggerAction<ChatMessage> = {
     comparator: ">=",
     threshold: 1,
     thresholdType: "count",
-    qualifier(source) {
-      return source.content.includes("clowns");
+    qualifier: {
+      sourceAttribute: "content",
+      comparator: "includes",
+      determiner: "clowns",
     },
     maxTimes: 1,
   },
