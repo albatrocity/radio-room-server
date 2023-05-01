@@ -6,12 +6,7 @@ import {
   queueSong,
   searchSpotifyTrack,
 } from "./djHandlers";
-import {
-  getters,
-  setters,
-  resetDataStores,
-  defaultSettings,
-} from "../lib/dataStore";
+import { setters, resetDataStores } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
 import refreshSpotifyToken from "../operations/refreshSpotifyToken";
@@ -23,6 +18,7 @@ jest.mock("../lib/spotifyApi", () => ({
   setRefreshToken: jest.fn(),
 }));
 jest.mock("../operations/refreshSpotifyToken");
+jest.mock("../operations/syncQueue");
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -169,7 +165,7 @@ describe("djHandlers", () => {
   });
 
   describe("queueSong", () => {
-    test("emits SONG_QUEUE_FAILURE event if current user already added it", () => {
+    test("emits SONG_QUEUE_FAILURE event if current user already added it", async () => {
       socket.data.userId = "1";
       setters.setUsers([{ userId: "1", username: "Homer" }]);
       setters.setQueue([
@@ -180,7 +176,7 @@ describe("djHandlers", () => {
         },
       ]);
 
-      queueSong({ socket, io }, "uri");
+      await queueSong({ socket, io }, "uri");
 
       expect(emit).toHaveBeenCalledWith("event", {
         type: "SONG_QUEUE_FAILURE",
@@ -190,7 +186,7 @@ describe("djHandlers", () => {
       });
     });
 
-    test("emits SONG_QUEUE_FAILURE event if other user already queued song", () => {
+    test("emits SONG_QUEUE_FAILURE event if other user already queued song", async () => {
       socket.data.userId = "2";
       setters.setUsers([{ userId: "1", username: "Homer" }]);
       setters.setQueue([
@@ -201,7 +197,7 @@ describe("djHandlers", () => {
         },
       ]);
 
-      queueSong({ socket, io }, "uri");
+      await queueSong({ socket, io }, "uri");
 
       expect(emit).toHaveBeenCalledWith("event", {
         type: "SONG_QUEUE_FAILURE",

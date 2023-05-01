@@ -6,6 +6,7 @@ import spotifyApi from "../lib/spotifyApi";
 import systemMessage from "../lib/systemMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
 import refreshSpotifyToken from "../operations/refreshSpotifyToken";
+import syncQueue from "../operations/syncQueue";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
@@ -119,6 +120,7 @@ export async function queueSong(
     const currentUser = getters
       .getUsers()
       .find(({ userId }) => userId === socket.data.userId);
+    await syncQueue();
     const inQueue = getters.getQueue().find((x) => x.uri === uri);
 
     if (inQueue) {
