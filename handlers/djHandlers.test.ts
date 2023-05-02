@@ -23,8 +23,8 @@ jest.mock("../lib/spotifyApi", () => ({
   })),
   setRefreshToken: jest.fn(),
 }));
-jest.mock("../operations/refreshSpotifyToken");
-jest.mock("../operations/syncQueue");
+jest.mock("../operations/spotify/refreshSpotifyToken");
+jest.mock("../operations/spotify/syncQueue");
 
 afterEach(() => {
   jest.restoreAllMocks();

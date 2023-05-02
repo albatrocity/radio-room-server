@@ -5,8 +5,8 @@ import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
 import systemMessage from "../lib/systemMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
-import refreshSpotifyToken from "../operations/refreshSpotifyToken";
-import syncQueue from "../operations/syncQueue";
+import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
+import syncQueue from "../operations/spotify/syncQueue";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
