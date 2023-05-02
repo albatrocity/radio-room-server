@@ -75,13 +75,4 @@ export type WithTriggerMeta<T, Source> = T & {
   meta: TriggerMeta<Source>;
 };
 
-// export type TriggerEvent<T> = WithTimestamp<{
-//   id: ResourceIdentifier;
-//   type: TriggerActionType;
-//   target: TriggerTarget;
-//   subject: TriggerSubject;
-//   on: "reaction";
-//   conditions: TriggerConditions<T>;
-// }>;
-
 export type TriggerEventHistory = WithTimestamp<TriggerEvent<any>>[];

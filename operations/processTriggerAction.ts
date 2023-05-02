@@ -44,19 +44,22 @@ function meetsThreshold<Incoming, Source>(
   data: WithTriggerMeta<Incoming, Source>
 ) {
   const { conditions } = trigger;
-
   const instances = getters.getTriggerEventHistory().filter((event) => {
+    const matchOn = event.on === trigger.on;
+    const matchConditions = event.conditions === trigger.conditions;
+    const matchSubject = event.subject === trigger.subject;
+    const matchTargetId = event.target?.id === trigger.target?.id;
+    const matchTargetType = event.target?.type === trigger.target?.type;
+    const matchAction = event.action === trigger.action;
     return (
-      event.on === trigger.on &&
-      event.conditions === trigger.conditions &&
-      event.subject === trigger.subject &&
-      event.target === trigger.target &&
-      event.action === trigger.action
+      matchOn &&
+      matchConditions &&
+      matchSubject &&
+      matchTargetId &&
+      matchTargetType &&
+      matchAction
     );
   });
-
-  console.log("instances");
-  console.log(instances);
 
   if (conditions.maxTimes && instances.length >= conditions.maxTimes) {
     return false;
@@ -90,11 +93,8 @@ export function processTrigger<Incoming, Source>(
   const eligible = data.meta.sourcesOnSubject.filter((x) =>
     makeQualifierFn<Source>(trigger.conditions.qualifier, x)
   );
-  console.log("ELIGIBLE", eligible);
 
   if (meetsThreshold<Incoming, Source>(eligible.length, trigger, data)) {
-    console.log("DO THE ACTION", data);
-    console.log(trigger);
     performTriggerAction<Incoming, Source>(data, trigger, io);
   }
 }
@@ -231,12 +231,8 @@ function makeQualifierFn<Source>(
   data: Source
 ) {
   const source = data[qualifier.sourceAttribute];
-  console.log("source", source);
-  console.log("qualifier.comparator", qualifier.comparator);
-  console.log("qualifier.determiner", qualifier.determiner);
   switch (qualifier.comparator) {
     case "equals":
-      console.log("did it work", source == qualifier.determiner);
       return source == qualifier.determiner;
     case "includes":
       return (source as string).includes(qualifier.determiner);

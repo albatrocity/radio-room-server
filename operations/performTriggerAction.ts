@@ -39,9 +39,11 @@ export default function performTriggerAction<Incoming, Source>(
     case "skipTrack":
       skipSpotifyTrack();
       sendMetaMessage<Incoming, Source>(data, trigger, io);
+      break;
     case "likeTrack":
       targetTrackUri ? likeSpotifyTrack(targetTrackUri) : undefined;
       sendMetaMessage<Incoming, Source>(data, trigger, io);
+      break;
     case "sendMessage":
       if (trigger.meta?.messageTemplate) {
         const message = parseMessage(trigger.meta.messageTemplate);
@@ -57,6 +59,7 @@ export default function performTriggerAction<Incoming, Source>(
           )
         );
       }
+      break;
   }
 
   const currentEvents = getters.getTriggerEventHistory();
