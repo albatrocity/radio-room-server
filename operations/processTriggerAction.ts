@@ -12,7 +12,7 @@ import { Server } from "socket.io";
 import { ChatMessage } from "types/ChatMessage";
 import { PlaylistTrack } from "types/PlaylistTrack";
 
-function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
+function getThresholdValue(count: number, conditions: TriggerConditions) {
   if (conditions.thresholdType === "count") {
     return conditions.threshold;
   }
@@ -63,7 +63,7 @@ function meetsThreshold<S, T>(
     ? data.meta.compareTo?.[conditions.compareTo] || data.meta.sourcesOnSubject
     : data.meta.sourcesOnSubject;
 
-  const threshValue = getThresholdValue<S>(compareTo.length, conditions);
+  const threshValue = getThresholdValue(compareTo.length, conditions);
 
   switch (conditions.comparator) {
     case "<":
@@ -79,7 +79,7 @@ function meetsThreshold<S, T>(
   }
 }
 
-export function processTrigger<S, T>(
+export function processTrigger<S, T extends Reaction | ChatMessage>(
   data: WithTriggerMeta<S, T>,
   trigger: TriggerAction,
   io: Server
@@ -103,10 +103,7 @@ export function processReactionTriggers(
       data.reactTo.id
     ];
     const target = getActionTarget(t.target);
-    const trigger = captureTriggerTarget<ReactionPayload, Reaction>(
-      t as TriggerAction,
-      data
-    );
+    const trigger = captureTriggerTarget(t);
     return processTrigger<ReactionPayload, Reaction>(
       {
         ...data,
@@ -131,10 +128,7 @@ export function processMessageTriggers(
   triggers.map((t) => {
     const currentMessages = getters.getMessages();
     const target = getActionTarget(t.target);
-    const trigger = captureTriggerTarget<ChatMessage, ChatMessage>(
-      t as TriggerAction,
-      data
-    );
+    const trigger = captureTriggerTarget(t);
     return processTrigger<ChatMessage, ChatMessage>(
       {
         ...data,
@@ -154,7 +148,7 @@ export function processMessageTriggers(
 /**
  * Finds and executes all relevant triggers for the source event
  */
-export function processTriggerAction(
+export function processTriggerAction<T>(
   { type, data }: TriggerSourceEvent<T>,
   io: Server
 ) {
@@ -201,7 +195,7 @@ function getTargetTrack(target: TriggerTarget) {
 /**
  * Returns Trigger with identified Target if using the 'latest' id alias
  */
-function captureTriggerTarget<S, T>(trigger: TriggerAction, data: S) {
+function captureTriggerTarget(trigger: TriggerAction) {
   if (trigger.target?.id === "latest") {
     const target = getActionTarget(trigger.target);
     return {

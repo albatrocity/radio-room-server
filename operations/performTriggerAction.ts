@@ -1,9 +1,5 @@
 import { Server } from "socket.io";
-import {
-  AppTriggerAction,
-  TriggerAction,
-  WithTriggerMeta,
-} from "../types/Triggers";
+import { TriggerAction, WithTriggerMeta } from "../types/Triggers";
 import likeSpotifyTrack from "../operations/spotify/likeSpotifyTrack";
 import skipSpotifyTrack from "../operations/spotify/skipSpotifyTrack";
 import { getters, setters } from "../lib/dataStore";
@@ -14,7 +10,7 @@ import { WithTimestamp } from "types/Utility";
 
 function sendMetaMessage<S, T>(
   data: WithTriggerMeta<S, T>,
-  trigger: TriggerAction<T>,
+  trigger: TriggerAction,
   io: Server
 ) {
   if (trigger.meta?.messageTemplate) {
@@ -35,7 +31,7 @@ function sendMetaMessage<S, T>(
 
 export default function performTriggerAction<S, T>(
   data: WithTriggerMeta<S, T>,
-  trigger: TriggerAction<T>,
+  trigger: TriggerAction,
   io: Server
 ) {
   const targetTrackUri = data.meta.target?.spotifyData?.uri;
@@ -62,8 +58,16 @@ export default function performTriggerAction<S, T>(
         );
       }
   }
-  setters.setTriggerEvents([
-    ...getters.getTriggerEvents(),
-    { ...trigger, timestamp: "" } as WithTimestamp<AppTriggerAction>,
-  ]);
+
+  const currentEvents = getters.getTriggerEvents();
+  setters.setTriggerEvents({
+    ...currentEvents,
+    [trigger.subject.type]: [
+      ...currentEvents[trigger.subject.type],
+      {
+        ...trigger,
+        timestamp: new Date().toString(),
+      } as WithTimestamp<TriggerAction>,
+    ],
+  });
 }

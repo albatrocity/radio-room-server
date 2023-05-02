@@ -7,7 +7,7 @@ import { WithTimestamp } from "./Utility";
 
 export type TriggerSourceEvent<T> = {
   data: T;
-  type: TriggerEventType;
+  type: TriggerEventString;
 };
 
 export type CompareTo = {
@@ -27,43 +27,33 @@ export interface TriggerTarget {
 }
 
 export type TriggerSubjectType = `track` | `message`;
-export type TriggerEventType = `reaction` | `message`;
+export type TriggerEventString = `reaction` | `message`;
+export type TriggerEventType = Reaction | ChatMessage;
 
 export interface TriggerSubject {
   type: TriggerSubjectType;
   id: ResourceIdentifier;
 }
 
-export type TriggerConditions<T> = {
+export type TriggerConditions = {
   compareTo?: keyof CompareTo;
   comparator: `<` | `<=` | `=` | `>` | `>=`;
   threshold: number;
   thresholdType: `percent` | `count`;
-  qualifier: (source: T) => boolean;
+  qualifier: (source: TriggerEventType) => boolean;
   maxTimes?: number;
 };
 
-export type TriggerAction =
-  | {
-      on: "reaction";
-      subject: TriggerSubject;
-      type: TriggerActionType;
-      target?: TriggerTarget;
-      conditions: TriggerConditions<Reaction>;
-      meta?: {
-        messageTemplate?: string;
-      };
-    }
-  | {
-      on: "message";
-      subject: TriggerSubject;
-      type: TriggerActionType;
-      target?: TriggerTarget;
-      conditions: TriggerConditions<ChatMessage>;
-      meta?: {
-        messageTemplate?: string;
-      };
-    };
+export type TriggerAction = {
+  on: TriggerEventString;
+  subject: TriggerSubject;
+  type: TriggerActionType;
+  target?: TriggerTarget;
+  conditions: TriggerConditions;
+  meta?: {
+    messageTemplate?: string;
+  };
+};
 
 export type WithTriggerMeta<T, S> = T & {
   meta: {
@@ -74,23 +64,13 @@ export type WithTriggerMeta<T, S> = T & {
   };
 };
 
-export type TriggerEvent = WithTimestamp<
-  | {
-      id: ResourceIdentifier;
-      type: TriggerActionType;
-      target: TriggerTarget;
-      subject: TriggerSubject;
-      on: "reaction";
-      conditions: TriggerConditions<Reaction>;
-    }
-  | {
-      id: ResourceIdentifier;
-      type: TriggerActionType;
-      target: TriggerTarget;
-      subject: TriggerSubject;
-      on: "message";
-      conditions: TriggerConditions<ChatMessage>;
-    }
->;
+export type TriggerEvent = WithTimestamp<{
+  id: ResourceIdentifier;
+  type: TriggerActionType;
+  target: TriggerTarget;
+  subject: TriggerSubject;
+  on: "reaction";
+  conditions: TriggerConditions;
+}>;
 
 export type TriggerEventsStore = Record<TriggerSubjectType, TriggerEvent[]>;
