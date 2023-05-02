@@ -1,12 +1,13 @@
 import { ChatMessage } from "./ChatMessage";
 import { User } from "./User";
 import { Track } from "./Track";
-import { Reaction } from "./Reaction";
+import { Reaction, ReactionPayload } from "./Reaction";
 import { PlaylistTrack } from "./PlaylistTrack";
+import { WithTimestamp } from "./Utility";
 
 export type TriggerSourceEvent<T> = {
   data: T;
-  type: TriggerEventType;
+  type: TriggerEventString;
 };
 
 export type CompareTo = {
@@ -20,48 +21,58 @@ export type CompareTo = {
 export type ResourceIdentifier = string | `latest`;
 export type TriggerActionType = `skipTrack` | `likeTrack` | `sendMessage`;
 
+export type TriggerEvent<T> = {
+  action: TriggerActionType;
+  conditions: TriggerConditions<T>;
+  on: TriggerEventString;
+  subject: TriggerSubject;
+  target?: TriggerTarget;
+  meta?: {
+    messageTemplate?: string;
+  };
+};
+
+export type ReactionTriggerEvent = TriggerEvent<Reaction>;
+export type MessageTriggerEvent = TriggerEvent<ChatMessage>;
+
 export interface TriggerTarget {
   type: `track`;
-  id: ResourceIdentifier;
+  id?: ResourceIdentifier;
 }
 
 export type TriggerSubjectType = `track` | `message`;
-export type TriggerEventType = `reaction` | `message`;
+export type TriggerEventString = `reaction` | `message`;
+export type TriggerEventType = ReactionPayload | ChatMessage;
 
 export interface TriggerSubject {
   type: TriggerSubjectType;
   id: ResourceIdentifier;
 }
 
-export interface TriggerConditions<T> {
+export interface TriggerQualifier<T> {
+  sourceAttribute: keyof T;
+  comparator: "includes" | "equals";
+  determiner: any;
+}
+
+export type TriggerConditions<T> = {
   compareTo?: keyof CompareTo;
   comparator: `<` | `<=` | `=` | `>` | `>=`;
   threshold: number;
   thresholdType: `percent` | `count`;
-  qualifier: (source: T) => boolean;
+  qualifier: TriggerQualifier<T>;
   maxTimes?: number;
-}
-
-export interface TriggerAction<T> {
-  on: TriggerEventType;
-  subject: TriggerSubject;
-  type: TriggerActionType;
-  target?: TriggerTarget;
-  conditions: TriggerConditions<T>;
-  meta?: {
-    messageTemplate?: string;
-  };
-}
-
-export type WithTriggerMeta<T, S> = T & {
-  meta: {
-    sourcesOnSubject: S[];
-    compareTo?: CompareTo;
-    target?: PlaylistTrack;
-    messageTemplate?: string;
-  };
 };
 
-export type AppTriggerAction =
-  | TriggerAction<Reaction>
-  | TriggerAction<ChatMessage>;
+export type TriggerMeta<T> = {
+  sourcesOnSubject: T[];
+  compareTo?: CompareTo;
+  target?: PlaylistTrack;
+  messageTemplate?: string;
+};
+
+export type WithTriggerMeta<T, Source> = T & {
+  meta: TriggerMeta<Source>;
+};
+
+export type TriggerEventHistory = WithTimestamp<TriggerEvent<any>>[];

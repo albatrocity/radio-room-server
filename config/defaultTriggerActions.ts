@@ -1,9 +1,7 @@
-import { ChatMessage } from "types/ChatMessage";
-import { Reaction } from "../types/Reaction";
-import { TriggerAction } from "../types/Triggers";
+import { MessageTriggerEvent, ReactionTriggerEvent } from "../types/Triggers";
 
-const skipUnlikedTracks: TriggerAction<Reaction> = {
-  type: "skipTrack",
+const skipUnlikedTracks: ReactionTriggerEvent = {
+  action: "skipTrack",
   on: "reaction",
   subject: {
     type: "track",
@@ -17,8 +15,10 @@ const skipUnlikedTracks: TriggerAction<Reaction> = {
     comparator: ">",
     threshold: 50,
     thresholdType: "percent",
-    qualifier(source) {
-      return source.emoji == ":-1:";
+    qualifier: {
+      sourceAttribute: "emoji",
+      comparator: "equals",
+      determiner: ":-1:",
     },
     compareTo: "listeners",
     maxTimes: 1,
@@ -28,8 +28,8 @@ const skipUnlikedTracks: TriggerAction<Reaction> = {
   },
 };
 
-const likeTrack: TriggerAction<Reaction> = {
-  type: "likeTrack",
+const likeTrack: ReactionTriggerEvent = {
+  action: "likeTrack",
   on: "reaction",
   subject: {
     type: "track",
@@ -43,16 +43,18 @@ const likeTrack: TriggerAction<Reaction> = {
     comparator: ">",
     threshold: 50,
     thresholdType: "percent",
-    qualifier(source) {
-      return source.emoji == ":+1:";
+    qualifier: {
+      sourceAttribute: "emoji",
+      comparator: "equals",
+      determiner: ":+1:",
     },
     compareTo: "listeners",
     maxTimes: 1,
   },
 };
 
-const clowns: TriggerAction<Reaction> = {
-  type: "sendMessage",
+const clowns: ReactionTriggerEvent = {
+  action: "sendMessage",
   on: "reaction",
   subject: {
     type: "track",
@@ -66,8 +68,10 @@ const clowns: TriggerAction<Reaction> = {
     comparator: ">=",
     threshold: 1,
     thresholdType: "count",
-    qualifier(source) {
-      return source.emoji == ":clown_face:";
+    qualifier: {
+      sourceAttribute: "emoji",
+      comparator: "equals",
+      determiner: ":clown_face:",
     },
     maxTimes: Infinity,
   },
@@ -76,8 +80,8 @@ const clowns: TriggerAction<Reaction> = {
   },
 };
 
-const mess: TriggerAction<ChatMessage> = {
-  type: "sendMessage",
+const mess: MessageTriggerEvent = {
+  action: "sendMessage",
   on: "message",
   subject: {
     type: "track",
@@ -91,8 +95,10 @@ const mess: TriggerAction<ChatMessage> = {
     comparator: ">=",
     threshold: 1,
     thresholdType: "count",
-    qualifier(source) {
-      return source.content.includes("clowns");
+    qualifier: {
+      sourceAttribute: "content",
+      comparator: "includes",
+      determiner: "clowns",
     },
     maxTimes: 1,
   },
@@ -101,4 +107,9 @@ const mess: TriggerAction<ChatMessage> = {
   },
 };
 
-export default [skipUnlikedTracks, likeTrack, clowns, mess];
+export const defaultReactionTriggerEvents = [
+  skipUnlikedTracks,
+  likeTrack,
+  clowns,
+];
+export const defaultMessageTriggerEvents = [mess];

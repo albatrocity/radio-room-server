@@ -6,8 +6,7 @@ import { Settings } from "./Settings";
 import { Station } from "./Station";
 import { User } from "./User";
 import { ReactionableType } from "../lib/constants";
-import { AppTriggerAction, TriggerAction } from "./Triggers";
-import { WithTimestamp } from "./Utility";
+import { TriggerEvent, TriggerEventHistory } from "./Triggers";
 
 export type ReactionStore = Record<
   ReactionableType,
@@ -31,8 +30,9 @@ export type DataStores = {
   };
   defaultSettings: Settings;
   station?: Station;
-  triggerActions: AppTriggerAction[];
-  triggerEvents: WithTimestamp<AppTriggerAction>[];
+  reactionTriggerEvents: TriggerEvent<Reaction>[];
+  messageTriggerEvents: TriggerEvent<ChatMessage>[];
+  triggerEventHistory: TriggerEventHistory;
 };
 
 export type Setter<T> = (data: T) => void;
@@ -52,8 +52,9 @@ export type Getters = {
   getUsers: Getter<User[]>;
   getFetching: Getter<boolean>;
   getStation: Getter<Station>;
-  getTriggerActions: Getter<AppTriggerAction[]>;
-  getTriggerEvents: Getter<WithTimestamp<AppTriggerAction>[]>;
+  getReactionTriggerEvents: Getter<TriggerEvent<Reaction>[]>;
+  getMessageTriggerEvents: Getter<TriggerEvent<ChatMessage>[]>;
+  getTriggerEventHistory: Getter<TriggerEventHistory>;
 };
 export type Setters = {
   setDeputyDjs: Setter<User["userId"][]>;
@@ -69,6 +70,7 @@ export type Setters = {
   setFetching: Setter<boolean>;
   setPassword: (pw: string) => string | null;
   setStation: Setter<Station>;
-  setTriggerActions: Setter<AppTriggerAction[]>;
-  setTriggerEvents: Setter<WithTimestamp<AppTriggerAction>[]>;
+  setReactionTriggerEvents: Setter<TriggerEvent<Reaction>[]>;
+  setMessageTriggerEvents: Setter<TriggerEvent<ChatMessage>[]>;
+  setTriggerEventHistory: Setter<TriggerEventHistory>;
 };
