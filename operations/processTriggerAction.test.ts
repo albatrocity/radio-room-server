@@ -27,7 +27,7 @@ function stubTrigger({
       comparator: "includes",
     },
   },
-}: Partial<TriggerEvent<ReactionPayload>>) {
+}: Partial<TriggerEvent<Reaction>>) {
   return {
     on,
     subject,
@@ -95,7 +95,7 @@ afterEach(() => {
 describe("processReactionTrigger", () => {
   describe("determined on main resource", () => {
     describe("count", () => {
-      describe.only("<", () => {
+      describe("<", () => {
         const trigger = stubTrigger({
           conditions: {
             comparator: "<",
