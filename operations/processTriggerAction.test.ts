@@ -1,5 +1,5 @@
 import { describe, test, afterEach } from "@jest/globals";
-import { TriggerAction, WithTriggerMeta } from "../types/Triggers";
+import { TriggerEvent, WithTriggerMeta } from "../types/Triggers";
 import { processTrigger } from "./processTriggerAction";
 import { Reaction, ReactionPayload } from "../types/Reaction";
 import performTriggerAction from "./performTriggerAction";
@@ -15,7 +15,7 @@ function stubTrigger({
     type: "track",
     id: "latest",
   },
-  type = "skipTrack",
+  action = "skipTrack",
   conditions = {
     compareTo: "listeners",
     comparator: ">",
@@ -27,11 +27,11 @@ function stubTrigger({
       comparator: "includes",
     },
   },
-}: Partial<TriggerAction>) {
+}: Partial<TriggerEvent<ReactionPayload>>) {
   return {
     on,
     subject,
-    type,
+    action,
     conditions,
   };
 }
@@ -95,13 +95,17 @@ afterEach(() => {
 describe("processReactionTrigger", () => {
   describe("determined on main resource", () => {
     describe("count", () => {
-      describe("<", () => {
+      describe.only("<", () => {
         const trigger = stubTrigger({
           conditions: {
             comparator: "<",
             threshold: 2,
             thresholdType: "count",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -138,7 +142,11 @@ describe("processReactionTrigger", () => {
             comparator: "<=",
             threshold: 2,
             thresholdType: "count",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -179,7 +187,11 @@ describe("processReactionTrigger", () => {
             comparator: "=",
             threshold: 2,
             thresholdType: "count",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -220,7 +232,11 @@ describe("processReactionTrigger", () => {
             comparator: ">",
             threshold: 2,
             thresholdType: "count",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -258,7 +274,11 @@ describe("processReactionTrigger", () => {
             comparator: ">=",
             threshold: 2,
             thresholdType: "count",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -297,7 +317,11 @@ describe("processReactionTrigger", () => {
             comparator: "<",
             threshold: 50,
             thresholdType: "percent",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -339,7 +363,11 @@ describe("processReactionTrigger", () => {
             comparator: "<=",
             threshold: 50,
             thresholdType: "percent",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -384,7 +412,11 @@ describe("processReactionTrigger", () => {
             comparator: "=",
             threshold: 50,
             thresholdType: "percent",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -425,7 +457,11 @@ describe("processReactionTrigger", () => {
             comparator: ">",
             threshold: 50,
             thresholdType: "percent",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -467,7 +503,11 @@ describe("processReactionTrigger", () => {
             comparator: ">=",
             threshold: 50,
             thresholdType: "percent",
-            qualifier: (source) => source.emoji.includes(":-1:"),
+            qualifier: {
+              sourceAttribute: "emoji",
+              comparator: "includes",
+              determiner: ":-1:",
+            },
           },
         });
         test("skips when threshold is not met", () => {
@@ -512,7 +552,11 @@ describe("processReactionTrigger", () => {
         comparator: ">",
         threshold: 50,
         thresholdType: "percent",
-        qualifier: (source) => source.emoji.includes(":-1:"),
+        qualifier: {
+          sourceAttribute: "emoji",
+          comparator: "includes",
+          determiner: ":-1:",
+        },
       },
     });
     test("skips when threshold is not met", () => {
@@ -572,7 +616,11 @@ describe("processReactionTrigger", () => {
           comparator: ">",
           threshold: 50,
           thresholdType: "percent",
-          qualifier: (source) => source.emoji.includes(":-1:"),
+          qualifier: {
+            sourceAttribute: "emoji",
+            comparator: "includes",
+            determiner: ":-1:",
+          },
         },
       });
 

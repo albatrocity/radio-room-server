@@ -12,9 +12,10 @@ import { PlaylistTrack } from "../types/PlaylistTrack";
 import { QueuedTrack } from "../types/QueuedTrack";
 import { Settings } from "../types/Settings";
 import { User } from "../types/User";
-import { TriggerAction, TriggerEventsStore } from "types/Triggers";
+import { TriggerEvent, TriggerEventHistory } from "types/Triggers";
 
 import defaultState from "../config/defaultState";
+import { Reaction, ReactionPayload } from "types/Reaction";
 
 const initialState: DataStores = defaultState;
 
@@ -51,13 +52,16 @@ export function createGetters(dataStores: DataStores): Getters {
     getUsers: createGetter<User[]>(dataStores, "users"),
     getFetching: createGetter<boolean>(dataStores, "fetching"),
     getStation: createGetter<Station>(dataStores, "station"),
-    getTriggerActions: createGetter<TriggerAction[]>(
+    getReactionTriggerEvents: createGetter<TriggerEvent<Reaction>[]>(
       dataStores,
-      "triggerActions"
+      "reactionTriggerEvents"
     ),
-    getTriggerEvents: createGetter<TriggerEventsStore>(
+    getMessageTriggerEvents: createGetter<
+      TriggerEvent<ChatMessage | ReactionPayload>[]
+    >(dataStores, "messageTriggerEvents"),
+    getTriggerEventHistory: createGetter<TriggerEventHistory>(
       dataStores,
-      "triggerEvents"
+      "triggerEventHistory"
     ),
   };
 }
@@ -87,13 +91,17 @@ export function createSetters(dataStores: DataStores): Setters {
     setFetching: createSetter<boolean>(dataStores, "fetching"),
     setPassword: (pw: string) => setPassword(dataStores, pw),
     setStation: createSetter<Station>(dataStores, "station"),
-    setTriggerActions: createSetter<TriggerAction[]>(
+    setReactionTriggerEvents: createSetter<TriggerEvent<Reaction>[]>(
       dataStores,
-      "triggerActions"
+      "reactionTriggerEvents"
     ),
-    setTriggerEvents: createSetter<TriggerEventsStore>(
+    setMessageTriggerEvents: createSetter<TriggerEvent<ChatMessage>[]>(
       dataStores,
-      "triggerEvents"
+      "messageTriggerEvents"
+    ),
+    setTriggerEventHistory: createSetter<TriggerEventHistory>(
+      dataStores,
+      "triggerEventHistory"
     ),
   };
 }

@@ -1,7 +1,7 @@
-import { TriggerAction } from "../types/Triggers";
+import { MessageTriggerEvent, ReactionTriggerEvent } from "../types/Triggers";
 
-const skipUnlikedTracks: TriggerAction = {
-  type: "skipTrack",
+const skipUnlikedTracks: ReactionTriggerEvent = {
+  action: "skipTrack",
   on: "reaction",
   subject: {
     type: "track",
@@ -28,8 +28,8 @@ const skipUnlikedTracks: TriggerAction = {
   },
 };
 
-const likeTrack: TriggerAction = {
-  type: "likeTrack",
+const likeTrack: ReactionTriggerEvent = {
+  action: "likeTrack",
   on: "reaction",
   subject: {
     type: "track",
@@ -53,8 +53,8 @@ const likeTrack: TriggerAction = {
   },
 };
 
-const clowns: TriggerAction = {
-  type: "sendMessage",
+const clowns: ReactionTriggerEvent = {
+  action: "sendMessage",
   on: "reaction",
   subject: {
     type: "track",
@@ -80,8 +80,8 @@ const clowns: TriggerAction = {
   },
 };
 
-const mess: TriggerAction = {
-  type: "sendMessage",
+const mess: MessageTriggerEvent = {
+  action: "sendMessage",
   on: "message",
   subject: {
     type: "track",
@@ -107,4 +107,9 @@ const mess: TriggerAction = {
   },
 };
 
-export default [skipUnlikedTracks, likeTrack, clowns, mess];
+export const defaultReactionTriggerEvents = [
+  skipUnlikedTracks,
+  likeTrack,
+  clowns,
+];
+export const defaultMessageTriggerEvents = [mess];

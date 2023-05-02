@@ -1,18 +1,22 @@
 import performTriggerAction from "./performTriggerAction";
 import { getters } from "../lib/dataStore";
 import {
-  TriggerAction,
+  TriggerEvent,
   TriggerSourceEvent,
   TriggerConditions,
   WithTriggerMeta,
   TriggerTarget,
+  TriggerQualifier,
+  ReactionTriggerEvent,
+  MessageTriggerEvent,
+  TriggerMeta,
 } from "../types/Triggers";
 import { Reaction, ReactionPayload } from "types/Reaction";
 import { Server } from "socket.io";
 import { ChatMessage } from "types/ChatMessage";
 import { PlaylistTrack } from "types/PlaylistTrack";
 
-function getThresholdValue(count: number, conditions: TriggerConditions) {
+function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   if (conditions.thresholdType === "count") {
     return conditions.threshold;
   }
@@ -27,30 +31,29 @@ function getCompareTo(target?: TriggerTarget) {
       .filter(({ status }) => status === "listening"),
     users: getters.getUsers(),
     messages: getters.getMessages(),
-    reactions: target
-      ? getters.getReactions()[target?.type][target?.id] || []
-      : [],
+    reactions:
+      target && target.id
+        ? getters.getReactions()[target.type][target.id] || []
+        : [],
   };
 }
 
-function meetsThreshold<S, T>(
+function meetsThreshold<Incoming, Source>(
   count: number,
-  trigger: TriggerAction,
-  data: WithTriggerMeta<S, T>
+  trigger: TriggerEvent<Source>,
+  data: WithTriggerMeta<Incoming, Source>
 ) {
   const { conditions } = trigger;
 
-  const instances = getters
-    .getTriggerEvents()
-    [trigger.subject.type].filter((event) => {
-      return (
-        event.on === trigger.on &&
-        event.conditions === trigger.conditions &&
-        event.subject === trigger.subject &&
-        event.target === trigger.target &&
-        event.type === trigger.type
-      );
-    });
+  const instances = getters.getTriggerEventHistory().filter((event) => {
+    return (
+      event.on === trigger.on &&
+      event.conditions === trigger.conditions &&
+      event.subject === trigger.subject &&
+      event.target === trigger.target &&
+      event.action === trigger.action
+    );
+  });
 
   console.log("instances");
   console.log(instances);
@@ -63,7 +66,7 @@ function meetsThreshold<S, T>(
     ? data.meta.compareTo?.[conditions.compareTo] || data.meta.sourcesOnSubject
     : data.meta.sourcesOnSubject;
 
-  const threshValue = getThresholdValue(compareTo.length, conditions);
+  const threshValue = getThresholdValue<Source>(compareTo.length, conditions);
 
   switch (conditions.comparator) {
     case "<":
@@ -79,23 +82,26 @@ function meetsThreshold<S, T>(
   }
 }
 
-export function processTrigger<S, T extends Reaction | ChatMessage>(
-  data: WithTriggerMeta<S, T>,
-  trigger: TriggerAction,
+export function processTrigger<Incoming, Source>(
+  data: WithTriggerMeta<Incoming, Source>,
+  trigger: TriggerEvent<Source>,
   io: Server
 ) {
   const eligible = data.meta.sourcesOnSubject.filter((x) =>
-    trigger.conditions.qualifier(x)
+    makeQualifierFn<Source>(trigger.conditions.qualifier, x)
   );
+  console.log("ELIGIBLE", eligible);
 
-  if (meetsThreshold<S, T>(eligible.length, trigger, data)) {
-    performTriggerAction<S, T>(data, trigger, io);
+  if (meetsThreshold<Incoming, Source>(eligible.length, trigger, data)) {
+    console.log("DO THE ACTION", data);
+    console.log(trigger);
+    performTriggerAction<Incoming, Source>(data, trigger, io);
   }
 }
 
 export function processReactionTriggers(
   data: ReactionPayload,
-  triggers: TriggerAction[],
+  triggers: ReactionTriggerEvent[],
   io: Server
 ) {
   triggers.map((t) => {
@@ -103,18 +109,20 @@ export function processReactionTriggers(
       data.reactTo.id
     ];
     const target = getActionTarget(t.target);
-    const trigger = captureTriggerTarget(t);
+    const trigger = captureTriggerTarget<Reaction>(t);
+    const meta: TriggerMeta<Reaction> = {
+      sourcesOnSubject: currentReactions,
+      compareTo: getCompareTo(t.target),
+      target,
+      ...trigger.meta,
+    };
+
     return processTrigger<ReactionPayload, Reaction>(
       {
         ...data,
-        meta: {
-          sourcesOnSubject: currentReactions,
-          compareTo: getCompareTo(t.target),
-          target,
-          ...trigger.meta,
-        },
+        meta,
       },
-      trigger as TriggerAction,
+      trigger,
       io
     );
   });
@@ -122,7 +130,7 @@ export function processReactionTriggers(
 
 export function processMessageTriggers(
   data: ChatMessage,
-  triggers: TriggerAction[],
+  triggers: MessageTriggerEvent[],
   io: Server
 ) {
   triggers.map((t) => {
@@ -139,7 +147,7 @@ export function processMessageTriggers(
           ...trigger.meta,
         },
       },
-      trigger as TriggerAction,
+      trigger,
       io
     );
   });
@@ -148,22 +156,21 @@ export function processMessageTriggers(
 /**
  * Finds and executes all relevant triggers for the source event
  */
-export function processTriggerAction<T>(
+export function processTriggerAction<T extends ReactionPayload | ChatMessage>(
   { type, data }: TriggerSourceEvent<T>,
   io: Server
 ) {
-  const triggerActions = getters.getTriggerActions();
   switch (type) {
     case "reaction":
       return processReactionTriggers(
         data as ReactionPayload,
-        triggerActions.filter((a) => a.on === "reaction"),
+        getters.getReactionTriggerEvents(),
         io
       );
     case "message":
       return processMessageTriggers(
         data as ChatMessage,
-        triggerActions.filter((a) => a.on === "message"),
+        getters.getMessageTriggerEvents(),
         io
       );
   }
@@ -195,7 +202,7 @@ function getTargetTrack(target: TriggerTarget) {
 /**
  * Returns Trigger with identified Target if using the 'latest' id alias
  */
-function captureTriggerTarget(trigger: TriggerAction) {
+function captureTriggerTarget<T>(trigger: TriggerEvent<T>) {
   if (trigger.target?.id === "latest") {
     const target = getActionTarget(trigger.target);
     return {
@@ -217,4 +224,21 @@ function getTriggerTargetId(
     return foundTarget?.spotifyData?.uri;
   }
   return undefined;
+}
+
+function makeQualifierFn<Source>(
+  qualifier: TriggerQualifier<Source>,
+  data: Source
+) {
+  const source = data[qualifier.sourceAttribute];
+  console.log("source", source);
+  console.log("qualifier.comparator", qualifier.comparator);
+  console.log("qualifier.determiner", qualifier.determiner);
+  switch (qualifier.comparator) {
+    case "equals":
+      console.log("did it work", source == qualifier.determiner);
+      return source == qualifier.determiner;
+    case "includes":
+      return (source as string).includes(qualifier.determiner);
+  }
 }

@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { TriggerAction, WithTriggerMeta } from "../types/Triggers";
+import { TriggerEvent, WithTriggerMeta } from "../types/Triggers";
 import likeSpotifyTrack from "../operations/spotify/likeSpotifyTrack";
 import skipSpotifyTrack from "../operations/spotify/skipSpotifyTrack";
 import { getters, setters } from "../lib/dataStore";
@@ -8,9 +8,9 @@ import systemMessage from "../lib/systemMessage";
 import parseMessage from "../lib/parseMessage";
 import { WithTimestamp } from "types/Utility";
 
-function sendMetaMessage<S, T>(
-  data: WithTriggerMeta<S, T>,
-  trigger: TriggerAction,
+function sendMetaMessage<Incoming, Source>(
+  data: WithTriggerMeta<Incoming, Source>,
+  trigger: TriggerEvent<Source>,
   io: Server
 ) {
   if (trigger.meta?.messageTemplate) {
@@ -21,7 +21,7 @@ function sendMetaMessage<S, T>(
         message.content,
         {
           status: "info",
-          title: `${trigger.type} action was triggered`,
+          title: `${trigger.action} action was triggered`,
         },
         message.mentions
       )
@@ -29,19 +29,19 @@ function sendMetaMessage<S, T>(
   }
 }
 
-export default function performTriggerAction<S, T>(
-  data: WithTriggerMeta<S, T>,
-  trigger: TriggerAction,
+export default function performTriggerAction<Incoming, Source>(
+  data: WithTriggerMeta<Incoming, Source>,
+  trigger: TriggerEvent<Source>,
   io: Server
 ) {
   const targetTrackUri = data.meta.target?.spotifyData?.uri;
-  switch (trigger.type) {
+  switch (trigger.action) {
     case "skipTrack":
       skipSpotifyTrack();
-      sendMetaMessage<S, T>(data, trigger, io);
+      sendMetaMessage<Incoming, Source>(data, trigger, io);
     case "likeTrack":
       targetTrackUri ? likeSpotifyTrack(targetTrackUri) : undefined;
-      sendMetaMessage<S, T>(data, trigger, io);
+      sendMetaMessage<Incoming, Source>(data, trigger, io);
     case "sendMessage":
       if (trigger.meta?.messageTemplate) {
         const message = parseMessage(trigger.meta.messageTemplate);
@@ -51,7 +51,7 @@ export default function performTriggerAction<S, T>(
             message.content,
             {
               status: "info",
-              title: `${trigger.type} action was triggered`,
+              title: `${trigger.action} action was triggered`,
             },
             message.mentions
           )
@@ -59,15 +59,13 @@ export default function performTriggerAction<S, T>(
       }
   }
 
-  const currentEvents = getters.getTriggerEvents();
-  setters.setTriggerEvents({
+  const currentEvents = getters.getTriggerEventHistory();
+
+  setters.setTriggerEventHistory([
     ...currentEvents,
-    [trigger.subject.type]: [
-      ...currentEvents[trigger.subject.type],
-      {
-        ...trigger,
-        timestamp: new Date().toString(),
-      } as WithTimestamp<TriggerAction>,
-    ],
-  });
+    {
+      ...trigger,
+      timestamp: new Date().toString(),
+    },
+  ] as WithTimestamp<TriggerEvent<any>>[]);
 }
