@@ -14,7 +14,10 @@ function sendMetaMessage<Incoming, Source>(
   io: Server
 ) {
   if (trigger.meta?.messageTemplate) {
-    const message = parseMessage(trigger.meta.messageTemplate);
+    const message = parseMessage(trigger.meta.messageTemplate, {
+      target: data.meta.target,
+      trigger,
+    });
     sendMessage(
       io,
       systemMessage(
@@ -46,7 +49,10 @@ export default function performTriggerAction<Incoming, Source>(
       break;
     case "sendMessage":
       if (trigger.meta?.messageTemplate) {
-        const message = parseMessage(trigger.meta.messageTemplate);
+        const message = parseMessage(trigger.meta.messageTemplate, {
+          target: data.meta.target,
+          trigger,
+        });
         sendMessage(
           io,
           systemMessage(
