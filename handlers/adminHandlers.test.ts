@@ -50,12 +50,10 @@ describe("adminHandlers", () => {
       expect(emit).toHaveBeenCalledWith("event", {
         type: "SETTINGS",
         data: {
-          settings: {
-            donationURL: undefined,
-            extraInfo: undefined,
-            fetchMeta: true,
-            password: null,
-          },
+          donationURL: undefined,
+          extraInfo: undefined,
+          fetchMeta: true,
+          password: null,
         },
       });
     });

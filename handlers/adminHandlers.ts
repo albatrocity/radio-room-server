@@ -24,7 +24,7 @@ export function setCover({ io }: HandlerConnections, url: string) {
 export function getSettings({ io }: HandlerConnections) {
   io.emit("event", {
     type: "SETTINGS",
-    data: { settings: getters.getSettings() },
+    data: getters.getSettings(),
   });
 }
 

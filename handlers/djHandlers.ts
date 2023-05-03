@@ -66,9 +66,6 @@ export function setDj(
       },
     });
   }
-  const newSettings = { ...getters.getDefaultSettings() };
-  setters.setSettings(newSettings);
-  io.emit("event", { type: "SETTINGS", data: newSettings });
 }
 
 export function djDeputizeUser(
