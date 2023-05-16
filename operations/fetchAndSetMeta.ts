@@ -49,7 +49,7 @@ export default async function fetchAndSetMeta(
     album,
     track,
     release,
-    cover: getters.getCover(),
+    artwork: getters.getArtwork(),
     dj: queuedTrack?.userId
       ? { userId: queuedTrack.userId, username: queuedTrack.username }
       : null,

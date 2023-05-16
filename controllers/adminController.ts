@@ -3,9 +3,10 @@ import { Server, Socket } from "socket.io";
 import {
   clearPlaylist,
   getSettings,
+  getTriggerEvents,
   kickUser,
   savePlaylist,
-  setCover,
+  setArtwork,
   setPassword,
   settings,
 } from "../handlers/adminHandlers";
@@ -15,7 +16,7 @@ import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 export default function adminController(socket: Socket, io: Server) {
-  socket.on("set cover", (url: string) => setCover({ socket, io }, url));
+  socket.on("set artwork", (url: string) => setArtwork({ socket, io }, url));
   socket.on("get settings", (url: string) => getSettings({ socket, io }));
   socket.on("set password", (value: string) =>
     setPassword({ socket, io }, value)
@@ -26,4 +27,5 @@ export default function adminController(socket: Socket, io: Server) {
   );
   socket.on("settings", (s: Settings) => settings({ socket, io }, s));
   socket.on("clear playlist", () => clearPlaylist({ socket, io }));
+  socket.on("get trigger events", () => getTriggerEvents({ socket, io }));
 }

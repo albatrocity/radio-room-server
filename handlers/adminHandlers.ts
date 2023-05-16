@@ -14,9 +14,9 @@ import { getters, setters } from "../lib/dataStore";
 
 const streamURL = process.env.SERVER_URL;
 
-export function setCover({ io }: HandlerConnections, url: string) {
-  setters.setCover(url);
-  const newMeta = { ...getters.getMeta(), cover: url };
+export function setArtwork({ io }: HandlerConnections, url: string) {
+  setters.setSettings({ ...getters.getSettings(), artwork: url });
+  const newMeta = { ...getters.getMeta(), artwork: url };
   const meta = setters.setMeta(newMeta);
   io.emit("event", { type: "META", data: { meta } });
 }
@@ -25,6 +25,16 @@ export function getSettings({ io }: HandlerConnections) {
   io.emit("event", {
     type: "SETTINGS",
     data: getters.getSettings(),
+  });
+}
+
+export function getTriggerEvents({ io }: HandlerConnections) {
+  io.emit("event", {
+    type: "TRIGGER_EVENTS",
+    data: {
+      reactions: getters.getReactionTriggerEvents(),
+      messages: getters.getMessageTriggerEvents(),
+    },
   });
 }
 

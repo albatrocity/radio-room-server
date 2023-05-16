@@ -4,8 +4,8 @@ export default function getMessageVariables() {
   const playlist = getters.getPlaylist();
   const nowPlaying = playlist[playlist.length - 1];
   return {
-    currentTrack: { ...nowPlaying, title: nowPlaying.track },
-    nowPlaying: nowPlaying.text,
+    currentTrack: { ...nowPlaying, title: nowPlaying?.track },
+    nowPlaying: nowPlaying?.text,
     listenerCount: getters
       .getUsers()
       .filter(({ status }) => status == "listening").length,

@@ -20,7 +20,7 @@ export type DataStores = {
   messages: ChatMessage[];
   typing: User[];
   meta: any;
-  cover: string | null;
+  artwork: string | null;
   fetching: boolean;
   playlist: PlaylistTrack[];
   queue: QueuedTrack[];
@@ -39,7 +39,7 @@ export type Setter<T> = (data: T) => void;
 export type Getter<T> = () => T;
 
 export type Getters = {
-  getCover: Getter<string>;
+  getArtwork: Getter<string>;
   getDefaultSettings: Getter<Settings>;
   getDeputyDjs: Getter<User["userId"][]>;
   getMessages: Getter<ChatMessage[]>;
@@ -66,7 +66,6 @@ export type Setters = {
   setSettings: Setter<Settings>;
   setTyping: Setter<User[]>;
   setUsers: Setter<User[]>;
-  setCover: Setter<string | null>;
   setFetching: Setter<boolean>;
   setPassword: (pw: string) => string | null;
   setStation: Setter<Station>;

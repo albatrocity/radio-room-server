@@ -20,7 +20,7 @@ const initialState: DataStores = {
   messages: [],
   typing: [],
   meta: {},
-  cover: null,
+  artwork: null,
   fetching: false,
   playlist: [],
   queue: [],

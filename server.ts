@@ -95,7 +95,7 @@ setInterval(async () => {
     station.bitrate !== "" &&
     station.bitrate !== "0"
   ) {
-    setters.setCover(null);
+    setters.setSettings({ ...getters.getSettings(), artwork: undefined });
     offline = false;
     try {
       await refreshSpotifyToken();

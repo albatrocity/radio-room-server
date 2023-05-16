@@ -3,4 +3,5 @@ export interface Settings {
   extraInfo: string | undefined;
   donationURL: string | undefined;
   password: string | null;
+  artwork?: string;
 }

@@ -6,7 +6,7 @@ export interface Track {
   artist: string;
   track: string;
   release: any;
-  cover: string;
+  artwork: string;
   title: string;
   dj: Pick<User, "userId" | "username"> | null;
 }

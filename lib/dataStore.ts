@@ -39,7 +39,7 @@ export function createGetter<T>(
 
 export function createGetters(dataStores: DataStores): Getters {
   return {
-    getCover: createGetter<string>(dataStores, "cover"),
+    getArtwork: createGetter<string>(dataStores, "artwork"),
     getDefaultSettings: createGetter<Settings>(dataStores, "defaultSettings"),
     getDeputyDjs: createGetter<User["userId"][]>(dataStores, "deputyDjs"),
     getMessages: createGetter<ChatMessage[]>(dataStores, "messages"),
@@ -87,7 +87,6 @@ export function createSetters(dataStores: DataStores): Setters {
     setSettings: createSetter<Settings>(dataStores, "settings"),
     setTyping: createSetter<User[]>(dataStores, "typing"),
     setUsers: createSetter<User[]>(dataStores, "users"),
-    setCover: createSetter<string | null>(dataStores, "cover"),
     setFetching: createSetter<boolean>(dataStores, "fetching"),
     setPassword: (pw: string) => setPassword(dataStores, pw),
     setStation: createSetter<Station>(dataStores, "station"),
