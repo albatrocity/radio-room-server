@@ -1,7 +1,6 @@
 import { describe, test } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
 import {
-  setArtwork,
   getSettings,
   setPassword,
   kickUser,
@@ -34,18 +33,33 @@ afterEach(() => {
 describe("adminHandlers", () => {
   const { socket, io, emit, toEmit } = makeSocket();
 
-  describe("setArtwork", () => {
+  describe("changing artwork", () => {
     it("sets meta", () => {
       const spy = jest.spyOn(setters, "setMeta");
-      setArtwork({ socket, io }, "google.com");
+      settings(
+        { socket, io },
+        {
+          artwork: "google.com",
+          fetchMeta: true,
+          extraInfo: undefined,
+          password: null,
+        }
+      );
       expect(spy).toHaveBeenCalledWith({ artwork: "google.com" });
     });
     it("updates settings", () => {
       const spy = jest.spyOn(setters, "setSettings");
-      setArtwork({ socket, io }, "google.com");
+      settings(
+        { socket, io },
+        {
+          artwork: "google.com",
+          fetchMeta: true,
+          extraInfo: undefined,
+          password: null,
+        }
+      );
       expect(spy).toHaveBeenCalledWith({
         artwork: "google.com",
-        donationURL: undefined,
         extraInfo: undefined,
         fetchMeta: true,
         password: null,
@@ -65,7 +79,6 @@ describe("adminHandlers", () => {
       expect(emit).toHaveBeenCalledWith("event", {
         type: "SETTINGS",
         data: {
-          donationURL: undefined,
           extraInfo: undefined,
           fetchMeta: true,
           password: null,
@@ -158,7 +171,6 @@ describe("adminHandlers", () => {
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
-        donationURL: undefined,
         password: null,
       };
       settings({ socket, io }, newSettings);
@@ -169,7 +181,6 @@ describe("adminHandlers", () => {
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
-        donationURL: undefined,
         password: null,
       };
       settings({ socket, io }, newSettings);
@@ -186,13 +197,11 @@ describe("adminHandlers", () => {
       setters.setSettings({
         fetchMeta: false,
         extraInfo: undefined,
-        donationURL: undefined,
         password: null,
       });
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: true,
-        donationURL: undefined,
         password: null,
       };
       await settings({ socket, io }, newSettings);

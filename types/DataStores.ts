@@ -39,7 +39,6 @@ export type Setter<T> = (data: T) => void;
 export type Getter<T> = () => T;
 
 export type Getters = {
-  getArtwork: Getter<string>;
   getDefaultSettings: Getter<Settings>;
   getDeputyDjs: Getter<User["userId"][]>;
   getMessages: Getter<ChatMessage[]>;

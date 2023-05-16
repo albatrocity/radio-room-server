@@ -8,7 +8,6 @@ import {
 export const defaultSettings: Settings = {
   fetchMeta: true,
   extraInfo: undefined,
-  donationURL: undefined,
   password: null,
 };
 

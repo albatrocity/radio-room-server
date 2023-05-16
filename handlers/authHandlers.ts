@@ -76,8 +76,8 @@ export function login(
     data: {
       users: newUsers,
       messages: getters.getMessages(),
-      meta: getters.getArtwork()
-        ? { ...getters.getMeta(), artwork: getters.getArtwork() }
+      meta: getters.getSettings().artwork
+        ? { ...getters.getMeta(), artwork: getters.getSettings().artwork }
         : getters.getMeta(),
       playlist: getters.getPlaylist(),
       reactions: getters.getReactions(),

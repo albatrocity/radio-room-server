@@ -14,8 +14,7 @@ import { getters, setters } from "../lib/dataStore";
 
 const streamURL = process.env.SERVER_URL;
 
-export function setArtwork({ io }: HandlerConnections, url: string) {
-  setters.setSettings({ ...getters.getSettings(), artwork: url });
+function setArtwork({ io }: HandlerConnections, url?: string) {
   const newMeta = { ...getters.getMeta(), artwork: url };
   const meta = setters.setMeta(newMeta);
   io.emit("event", { type: "META", data: { meta } });
@@ -79,22 +78,24 @@ export async function settings(
   { socket, io }: HandlerConnections,
   values: Settings
 ) {
-  const { donationURL, extraInfo, fetchMeta, password } = values;
+  const { extraInfo, fetchMeta, password, artwork } = values;
+  console.log("ARTWORK!", artwork);
   const prevSettings = { ...getters.getSettings() };
   const newSettings = {
     fetchMeta,
-    donationURL,
     extraInfo,
     password,
+    artwork,
   };
   setters.setSettings(newSettings);
   io.emit("event", { type: "SETTINGS", data: newSettings });
 
-  if (
-    prevSettings.donationURL !== values.donationURL ||
-    prevSettings.extraInfo !== values.extraInfo
-  ) {
+  if (prevSettings.extraInfo !== values.extraInfo) {
     setters.setSettings(newSettings);
+  }
+
+  if (prevSettings.artwork !== artwork) {
+    setArtwork({ socket, io }, artwork);
   }
 
   if (prevSettings.fetchMeta !== values.fetchMeta) {

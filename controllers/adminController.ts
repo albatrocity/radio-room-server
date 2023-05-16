@@ -6,7 +6,6 @@ import {
   getTriggerEvents,
   kickUser,
   savePlaylist,
-  setArtwork,
   setPassword,
   settings,
 } from "../handlers/adminHandlers";
@@ -16,7 +15,6 @@ import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 export default function adminController(socket: Socket, io: Server) {
-  socket.on("set artwork", (url: string) => setArtwork({ socket, io }, url));
   socket.on("get settings", (url: string) => getSettings({ socket, io }));
   socket.on("set password", (value: string) =>
     setPassword({ socket, io }, value)
