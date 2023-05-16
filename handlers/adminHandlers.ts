@@ -78,14 +78,10 @@ export async function settings(
   { socket, io }: HandlerConnections,
   values: Settings
 ) {
-  const { extraInfo, fetchMeta, password, artwork } = values;
-  console.log("ARTWORK!", artwork);
   const prevSettings = { ...getters.getSettings() };
   const newSettings = {
-    fetchMeta,
-    extraInfo,
-    password,
-    artwork,
+    ...prevSettings,
+    ...values,
   };
   setters.setSettings(newSettings);
   io.emit("event", { type: "SETTINGS", data: newSettings });
@@ -94,8 +90,8 @@ export async function settings(
     setters.setSettings(newSettings);
   }
 
-  if (prevSettings.artwork !== artwork) {
-    setArtwork({ socket, io }, artwork);
+  if (prevSettings.artwork !== values.artwork) {
+    setArtwork({ socket, io }, values.artwork);
   }
 
   if (prevSettings.fetchMeta !== values.fetchMeta) {
