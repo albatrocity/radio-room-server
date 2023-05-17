@@ -11,7 +11,6 @@ export function checkPassword(
   submittedPassword: string
 ) {
   const settings = getters.getSettings();
-  console.log("CHECK PASSWORD!!!!");
   socket.emit("event", {
     type: "SET_PASSWORD_REQUIREMENT",
     data: {

@@ -11,6 +11,8 @@ import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 import { getters, setters } from "../lib/dataStore";
+import { TriggerEvent } from "types/Triggers";
+import { Reaction } from "types/Reaction";
 
 const streamURL = process.env.SERVER_URL;
 
@@ -28,6 +30,20 @@ export function getSettings({ io }: HandlerConnections) {
 }
 
 export function getTriggerEvents({ io }: HandlerConnections) {
+  io.emit("event", {
+    type: "TRIGGER_EVENTS",
+    data: {
+      reactions: getters.getReactionTriggerEvents(),
+      messages: getters.getMessageTriggerEvents(),
+    },
+  });
+}
+
+export function setReactionTriggerEvents(
+  { io }: HandlerConnections,
+  data: TriggerEvent<Reaction>[]
+) {
+  setters.setReactionTriggerEvents(data || []);
   io.emit("event", {
     type: "TRIGGER_EVENTS",
     data: {

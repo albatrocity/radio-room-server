@@ -4,6 +4,7 @@ import {
   clearPlaylist,
   getSettings,
   getTriggerEvents,
+  setReactionTriggerEvents,
   kickUser,
   savePlaylist,
   setPassword,
@@ -26,4 +27,7 @@ export default function adminController(socket: Socket, io: Server) {
   socket.on("settings", (s: Settings) => settings({ socket, io }, s));
   socket.on("clear playlist", () => clearPlaylist({ socket, io }));
   socket.on("get trigger events", () => getTriggerEvents({ socket, io }));
+  socket.on("set reaction trigger events", (data) => {
+    setReactionTriggerEvents({ socket, io }, data);
+  });
 }
