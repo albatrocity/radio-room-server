@@ -15,7 +15,10 @@ function sendMetaMessage<Incoming, Source>(
 ) {
   if (trigger.meta?.messageTemplate) {
     const message = parseMessage(trigger.meta.messageTemplate, {
-      target: data.meta.target,
+      ...data,
+      target: {
+        ...data.meta.target,
+      },
       trigger,
     });
     sendMessage(
@@ -49,21 +52,7 @@ export default function performTriggerAction<Incoming, Source>(
       break;
     case "sendMessage":
       if (trigger.meta?.messageTemplate) {
-        const message = parseMessage(trigger.meta.messageTemplate, {
-          target: data.meta.target,
-          trigger,
-        });
-        sendMessage(
-          io,
-          systemMessage(
-            message.content,
-            {
-              status: "info",
-              title: `${trigger.action} action was triggered`,
-            },
-            message.mentions
-          )
-        );
+        sendMetaMessage<Incoming, Source>(data, trigger, io);
       }
       break;
   }
