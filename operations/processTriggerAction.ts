@@ -44,6 +44,9 @@ function meetsThreshold<Incoming, Source>(
   data: WithTriggerMeta<Incoming, Source>
 ) {
   const { conditions } = trigger;
+  if (!conditions) {
+    return true;
+  }
   const instances = getters.getTriggerEventHistory().filter((event) => {
     const matchOn = event.on === trigger.on;
     const matchConditions = event.conditions === trigger.conditions;
@@ -90,9 +93,13 @@ export function processTrigger<Incoming, Source>(
   trigger: TriggerEvent<Source>,
   io: Server
 ) {
-  const eligible = data.meta.sourcesOnSubject.filter((x) =>
-    makeQualifierFn<Source>(trigger.conditions.qualifier, x)
-  );
+  const eligible = data.meta.sourcesOnSubject.filter((x) => {
+    if (trigger.conditions) {
+      return makeQualifierFn<Source>(trigger.conditions.qualifier, x);
+    } else {
+      return true;
+    }
+  });
 
   if (meetsThreshold<Incoming, Source>(eligible.length, trigger, data)) {
     performTriggerAction<Incoming, Source>(data, trigger, io);

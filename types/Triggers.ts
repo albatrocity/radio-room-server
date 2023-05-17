@@ -23,7 +23,7 @@ export type TriggerActionType = `skipTrack` | `likeTrack` | `sendMessage`;
 
 export type TriggerEvent<T> = {
   action: TriggerActionType;
-  conditions: TriggerConditions<T>;
+  conditions?: TriggerConditions<T>;
   on: TriggerEventString;
   subject: TriggerSubject;
   target?: TriggerTarget;
