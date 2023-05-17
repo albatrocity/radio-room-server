@@ -1,4 +1,4 @@
-import { MessageTriggerEvent, ReactionTriggerEvent } from "../types/Triggers";
+import { ReactionTriggerEvent } from "../types/Triggers";
 
 const skipUnlikedTracks: ReactionTriggerEvent = {
   action: "skipTrack",
