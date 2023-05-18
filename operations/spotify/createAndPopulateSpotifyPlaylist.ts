@@ -1,5 +1,5 @@
-import { SpotifyEntity } from "types/SpotifyEntity";
-import spotifyApi from "../lib/spotifyApi";
+import { SpotifyEntity } from "../../types/SpotifyEntity";
+import spotifyApi from "../../lib/spotifyApi";
 
 async function createAndPopulateSpotifyPlaylist(
   name: string,

@@ -1,13 +1,15 @@
 import { reject, takeRight } from "lodash/fp";
 
-import { Emoji } from "@emoji-mart/data";
 import { REACTIONABLE_TYPES } from "../lib/constants";
 import { getters, setters } from "../lib/dataStore";
 import updateUserAttributes from "../lib/updateUserAttributes";
+import { processTriggerAction } from "../operations/processTriggerAction";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { ReactionSubject } from "../types/ReactionSubject";
 import { User } from "../types/User";
+import { ReactionPayload } from "types/Reaction";
+import { Emoji } from "../types/Emoji";
 
 export function startListening({ socket, io }: HandlerConnections) {
   const { user, users } = updateUserAttributes(socket.data.userId, {
@@ -37,15 +39,7 @@ export function stopListening({ socket, io }: HandlerConnections) {
 
 export function addReaction(
   { io }: HandlerConnections,
-  {
-    emoji,
-    reactTo,
-    user,
-  }: {
-    emoji: Emoji & { shortcodes: string[] };
-    reactTo: ReactionSubject;
-    user: User;
-  }
+  { emoji, reactTo, user }: ReactionPayload
 ) {
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
     return;
@@ -63,6 +57,13 @@ export function addReaction(
   };
   const reactions = setters.setReactions(newReactions);
   io.emit("event", { type: "REACTIONS", data: { reactions } });
+  processTriggerAction<ReactionPayload>(
+    {
+      type: "reaction",
+      data: { emoji, reactTo, user },
+    },
+    io
+  );
 }
 
 export function removeReaction(
@@ -72,7 +73,7 @@ export function removeReaction(
     reactTo,
     user,
   }: {
-    emoji: Emoji & { shortcodes: string[] };
+    emoji: Emoji;
     reactTo: ReactionSubject;
     user: User;
   }

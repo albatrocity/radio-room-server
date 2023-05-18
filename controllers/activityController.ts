@@ -1,4 +1,4 @@
-import { Emoji } from "@emoji-mart/data";
+import { Emoji } from "../types/Emoji";
 import { Server, Socket } from "socket.io";
 
 import {
@@ -22,10 +22,12 @@ export default function activityController(socket: Socket, io: Server) {
       reactTo,
       user,
     }: {
-      emoji: Emoji & { shortcodes: string[] };
+      emoji: Emoji;
       reactTo: ReactionSubject;
       user: User;
-    }) => addReaction({ socket, io }, { emoji, reactTo, user })
+    }) => {
+      return addReaction({ socket, io }, { emoji, reactTo, user });
+    }
   );
 
   socket.on(
@@ -35,9 +37,11 @@ export default function activityController(socket: Socket, io: Server) {
       reactTo,
       user,
     }: {
-      emoji: Emoji & { shortcodes: string[] };
+      emoji: Emoji;
       reactTo: ReactionSubject;
       user: User;
-    }) => removeReaction({ socket, io }, { emoji, reactTo, user })
+    }) => {
+      return removeReaction({ socket, io }, { emoji, reactTo, user });
+    }
   );
 }

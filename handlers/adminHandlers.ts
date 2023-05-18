@@ -1,7 +1,7 @@
 import { find, get } from "lodash/fp";
 
 import systemMessage from "../lib/systemMessage";
-import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
+import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 import fetchAndSetMeta from "../operations/fetchAndSetMeta";
 import getStation from "../operations/getStation";
 
@@ -11,12 +11,14 @@ import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 import { getters, setters } from "../lib/dataStore";
+import { TriggerEvent } from "types/Triggers";
+import { Reaction } from "types/Reaction";
+import { ChatMessage } from "types/ChatMessage";
 
 const streamURL = process.env.SERVER_URL;
 
-export function setCover({ io }: HandlerConnections, url: string) {
-  setters.setCover(url);
-  const newMeta = { ...getters.getMeta(), cover: url };
+function setArtwork({ io }: HandlerConnections, url?: string) {
+  const newMeta = { ...getters.getMeta(), artwork: url };
   const meta = setters.setMeta(newMeta);
   io.emit("event", { type: "META", data: { meta } });
 }
@@ -24,7 +26,45 @@ export function setCover({ io }: HandlerConnections, url: string) {
 export function getSettings({ io }: HandlerConnections) {
   io.emit("event", {
     type: "SETTINGS",
-    data: { settings: getters.getSettings() },
+    data: getters.getSettings(),
+  });
+}
+
+export function getTriggerEvents({ io }: HandlerConnections) {
+  io.emit("event", {
+    type: "TRIGGER_EVENTS",
+    data: {
+      reactions: getters.getReactionTriggerEvents(),
+      messages: getters.getMessageTriggerEvents(),
+    },
+  });
+}
+
+export function setReactionTriggerEvents(
+  { io }: HandlerConnections,
+  data: TriggerEvent<Reaction>[]
+) {
+  setters.setReactionTriggerEvents(data || []);
+  io.emit("event", {
+    type: "TRIGGER_EVENTS",
+    data: {
+      reactions: getters.getReactionTriggerEvents(),
+      messages: getters.getMessageTriggerEvents(),
+    },
+  });
+}
+
+export function setMessageTriggerEvents(
+  { io }: HandlerConnections,
+  data: TriggerEvent<ChatMessage>[]
+) {
+  setters.setMessageTriggerEvents(data || []);
+  io.emit("event", {
+    type: "TRIGGER_EVENTS",
+    data: {
+      reactions: getters.getReactionTriggerEvents(),
+      messages: getters.getMessageTriggerEvents(),
+    },
   });
 }
 
@@ -69,22 +109,20 @@ export async function settings(
   { socket, io }: HandlerConnections,
   values: Settings
 ) {
-  const { donationURL, extraInfo, fetchMeta, password } = values;
   const prevSettings = { ...getters.getSettings() };
   const newSettings = {
-    fetchMeta,
-    donationURL,
-    extraInfo,
-    password,
+    ...prevSettings,
+    ...values,
   };
   setters.setSettings(newSettings);
   io.emit("event", { type: "SETTINGS", data: newSettings });
 
-  if (
-    prevSettings.donationURL !== values.donationURL ||
-    prevSettings.extraInfo !== values.extraInfo
-  ) {
+  if (prevSettings.extraInfo !== values.extraInfo) {
     setters.setSettings(newSettings);
+  }
+
+  if (prevSettings.artwork !== values.artwork) {
+    setArtwork({ socket, io }, values.artwork);
   }
 
   if (prevSettings.fetchMeta !== values.fetchMeta) {
@@ -98,5 +136,8 @@ export async function settings(
 export function clearPlaylist({ socket, io }: HandlerConnections) {
   setters.setPlaylist([]);
   setters.setQueue([]);
+  setters.setTriggerEventHistory(
+    getters.getTriggerEventHistory().filter((x) => x.target?.type !== "track")
+  );
   io.emit("event", { type: "PLAYLIST", data: [] });
 }

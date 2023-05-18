@@ -5,8 +5,8 @@ import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
 import systemMessage from "../lib/systemMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
-import refreshSpotifyToken from "../operations/refreshSpotifyToken";
-import syncQueue from "../operations/syncQueue";
+import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
+import syncQueue from "../operations/spotify/syncQueue";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
@@ -66,9 +66,6 @@ export function setDj(
       },
     });
   }
-  const newSettings = { ...getters.getDefaultSettings() };
-  setters.setSettings(newSettings);
-  io.emit("event", { type: "SETTINGS", data: newSettings });
 }
 
 export function djDeputizeUser(
@@ -138,7 +135,6 @@ export async function queueSong(
       });
       return;
     }
-
     const data = await spotifyApi.addToQueue(uri);
 
     setters.setQueue([
@@ -156,7 +152,6 @@ export async function queueSong(
     );
     sendMessage(io, queueMessage);
   } catch (e) {
-    console.log(e);
     socket.emit("event", {
       type: "SONG_QUEUE_FAILURE",
       data: {

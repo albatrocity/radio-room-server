@@ -1,4 +1,10 @@
-const systemMessage = (content: string, meta?: {}) => {
+import { ChatMessage } from "types/ChatMessage";
+
+const systemMessage = (
+  content: string,
+  meta?: {},
+  mentions?: ChatMessage["mentions"]
+) => {
   const newMessage = {
     user: {
       username: "system",
@@ -8,6 +14,7 @@ const systemMessage = (content: string, meta?: {}) => {
     content,
     meta,
     timestamp: new Date().toISOString(),
+    mentions,
   };
   return newMessage;
 };

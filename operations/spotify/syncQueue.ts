@@ -1,7 +1,7 @@
-import spotifyApi from "../lib/spotifyApi";
-import { getters, setters } from "../lib/dataStore";
+import spotifyApi from "../../lib/spotifyApi";
+import { getters, setters } from "../../lib/dataStore";
 import axios from "axios";
-import { SpotifyTrack } from "../types/SpotifyTrack";
+import { SpotifyTrack } from "../../types/SpotifyTrack";
 
 const ENDPOINT = "https://api.spotify.com/v1/me/player/queue";
 

@@ -1,6 +1,8 @@
 import { map } from "lodash/fp";
+import { render } from "mustache";
+import getMessageVariables from "./getMessageVariables";
 
-const parseMessage = (message = "") => {
+const parseMessage = (message = "", variables?: Record<string, any>) => {
   const mentionRegex = /([])|\@\[(.*?)\]\(.*?\)/gm;
   const idRegex = /(\(.*\))/gm;
   const mentionMatches = (message || "").match(mentionRegex);
@@ -11,10 +13,13 @@ const parseMessage = (message = "") => {
   );
 
   const content = message.replace(mentionRegex, "@$2");
+  const view = { ...getMessageVariables(), ...variables };
+
+  const parsedContent = render(content, view);
 
   return {
     mentions,
-    content,
+    content: parsedContent,
   };
 };
 

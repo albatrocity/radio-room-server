@@ -1,25 +1,28 @@
 import { describe, test } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
 import {
-  setCover,
   getSettings,
   setPassword,
   kickUser,
   savePlaylist,
   settings,
   clearPlaylist,
+  getTriggerEvents,
 } from "./adminHandlers";
 
 import { getters, setters, resetDataStores } from "../lib/dataStore";
-import sendMessage from "../lib/sendMessage";
+import {
+  defaultReactionTriggerEvents,
+  defaultMessageTriggerEvents,
+} from "../config/defaultTriggerActions";
 import fetchAndSetMeta from "../operations/fetchAndSetMeta";
 import getStation from "../operations/getStation";
-import createAndPopulateSpotifyPlaylist from "../operations/createAndPopulateSpotifyPlaylist";
+import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi");
 jest.mock("../operations/fetchAndSetMeta");
-jest.mock("../operations/createAndPopulateSpotifyPlaylist");
+jest.mock("../operations/spotify/createAndPopulateSpotifyPlaylist");
 jest.mock("../operations/getStation");
 
 afterEach(() => {
@@ -28,17 +31,43 @@ afterEach(() => {
 });
 
 describe("adminHandlers", () => {
-  const { socket, io, broadcastEmit, emit, toEmit } = makeSocket();
+  const { socket, io, emit, toEmit } = makeSocket();
 
-  describe("setCover", () => {
-    it("sets cover value", () => {
+  describe("changing artwork", () => {
+    it("sets meta", () => {
       const spy = jest.spyOn(setters, "setMeta");
-      setCover({ socket, io }, "google.com");
-      expect(spy).toHaveBeenCalledWith({ cover: "google.com" });
+      settings(
+        { socket, io },
+        {
+          artwork: "google.com",
+          fetchMeta: true,
+          extraInfo: undefined,
+          password: null,
+        }
+      );
+      expect(spy).toHaveBeenCalledWith({ artwork: "google.com" });
+    });
+    it("updates settings", () => {
+      const spy = jest.spyOn(setters, "setSettings");
+      settings(
+        { socket, io },
+        {
+          artwork: "google.com",
+          fetchMeta: true,
+          extraInfo: undefined,
+          password: null,
+        }
+      );
+      expect(spy).toHaveBeenCalledWith({
+        artwork: "google.com",
+        extraInfo: undefined,
+        fetchMeta: true,
+        password: null,
+      });
     });
   });
 
-  describe("getCover", () => {
+  describe("getArtwork", () => {
     it("gets settings", () => {
       const spy = jest.spyOn(getters, "getSettings");
       getSettings({ socket, io });
@@ -50,12 +79,9 @@ describe("adminHandlers", () => {
       expect(emit).toHaveBeenCalledWith("event", {
         type: "SETTINGS",
         data: {
-          settings: {
-            donationURL: undefined,
-            extraInfo: undefined,
-            fetchMeta: true,
-            password: null,
-          },
+          extraInfo: undefined,
+          fetchMeta: true,
+          password: null,
         },
       });
     });
@@ -145,7 +171,6 @@ describe("adminHandlers", () => {
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
-        donationURL: undefined,
         password: null,
       };
       settings({ socket, io }, newSettings);
@@ -156,7 +181,6 @@ describe("adminHandlers", () => {
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
-        donationURL: undefined,
         password: null,
       };
       settings({ socket, io }, newSettings);
@@ -173,13 +197,11 @@ describe("adminHandlers", () => {
       setters.setSettings({
         fetchMeta: false,
         extraInfo: undefined,
-        donationURL: undefined,
         password: null,
       });
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: true,
-        donationURL: undefined,
         password: null,
       };
       await settings({ socket, io }, newSettings);
@@ -211,6 +233,62 @@ describe("adminHandlers", () => {
       const spy = jest.spyOn(setters, "setPlaylist");
       clearPlaylist({ socket, io });
       expect(spy).toHaveBeenCalledWith([]);
+    });
+    test("removes instances of track trigger actions from history", () => {
+      setters.setTriggerEventHistory([
+        {
+          on: "reaction",
+          subject: { id: "latest", type: "track" },
+          target: { type: "track", id: "spotify:track:3d1bBXr6nU2TxD9wfMUJEc" },
+          action: "sendMessage",
+          meta: { messageTemplate: "hey" },
+          timestamp:
+            "Thu May 18 2023 11:49:22 GMT-0500 (Central Daylight Time)",
+        },
+        {
+          on: "message",
+          subject: { id: "latest", type: "track" },
+          target: { type: "message", id: "2023-05-18T16:49:22.372Z" },
+          action: "sendMessage",
+          meta: { messageTemplate: "React" },
+          timestamp:
+            "Thu May 18 2023 11:49:25 GMT-0500 (Central Daylight Time)",
+        },
+      ]);
+      const spy = jest.spyOn(setters, "setTriggerEventHistory");
+      clearPlaylist({ socket, io });
+      expect(spy).toHaveBeenCalledWith([
+        {
+          on: "message",
+          subject: { id: "latest", type: "track" },
+          target: { type: "message", id: "2023-05-18T16:49:22.372Z" },
+          action: "sendMessage",
+          meta: { messageTemplate: "React" },
+          timestamp:
+            "Thu May 18 2023 11:49:25 GMT-0500 (Central Daylight Time)",
+        },
+      ]);
+    });
+  });
+
+  describe("get trigger events", () => {
+    test("gets trigger events from data store ", () => {
+      const reactionSpy = jest.spyOn(getters, "getReactionTriggerEvents");
+      const messageSpy = jest.spyOn(getters, "getMessageTriggerEvents");
+      getTriggerEvents({ socket, io });
+      expect(reactionSpy).toHaveBeenCalled();
+      expect(messageSpy).toHaveBeenCalled();
+    });
+
+    test("emits TRIGGER_EVENTS with current events", () => {
+      getTriggerEvents({ socket, io });
+      expect(emit).toHaveBeenCalledWith("event", {
+        data: {
+          reactions: defaultReactionTriggerEvents,
+          messages: defaultMessageTriggerEvents,
+        },
+        type: "TRIGGER_EVENTS",
+      });
     });
   });
 });

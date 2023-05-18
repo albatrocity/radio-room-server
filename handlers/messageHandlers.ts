@@ -2,9 +2,11 @@ import { compact, concat, find, reject, uniq } from "lodash/fp";
 import { getters, setters } from "../lib/dataStore";
 import parseMessage from "../lib/parseMessage";
 import sendMessage from "../lib/sendMessage";
+import { processTriggerAction } from "../operations/processTriggerAction";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
+import { ChatMessage } from "../types/ChatMessage";
 
 export function newMessage(
   { socket, io }: HandlerConnections,
@@ -30,10 +32,20 @@ export function newMessage(
   setters.setTyping(newTyping);
   io.emit("event", { type: "TYPING", data: { typing: newTyping } });
   sendMessage(io, payload);
+  processTriggerAction<ChatMessage>(
+    {
+      type: "message",
+      data: payload,
+    },
+    io
+  );
 }
 
 export function clearMessages({ socket, io }: HandlerConnections) {
   setters.setMessages([]);
+  setters.setTriggerEventHistory(
+    getters.getTriggerEventHistory().filter((x) => x.target?.type !== "message")
+  );
   io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
 }
 

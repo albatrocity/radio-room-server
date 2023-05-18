@@ -1,8 +1,6 @@
 import spotifyApi from "../lib/spotifyApi";
 
 const fetchReleaseInfo = async (query: string) => {
-  console.log("FETCH RELEASE INFO========");
-  console.log(query);
   try {
     const data = await spotifyApi.searchTracks(query);
 

@@ -9,16 +9,22 @@ import {
 import { setters, resetDataStores } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
-import refreshSpotifyToken from "../operations/refreshSpotifyToken";
+import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi", () => ({
   addToQueue: jest.fn(),
-  searchTracks: jest.fn(),
+  searchTracks: jest.fn(() => ({
+    data: {
+      body: {
+        tracks: [],
+      },
+    },
+  })),
   setRefreshToken: jest.fn(),
 }));
-jest.mock("../operations/refreshSpotifyToken");
-jest.mock("../operations/syncQueue");
+jest.mock("../operations/spotify/refreshSpotifyToken");
+jest.mock("../operations/spotify/syncQueue");
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -288,6 +294,16 @@ describe("djHandlers", () => {
 
   describe("searchSpotifyTrack", () => {
     test("calls searchTracks", async () => {
+      (spotifyApi.searchTracks as jest.Mock).mockResolvedValueOnce({
+        body: {
+          tracks: [
+            {
+              name: "Cottoneye Joe",
+              uri: "uri",
+            },
+          ],
+        },
+      });
       await searchSpotifyTrack(
         { socket, io },
         { query: "cottoneye joe", options: {} }

@@ -12,32 +12,12 @@ import { PlaylistTrack } from "../types/PlaylistTrack";
 import { QueuedTrack } from "../types/QueuedTrack";
 import { Settings } from "../types/Settings";
 import { User } from "../types/User";
+import { TriggerEvent, TriggerEventHistory } from "types/Triggers";
 
-export const defaultSettings: Settings = {
-  fetchMeta: true,
-  extraInfo: undefined,
-  donationURL: undefined,
-  password: null,
-};
+import defaultState from "../config/defaultState";
+import { Reaction, ReactionPayload } from "types/Reaction";
 
-const initialState = {
-  station: undefined,
-  settings: { ...defaultSettings },
-  deputyDjs: [],
-  users: [],
-  messages: [],
-  typing: [],
-  meta: {},
-  cover: null,
-  fetching: false,
-  playlist: [],
-  queue: [],
-  reactions: {
-    message: {},
-    track: {},
-  },
-  defaultSettings,
-};
+const initialState: DataStores = defaultState;
 
 export const dataStores: DataStores = { ...initialState };
 
@@ -59,7 +39,6 @@ export function createGetter<T>(
 
 export function createGetters(dataStores: DataStores): Getters {
   return {
-    getCover: createGetter<string>(dataStores, "cover"),
     getDefaultSettings: createGetter<Settings>(dataStores, "defaultSettings"),
     getDeputyDjs: createGetter<User["userId"][]>(dataStores, "deputyDjs"),
     getMessages: createGetter<ChatMessage[]>(dataStores, "messages"),
@@ -72,6 +51,17 @@ export function createGetters(dataStores: DataStores): Getters {
     getUsers: createGetter<User[]>(dataStores, "users"),
     getFetching: createGetter<boolean>(dataStores, "fetching"),
     getStation: createGetter<Station>(dataStores, "station"),
+    getReactionTriggerEvents: createGetter<TriggerEvent<Reaction>[]>(
+      dataStores,
+      "reactionTriggerEvents"
+    ),
+    getMessageTriggerEvents: createGetter<
+      TriggerEvent<ChatMessage | ReactionPayload>[]
+    >(dataStores, "messageTriggerEvents"),
+    getTriggerEventHistory: createGetter<TriggerEventHistory>(
+      dataStores,
+      "triggerEventHistory"
+    ),
   };
 }
 
@@ -96,10 +86,21 @@ export function createSetters(dataStores: DataStores): Setters {
     setSettings: createSetter<Settings>(dataStores, "settings"),
     setTyping: createSetter<User[]>(dataStores, "typing"),
     setUsers: createSetter<User[]>(dataStores, "users"),
-    setCover: createSetter<string | null>(dataStores, "cover"),
     setFetching: createSetter<boolean>(dataStores, "fetching"),
     setPassword: (pw: string) => setPassword(dataStores, pw),
     setStation: createSetter<Station>(dataStores, "station"),
+    setReactionTriggerEvents: createSetter<TriggerEvent<Reaction>[]>(
+      dataStores,
+      "reactionTriggerEvents"
+    ),
+    setMessageTriggerEvents: createSetter<TriggerEvent<ChatMessage>[]>(
+      dataStores,
+      "messageTriggerEvents"
+    ),
+    setTriggerEventHistory: createSetter<TriggerEventHistory>(
+      dataStores,
+      "triggerEventHistory"
+    ),
   };
 }
 

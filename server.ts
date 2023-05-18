@@ -8,7 +8,7 @@ import { Server } from "socket.io";
 import { getters, setters } from "./lib/dataStore";
 import fetchAndSetMeta from "./operations/fetchAndSetMeta";
 import getStation from "./operations/getStation";
-import refreshSpotifyToken from "./operations/refreshSpotifyToken";
+import refreshSpotifyToken from "./operations/spotify/refreshSpotifyToken";
 import { callback, login } from "./spotify";
 
 import activityController from "./controllers/activityController";
@@ -95,7 +95,7 @@ setInterval(async () => {
     station.bitrate !== "" &&
     station.bitrate !== "0"
   ) {
-    setters.setCover(null);
+    setters.setSettings({ ...getters.getSettings(), artwork: undefined });
     offline = false;
     try {
       await refreshSpotifyToken();

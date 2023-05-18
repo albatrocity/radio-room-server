@@ -6,16 +6,10 @@ import {
   addReaction,
   removeReaction,
 } from "./activityHandlers";
-import updateUserAttributes from "../lib/updateUserAttributes";
-import {
-  getters,
-  setters,
-  resetDataStores,
-  defaultSettings,
-} from "../lib/dataStore";
-import sendMessage from "../lib/sendMessage";
+import { setters, resetDataStores } from "../lib/dataStore";
 
 jest.mock("../lib/sendMessage");
+jest.mock("../operations/performTriggerAction");
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -127,7 +121,7 @@ describe("activityHandlers", () => {
     it("sets reactions for messages", () => {
       setters.setReactions({
         message: {
-          2: [{ emoji: [":-1:"], user: "2" }],
+          2: [{ emoji: ":-1:", user: "2" }],
         },
         track: {},
       });
@@ -139,10 +133,8 @@ describe("activityHandlers", () => {
           emoji: {
             id: "thumbs up",
             name: "thumbs up",
-            skins: [],
             keywords: [],
-            version: 1,
-            shortcodes: [":+1:"],
+            shortcodes: ":+1:",
           },
           reactTo: {
             type: "message",
@@ -157,8 +149,8 @@ describe("activityHandlers", () => {
       expect(spy).toHaveBeenCalledWith({
         message: {
           "2": [
-            { emoji: [":-1:"], user: "2" },
-            { emoji: [":+1:"], user: "1" },
+            { emoji: ":-1:", user: "2" },
+            { emoji: ":+1:", user: "1" },
           ],
         },
         track: {},
@@ -169,7 +161,7 @@ describe("activityHandlers", () => {
       setters.setReactions({
         message: {},
         track: {
-          2: [{ emoji: [":-1:"], user: "2" }],
+          2: [{ emoji: ":-1:", user: "2" }],
         },
       });
       const spy = jest.spyOn(setters, "setReactions");
@@ -180,10 +172,8 @@ describe("activityHandlers", () => {
           emoji: {
             id: "thumbs up",
             name: "thumbs up",
-            skins: [],
             keywords: [],
-            version: 1,
-            shortcodes: [":+1:"],
+            shortcodes: ":+1:",
           },
           reactTo: {
             type: "track",
@@ -199,8 +189,8 @@ describe("activityHandlers", () => {
         message: {},
         track: {
           "2": [
-            { emoji: [":-1:"], user: "2" },
-            { emoji: [":+1:"], user: "1" },
+            { emoji: ":-1:", user: "2" },
+            { emoji: ":+1:", user: "1" },
           ],
         },
       });
@@ -213,10 +203,8 @@ describe("activityHandlers", () => {
           emoji: {
             id: "thumbs up",
             name: "thumbs up",
-            skins: [],
             keywords: [],
-            version: 1,
-            shortcodes: [":+1:"],
+            shortcodes: ":+1:",
           },
           reactTo: {
             type: "track",
@@ -234,7 +222,7 @@ describe("activityHandlers", () => {
           reactions: {
             message: {},
             track: {
-              "2": [{ emoji: [":+1:"], user: "1" }],
+              "2": [{ emoji: ":+1:", user: "1" }],
             },
           },
         },
@@ -246,7 +234,7 @@ describe("activityHandlers", () => {
     it("sets reactions for messages", () => {
       setters.setReactions({
         message: {
-          2: [{ emoji: [":+1:"], user: "1" }],
+          2: [{ emoji: ":+1:", user: "1" }],
         },
         track: {},
       });
@@ -258,10 +246,8 @@ describe("activityHandlers", () => {
           emoji: {
             id: "thumbs up",
             name: "thumbs up",
-            skins: [],
             keywords: [],
-            version: 1,
-            shortcodes: [":+1:"],
+            shortcodes: ":+1:",
           },
           reactTo: {
             type: "message",
@@ -285,7 +271,7 @@ describe("activityHandlers", () => {
       setters.setReactions({
         message: {},
         track: {
-          2: [{ emoji: [":+1:"], user: "1" }],
+          2: [{ emoji: ":+1:", user: "1" }],
         },
       });
       const spy = jest.spyOn(setters, "setReactions");
@@ -296,10 +282,8 @@ describe("activityHandlers", () => {
           emoji: {
             id: "thumbs up",
             name: "thumbs up",
-            skins: [],
             keywords: [],
-            version: 1,
-            shortcodes: [":+1:"],
+            shortcodes: ":+1:",
           },
           reactTo: {
             type: "track",
@@ -326,10 +310,8 @@ describe("activityHandlers", () => {
           emoji: {
             id: "thumbs up",
             name: "thumbs up",
-            skins: [],
             keywords: [],
-            version: 1,
-            shortcodes: [":+1:"],
+            shortcodes: ":+1:",
           },
           reactTo: {
             type: "track",
