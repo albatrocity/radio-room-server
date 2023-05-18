@@ -7,6 +7,7 @@ import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
 import parseMessage from "../lib/parseMessage";
 import { WithTimestamp } from "types/Utility";
+import { PlaylistTrack } from "types/PlaylistTrack";
 
 function sendMetaMessage<Incoming, Source>(
   data: WithTriggerMeta<Incoming, Source>,
@@ -40,13 +41,14 @@ export default function performTriggerAction<Incoming, Source>(
   trigger: TriggerEvent<Source>,
   io: Server
 ) {
-  const targetTrackUri = data.meta.target?.spotifyData?.uri;
   switch (trigger.action) {
     case "skipTrack":
       skipSpotifyTrack();
       sendMetaMessage<Incoming, Source>(data, trigger, io);
       break;
     case "likeTrack":
+      let targetTrackUri = (data.meta.target as PlaylistTrack)?.spotifyData
+        ?.uri;
       targetTrackUri ? likeSpotifyTrack(targetTrackUri) : undefined;
       sendMetaMessage<Incoming, Source>(data, trigger, io);
       break;

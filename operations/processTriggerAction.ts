@@ -191,18 +191,25 @@ function getActionTarget(target?: TriggerTarget) {
     return undefined;
   }
 
-  switch (target.type) {
-    case "track":
-      return getTargetTrack(target);
-  }
+  return getTarget(target);
 }
 
-function getTargetTrack(target: TriggerTarget) {
-  const playlist = getters.getPlaylist();
-  if (target.id === "latest") {
-    return playlist[playlist.length - 1];
-  } else {
-    return playlist.find((t) => t.spotifyData?.uri === target.id);
+function getTarget(target: TriggerTarget) {
+  switch (target.type) {
+    case "message":
+      const messages = getters.getMessages();
+      if (target.id === "latest") {
+        return messages[0];
+      }
+      return messages.find((t) => t.timestamp === target.id);
+    case "track":
+      const playlist = getters.getPlaylist();
+      if (target.id === "latest") {
+        return playlist[playlist.length - 1];
+      }
+      return playlist.find((t) => t.spotifyData?.uri === target.id);
+    default:
+      return undefined;
   }
 }
 
@@ -225,12 +232,16 @@ function captureTriggerTarget<T>(trigger: TriggerEvent<T>) {
 
 function getTriggerTargetId(
   target: TriggerTarget,
-  foundTarget?: PlaylistTrack
+  foundTarget?: PlaylistTrack | ChatMessage
 ) {
-  if (target.type === "track") {
-    return foundTarget?.spotifyData?.uri;
+  switch (target.type) {
+    case "track":
+      return (foundTarget as PlaylistTrack)?.spotifyData?.uri;
+    case "message":
+      return (foundTarget as ChatMessage)?.timestamp;
+    default:
+      return undefined;
   }
-  return undefined;
 }
 
 function makeQualifierFn<Source>(

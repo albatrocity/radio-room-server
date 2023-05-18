@@ -36,7 +36,7 @@ export type ReactionTriggerEvent = TriggerEvent<Reaction>;
 export type MessageTriggerEvent = TriggerEvent<ChatMessage>;
 
 export interface TriggerTarget {
-  type: `track`;
+  type: TriggerSubjectType;
   id?: ResourceIdentifier;
 }
 
@@ -67,7 +67,7 @@ export type TriggerConditions<T> = {
 export type TriggerMeta<T> = {
   sourcesOnSubject: T[];
   compareTo?: CompareTo;
-  target?: PlaylistTrack;
+  target?: PlaylistTrack | ChatMessage;
   messageTemplate?: string;
 };
 
