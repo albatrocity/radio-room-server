@@ -43,6 +43,9 @@ export function newMessage(
 
 export function clearMessages({ socket, io }: HandlerConnections) {
   setters.setMessages([]);
+  setters.setTriggerEventHistory(
+    getters.getTriggerEventHistory().filter((x) => x.target?.type !== "message")
+  );
   io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
 }
 

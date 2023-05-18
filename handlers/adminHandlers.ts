@@ -136,5 +136,8 @@ export async function settings(
 export function clearPlaylist({ socket, io }: HandlerConnections) {
   setters.setPlaylist([]);
   setters.setQueue([]);
+  setters.setTriggerEventHistory(
+    getters.getTriggerEventHistory().filter((x) => x.target?.type !== "track")
+  );
   io.emit("event", { type: "PLAYLIST", data: [] });
 }

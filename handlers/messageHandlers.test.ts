@@ -37,6 +37,42 @@ describe("messageHandlers", () => {
         },
       });
     });
+
+    test("removes message trigger instances from history", () => {
+      setters.setTriggerEventHistory([
+        {
+          on: "reaction",
+          subject: { id: "latest", type: "track" },
+          target: { type: "track", id: "spotify:track:3d1bBXr6nU2TxD9wfMUJEc" },
+          action: "sendMessage",
+          meta: { messageTemplate: "hey" },
+          timestamp:
+            "Thu May 18 2023 11:49:22 GMT-0500 (Central Daylight Time)",
+        },
+        {
+          on: "message",
+          subject: { id: "latest", type: "track" },
+          target: { type: "message", id: "2023-05-18T16:49:22.372Z" },
+          action: "sendMessage",
+          meta: { messageTemplate: "React" },
+          timestamp:
+            "Thu May 18 2023 11:49:25 GMT-0500 (Central Daylight Time)",
+        },
+      ]);
+      const spy = jest.spyOn(setters, "setTriggerEventHistory");
+      clearMessages({ socket, io });
+      expect(spy).toHaveBeenCalledWith([
+        {
+          on: "reaction",
+          subject: { id: "latest", type: "track" },
+          target: { type: "track", id: "spotify:track:3d1bBXr6nU2TxD9wfMUJEc" },
+          action: "sendMessage",
+          meta: { messageTemplate: "hey" },
+          timestamp:
+            "Thu May 18 2023 11:49:22 GMT-0500 (Central Daylight Time)",
+        },
+      ]);
+    });
   });
 
   describe("newMessage", () => {
