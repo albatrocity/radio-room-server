@@ -9,6 +9,7 @@ import {
   savePlaylist,
   setPassword,
   settings,
+  setMessageTriggerEvents,
 } from "../handlers/adminHandlers";
 
 import { Settings } from "../types/Settings";
@@ -29,5 +30,8 @@ export default function adminController(socket: Socket, io: Server) {
   socket.on("get trigger events", () => getTriggerEvents({ socket, io }));
   socket.on("set reaction trigger events", (data) => {
     setReactionTriggerEvents({ socket, io }, data);
+  });
+  socket.on("set message trigger events", (data) => {
+    setMessageTriggerEvents({ socket, io }, data);
   });
 }

@@ -13,6 +13,7 @@ import { User } from "../types/User";
 import { getters, setters } from "../lib/dataStore";
 import { TriggerEvent } from "types/Triggers";
 import { Reaction } from "types/Reaction";
+import { ChatMessage } from "types/ChatMessage";
 
 const streamURL = process.env.SERVER_URL;
 
@@ -44,6 +45,20 @@ export function setReactionTriggerEvents(
   data: TriggerEvent<Reaction>[]
 ) {
   setters.setReactionTriggerEvents(data || []);
+  io.emit("event", {
+    type: "TRIGGER_EVENTS",
+    data: {
+      reactions: getters.getReactionTriggerEvents(),
+      messages: getters.getMessageTriggerEvents(),
+    },
+  });
+}
+
+export function setMessageTriggerEvents(
+  { io }: HandlerConnections,
+  data: TriggerEvent<ChatMessage>[]
+) {
+  setters.setMessageTriggerEvents(data || []);
   io.emit("event", {
     type: "TRIGGER_EVENTS",
     data: {
