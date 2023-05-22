@@ -2,9 +2,10 @@ import { createAdapter } from "@socket.io/redis-adapter";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { createClient } from "redis";
 import { Server } from "socket.io";
 
+import { pubClient, subClient } from "./lib/redisClients";
+import { events } from "./lib/eventEmitter";
 import { getters, setters } from "./lib/dataStore";
 import fetchAndSetMeta from "./operations/fetchAndSetMeta";
 import getStation from "./operations/getStation";
@@ -14,7 +15,9 @@ import { callback, login } from "./spotify";
 import activityController from "./controllers/activityController";
 import adminController from "./controllers/adminController";
 import authController from "./controllers/authController";
-import djController from "./controllers/djController";
+import djController, {
+  lifecycleEvents as djEvents,
+} from "./controllers/djController";
 import messageController from "./controllers/messageController";
 
 const fortyFiveMins = 2700000;
@@ -29,6 +32,7 @@ const httpServer = express()
   .use(cookieParser())
   .get("/login", login)
   .get("/callback", callback)
+  .set("event", events)
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = new Server(httpServer, {
@@ -46,10 +50,6 @@ const io = new Server(httpServer, {
   allowEIO3: false,
 });
 
-const pubClient = createClient({
-  url: process.env.REDIS_URL || "redis://127.0.0.1:6379",
-});
-const subClient = pubClient.duplicate();
 pubClient.connect();
 subClient.connect();
 
@@ -65,6 +65,9 @@ io.on("connection", (socket) => {
   djController(socket, io);
   adminController(socket, io);
 });
+
+// lifecycle events
+djEvents(io);
 
 setInterval(async () => {
   if (getters.getFetching()) {

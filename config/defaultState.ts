@@ -9,6 +9,7 @@ export const defaultSettings: Settings = {
   fetchMeta: true,
   extraInfo: undefined,
   password: null,
+  deputizeOnJoin: false,
 };
 
 const initialState: DataStores = {

@@ -12,6 +12,7 @@ import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
 import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
+import { Server } from "socket.io";
 
 export function setDj(
   { io, socket }: HandlerConnections,
@@ -68,10 +69,7 @@ export function setDj(
   }
 }
 
-export function djDeputizeUser(
-  { socket, io }: HandlerConnections,
-  userId: User["userId"]
-) {
+export function djDeputizeUser({ io }: { io: Server }, userId: User["userId"]) {
   const deputyDjs = getters.getDeputyDjs();
   const socketId = get("id", find({ userId }, getters.getUsers()));
   var eventType, message, isDeputyDj;
@@ -83,7 +81,7 @@ export function djDeputizeUser(
     setters.setDeputyDjs(deputyDjs.filter((x) => x !== userId));
   } else {
     eventType = "START_DEPUTY_DJ_SESSION";
-    message = `You've been promoted to a deputy DJ. You add song's to the DJ's queue.`;
+    message = `You've been promoted to a deputy DJ. You may now add songs to the DJ's queue.`;
     isDeputyDj = true;
     setters.setDeputyDjs([...deputyDjs, userId]);
   }
@@ -185,5 +183,14 @@ export async function searchSpotifyTrack(
         error: e,
       },
     });
+  }
+}
+
+export async function handleUserJoined(
+  { io }: { io: Server },
+  { user }: { user: User; users: User[] }
+) {
+  if (getters.getSettings().deputizeOnJoin) {
+    djDeputizeUser({ io }, user.userId);
   }
 }

@@ -5,6 +5,7 @@ import { concat, find, get, isNil, reject, uniqBy } from "lodash/fp";
 import { getters, setters } from "../lib/dataStore";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
+import { events } from "../lib/eventEmitter";
 
 export function checkPassword(
   { socket, io }: HandlerConnections,
@@ -68,6 +69,11 @@ export function login(
       user: newUser,
       users: newUsers,
     },
+  });
+
+  events.emit("USER_JOINED", {
+    user: newUser,
+    users: newUsers,
   });
 
   socket.emit("event", {
