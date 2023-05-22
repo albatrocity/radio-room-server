@@ -56,7 +56,7 @@ export default async function fetchAndSetMeta(
   };
   setters.setMeta(newMeta);
   const content = track
-    ? `Up next: ${track}${artist ? ` - ${album}` : ""}${
+    ? `Up next: ${track}${artist ? ` - ${artist}` : ""}${
         album ? ` - ${album}` : ""
       }`
     : `Up next: ${album}`;
