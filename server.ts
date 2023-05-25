@@ -12,12 +12,15 @@ import getStation from "./operations/getStation";
 import refreshSpotifyToken from "./operations/spotify/refreshSpotifyToken";
 import { callback, login } from "./spotify";
 
-import activityController from "./controllers/activityController";
+import activityController, {
+  lifecycleEvents as activityEvents,
+} from "./controllers/activityController";
 import adminController from "./controllers/adminController";
 import authController from "./controllers/authController";
 import djController, {
   lifecycleEvents as djEvents,
 } from "./controllers/djController";
+
 import messageController from "./controllers/messageController";
 
 const fortyFiveMins = 2700000;
@@ -68,6 +71,7 @@ io.on("connection", (socket) => {
 
 // lifecycle events
 djEvents(io);
+activityEvents(io);
 
 setInterval(async () => {
   if (getters.getFetching()) {

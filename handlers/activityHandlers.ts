@@ -3,6 +3,8 @@ import { reject, takeRight } from "lodash/fp";
 import { REACTIONABLE_TYPES } from "../lib/constants";
 import { getters, setters } from "../lib/dataStore";
 import updateUserAttributes from "../lib/updateUserAttributes";
+import systemMessage from "../lib/systemMessage";
+import sendMessage from "../lib/sendMessage";
 import { processTriggerAction } from "../operations/processTriggerAction";
 
 import { HandlerConnections } from "../types/HandlerConnections";
@@ -95,4 +97,29 @@ export function removeReaction(
   };
   const reactions = setters.setReactions(newReactions);
   io.emit("event", { type: "REACTIONS", data: { reactions } });
+  processTriggerAction<ReactionPayload>(
+    {
+      type: "reaction",
+      data: { emoji, reactTo, user },
+    },
+    io
+  );
+}
+
+export function handlePlaybackPaused({ io }: { io: HandlerConnections["io"] }) {
+  const newMessage = systemMessage("Server playback has been paused", {
+    type: "alert",
+  });
+  sendMessage(io, newMessage);
+}
+
+export function handlePlaybackResumed({
+  io,
+}: {
+  io: HandlerConnections["io"];
+}) {
+  const newMessage = systemMessage("Server playback has been resumed", {
+    type: "alert",
+  });
+  sendMessage(io, newMessage);
 }

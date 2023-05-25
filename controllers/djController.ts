@@ -31,7 +31,6 @@ export default function djController(socket: Socket, io: Server) {
 
 export function lifecycleEvents(io: Server) {
   events.on("USER_JOINED", (data: { user: User; users: User[] }) => {
-    console.log("handle user joined event");
     handleUserJoined({ io }, { user: data.user, users: data.users });
   });
 }
