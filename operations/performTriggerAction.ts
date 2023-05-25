@@ -2,6 +2,8 @@ import { Server } from "socket.io";
 import { TriggerEvent, WithTriggerMeta } from "../types/Triggers";
 import likeSpotifyTrack from "../operations/spotify/likeSpotifyTrack";
 import skipSpotifyTrack from "../operations/spotify/skipSpotifyTrack";
+import pauseSpotify from "../operations/spotify/pauseSpotify";
+import resumeSpotify from "../operations/spotify/resumeSpotify";
 import { getters, setters } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
@@ -56,6 +58,14 @@ export default function performTriggerAction<Incoming, Source>(
       if (trigger.meta?.messageTemplate) {
         sendMetaMessage<Incoming, Source>(data, trigger, io);
       }
+      break;
+    case "pause":
+      pauseSpotify();
+      sendMetaMessage<Incoming, Source>(data, trigger, io);
+      break;
+    case "resume":
+      resumeSpotify();
+      sendMetaMessage<Incoming, Source>(data, trigger, io);
       break;
   }
 

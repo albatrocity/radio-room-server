@@ -6,9 +6,13 @@ import {
   removeReaction,
   startListening,
   stopListening,
+  handlePlaybackPaused,
+  handlePlaybackResumed,
 } from "../handlers/activityHandlers";
 import { ReactionSubject } from "../types/ReactionSubject";
 import { User } from "../types/User";
+import { events } from "../lib/eventEmitter";
+import { HandlerConnections } from "types/HandlerConnections";
 
 export default function activityController(socket: Socket, io: Server) {
   socket.on("start listening", () => startListening({ socket, io }));
@@ -44,4 +48,13 @@ export default function activityController(socket: Socket, io: Server) {
       return removeReaction({ socket, io }, { emoji, reactTo, user });
     }
   );
+}
+
+export function lifecycleEvents(io: Server) {
+  events.on("PLAYBACK_PAUSED", (data: { user: User; users: User[] }) => {
+    handlePlaybackPaused({ io });
+  });
+  events.on("PLAYBACK_RESUMED", (data: { user: User; users: User[] }) => {
+    handlePlaybackResumed({ io });
+  });
 }

@@ -1,9 +1,5 @@
 import { DataStores } from "types/DataStores";
 import { Settings } from "../types/Settings";
-import {
-  defaultReactionTriggerEvents,
-  defaultMessageTriggerEvents,
-} from "./defaultTriggerActions";
 
 export const defaultSettings: Settings = {
   fetchMeta: true,
@@ -28,8 +24,8 @@ const initialState: DataStores = {
     message: {},
     track: {},
   },
-  reactionTriggerEvents: defaultReactionTriggerEvents,
-  messageTriggerEvents: defaultMessageTriggerEvents,
+  reactionTriggerEvents: [],
+  messageTriggerEvents: [],
   triggerEventHistory: [],
   defaultSettings,
 };
