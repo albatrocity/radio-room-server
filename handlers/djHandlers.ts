@@ -190,7 +190,11 @@ export async function handleUserJoined(
   { io }: { io: Server },
   { user }: { user: User; users: User[] }
 ) {
-  if (getters.getSettings().deputizeOnJoin) {
+  const deputyDjs = getters.getDeputyDjs();
+  if (
+    getters.getSettings().deputizeOnJoin &&
+    !deputyDjs.includes(user.userId)
+  ) {
     djDeputizeUser({ io }, user.userId);
   }
 }
