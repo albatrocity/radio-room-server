@@ -72,5 +72,8 @@ yarn-error.log
 .google/**
 
 
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+.pnp.*
 dist
-dist/**
