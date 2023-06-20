@@ -10,7 +10,7 @@ import { processTriggerAction } from "../operations/processTriggerAction";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { ReactionSubject } from "../types/ReactionSubject";
 import { User } from "../types/User";
-import { ReactionPayload } from "types/Reaction";
+import { ReactionPayload } from "../types/Reaction";
 import { Emoji } from "../types/Emoji";
 
 export function startListening({ socket, io }: HandlerConnections) {

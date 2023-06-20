@@ -12,7 +12,6 @@ import {
 import { ReactionSubject } from "../types/ReactionSubject";
 import { User } from "../types/User";
 import { events } from "../lib/eventEmitter";
-import { HandlerConnections } from "types/HandlerConnections";
 
 export default function activityController(socket: Socket, io: Server) {
   socket.on("start listening", () => startListening({ socket, io }));

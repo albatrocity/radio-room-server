@@ -11,9 +11,9 @@ import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 import { getters, setters } from "../lib/dataStore";
-import { TriggerEvent } from "types/Triggers";
-import { Reaction } from "types/Reaction";
-import { ChatMessage } from "types/ChatMessage";
+import { TriggerEvent } from "../types/Triggers";
+import { Reaction } from "../types/Reaction";
+import { ChatMessage } from "../types/ChatMessage";
 
 const streamURL = process.env.SERVER_URL;
 
