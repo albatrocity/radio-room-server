@@ -25,7 +25,7 @@ import messageController from "./controllers/messageController";
 
 const fortyFiveMins = 2700000;
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 const streamURL = process.env.SERVER_URL;
 
@@ -36,7 +36,7 @@ const httpServer = express()
   .get("/login", login)
   .get("/callback", callback)
   .set("event", events)
-  .listen(PORT, () => console.log(`Listening on ${PORT}`));
+  .listen(PORT, "0.0.0.0", () => console.log(`Listening on ${PORT}`));
 
 const io = new Server(httpServer, {
   cors: {

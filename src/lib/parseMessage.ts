@@ -1,5 +1,5 @@
 import { map } from "lodash/fp";
-import { render } from "mustache";
+import mustache from "mustache";
 import getMessageVariables from "./getMessageVariables";
 
 const parseMessage = (message = "", variables?: Record<string, any>) => {
@@ -15,7 +15,7 @@ const parseMessage = (message = "", variables?: Record<string, any>) => {
   const content = message.replace(mentionRegex, "@$2");
   const view = { ...getMessageVariables(), ...variables };
 
-  const parsedContent = render(content, view);
+  const parsedContent = mustache.render(content, view);
 
   return {
     mentions,
