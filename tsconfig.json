@@ -1,14 +1,8 @@
 {
+  "extends": "@tsconfig/node18/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./",
-    "module": "commonjs",
-    "outDir": "./dist",
-    "strict": true,
-    "target": "ES2019",
-
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "removeComments": true
+    "lib": ["ESNext"],
+    "outDir": "dist"
   },
-  "include": ["./server.ts"]
+  "include": ["src"]
 }
