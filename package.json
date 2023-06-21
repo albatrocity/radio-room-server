@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "rm -rf dist && esbuild ./src/server.ts --bundle --target=es2022 --platform=node --sourcemap --outdir=dist",
-    "build:dev": "rm -rf dist && esbuild ./src/server.ts --bundle --sourcemap --target=es2022 --platform=node --outdir=dist",
+    "build": "rm -rf dist && node build.js",
     "start": "node --enable-source-maps dist/server.js",
     "start:docker": "yarn build && node --enable-source-maps --inspect=0.0.0.0 dist/server.js",
     "postinstall": "yarn run build",

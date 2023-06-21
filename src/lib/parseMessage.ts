@@ -8,7 +8,7 @@ const parseMessage = (message = "", variables?: Record<string, any>) => {
   const mentionMatches = (message || "").match(mentionRegex);
   const mentions = map(
     (x) =>
-      (x.match(idRegex) || "")?.[0].replace(/(\()/gm, "").replace(/(\))/gm, ""),
+      (x.match(idRegex) ?? "")?.[0].replace(/(\()/gm, "").replace(/(\))/gm, ""),
     mentionMatches
   );
 
