@@ -11,10 +11,10 @@ import {
   MessageTriggerEvent,
   TriggerMeta,
 } from "../types/Triggers";
-import { Reaction, ReactionPayload } from "types/Reaction";
+import { Reaction, ReactionPayload } from "../types/Reaction";
 import { Server } from "socket.io";
-import { ChatMessage } from "types/ChatMessage";
-import { PlaylistTrack } from "types/PlaylistTrack";
+import { ChatMessage } from "../types/ChatMessage";
+import { PlaylistTrack } from "../types/PlaylistTrack";
 
 function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   if (conditions.thresholdType === "count") {
@@ -112,9 +112,8 @@ export function processReactionTriggers(
   io: Server
 ) {
   triggers.map((t) => {
-    const currentReactions = getters.getReactions()[data.reactTo.type][
-      data.reactTo.id
-    ];
+    const currentReactions =
+      getters.getReactions()[data.reactTo.type][data.reactTo.id];
     const target = getActionTarget(t.target);
     const trigger = captureTriggerTarget<Reaction>(t);
     const meta: TriggerMeta<Reaction> = {

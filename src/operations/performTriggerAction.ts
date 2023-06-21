@@ -8,8 +8,8 @@ import { getters, setters } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
 import parseMessage from "../lib/parseMessage";
-import { WithTimestamp } from "types/Utility";
-import { PlaylistTrack } from "types/PlaylistTrack";
+import { WithTimestamp } from "../types/Utility";
+import { PlaylistTrack } from "../types/PlaylistTrack";
 
 function sendMetaMessage<Incoming, Source>(
   data: WithTriggerMeta<Incoming, Source>,

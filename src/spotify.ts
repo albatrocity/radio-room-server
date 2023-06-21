@@ -3,8 +3,7 @@ import qs from "qs";
 import querystring from "querystring";
 import { createClient } from "./redisClient";
 import { SPOTIFY_ACCESS_TOKEN, SPOTIFY_REFRESH_TOKEN } from "./lib/constants";
-import { Request } from "express";
-import { Response } from "express";
+import { Request, Response } from "express";
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const client_secret = process.env.CLIENT_SECRET; // Your secret
@@ -13,11 +12,11 @@ const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 const stateKey = "spotify_auth_state";
 
 function generateRandomString(length: number) {
-  var text = "";
+  let text = "";
   const possible =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-  for (var i = 0; i < length; i++) {
+  for (let i = 0; i < length; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
@@ -43,11 +42,8 @@ export function login(req: Request, res: Response) {
 }
 
 export async function callback(req: Request, res: Response) {
-  // your application requests refresh and access tokens
-  // after checking the state parameter
-
-  const code = req.query.code || null;
-  const state = req.query.state || null;
+  const code = req.query.code ?? null;
+  const state = req.query.state ?? null;
   const storedState = req.cookies ? req.cookies[stateKey] : null;
 
   if (state === null || state !== storedState) {

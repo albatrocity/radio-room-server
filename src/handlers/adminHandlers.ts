@@ -127,6 +127,7 @@ export async function settings(
 
   if (prevSettings.fetchMeta !== values.fetchMeta) {
     const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
+    console.log("STATION", station);
     await fetchAndSetMeta({ io }, station, get("title", station), {
       silent: true,
     });

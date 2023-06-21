@@ -26,7 +26,6 @@ import messageController from "./controllers/messageController";
 const fortyFiveMins = 2700000;
 
 const PORT = Number(process.env.PORT ?? 3000);
-console.log("PORT", PORT);
 
 const streamURL = process.env.SERVER_URL;
 
@@ -74,12 +73,11 @@ io.on("connection", (socket) => {
 djEvents(io);
 activityEvents(io);
 
-setInterval(async () => {
+async function pollStationInfo() {
   if (getters.getFetching()) {
     return;
   }
   setters.setFetching(true);
-
   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
   if ((!station || station.bitrate === "0") && !offline) {
     fetchAndSetMeta({ io });
@@ -115,4 +113,8 @@ setInterval(async () => {
     }
   }
   setters.setFetching(false);
+}
+
+setInterval(() => {
+  pollStationInfo();
 }, 3000);

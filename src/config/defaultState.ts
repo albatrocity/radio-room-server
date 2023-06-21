@@ -1,4 +1,4 @@
-import { DataStores } from "types/DataStores";
+import { DataStores } from "../types/DataStores";
 import { Settings } from "../types/Settings";
 
 export const defaultSettings: Settings = {

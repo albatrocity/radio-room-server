@@ -1,6 +1,6 @@
 import { concat, take } from "lodash/fp";
 import { Server } from "socket.io";
-import { ChatMessage } from "types/ChatMessage";
+import { ChatMessage } from "../types/ChatMessage";
 import { getters, setters } from "./dataStore";
 
 function sendMessage(io: Server, message: ChatMessage) {

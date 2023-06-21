@@ -1,4 +1,4 @@
-import { ChatMessage } from "types/ChatMessage";
+import { ChatMessage } from "../types/ChatMessage";
 
 const systemMessage = (
   content: string,

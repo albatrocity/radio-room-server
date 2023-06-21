@@ -5,17 +5,17 @@ import {
   ReactionStore,
   Setter,
   Setters,
-} from "types/DataStores";
-import { Station } from "types/Station";
+} from "../types/DataStores";
+import { Station } from "../types/Station";
 import { ChatMessage } from "../types/ChatMessage";
 import { PlaylistTrack } from "../types/PlaylistTrack";
 import { QueuedTrack } from "../types/QueuedTrack";
 import { Settings } from "../types/Settings";
 import { User } from "../types/User";
-import { TriggerEvent, TriggerEventHistory } from "types/Triggers";
+import { TriggerEvent, TriggerEventHistory } from "../types/Triggers";
 
 import defaultState from "../config/defaultState";
-import { Reaction, ReactionPayload } from "types/Reaction";
+import { Reaction, ReactionPayload } from "../types/Reaction";
 
 const initialState: DataStores = defaultState;
 
