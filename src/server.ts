@@ -25,7 +25,8 @@ import messageController from "./controllers/messageController";
 
 const fortyFiveMins = 2700000;
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT ?? 3000);
+console.log("PORT", PORT);
 
 const streamURL = process.env.SERVER_URL;
 
