@@ -1,4 +1,4 @@
-import { reject, takeRight } from "lodash/fp";
+import { reject } from "remeda";
 
 import { REACTIONABLE_TYPES } from "../lib/constants";
 import { getters, setters } from "../lib/dataStore";
@@ -52,7 +52,7 @@ export function addReaction(
     [reactTo.type]: {
       ...currentReactions[reactTo.type],
       [reactTo.id]: [
-        ...takeRight(199, currentReactions[reactTo.type][reactTo.id] || []),
+        currentReactions[reactTo.type][reactTo.id] || [],
         { emoji: emoji.shortcodes, user: user.userId },
       ],
     },
@@ -90,8 +90,8 @@ export function removeReaction(
     [reactTo.type]: {
       ...currentReactions[reactTo.type],
       [reactTo.id]: reject(
-        { emoji: emoji.shortcodes, user: user.userId },
-        currentReactions[reactTo.type][reactTo.id] || []
+        currentReactions[reactTo.type][reactTo.id] || [],
+        (x) => x.emoji === emoji.shortcodes && x.user === user.userId
       ),
     },
   };

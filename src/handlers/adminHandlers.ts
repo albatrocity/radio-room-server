@@ -1,5 +1,3 @@
-import { find, get } from "lodash/fp";
-
 import systemMessage from "../lib/systemMessage";
 import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 import fetchAndSetMeta from "../operations/fetchAndSetMeta";
@@ -78,7 +76,7 @@ export function fixMeta({ io }: HandlerConnections, title?: string) {
 
 export function kickUser({ io }: HandlerConnections, user: User) {
   const { userId } = user;
-  const socketId = get("id", find({ userId }, getters.getUsers()));
+  const socketId = getters.getUsers().find((u) => u.userId === userId)?.id;
 
   const newMessage = systemMessage(
     `You have been kicked. I hope you deserved it.`,
@@ -128,7 +126,7 @@ export async function settings(
   if (prevSettings.fetchMeta !== values.fetchMeta) {
     const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
     console.log("STATION", station);
-    await fetchAndSetMeta({ io }, station, get("title", station), {
+    await fetchAndSetMeta({ io }, station, station?.title, {
       silent: true,
     });
   }

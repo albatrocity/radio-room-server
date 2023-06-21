@@ -1,4 +1,4 @@
-import { concat, find, get, map, reject, uniqBy } from "lodash/fp";
+import { reject, map, uniqBy } from "remeda";
 
 import { getters, setters } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
@@ -19,7 +19,7 @@ export function setDj(
   userId?: User["userId"]
 ) {
   const users = getters.getUsers();
-  const user = find({ userId }, users);
+  const user = users.find((u) => u.userId === userId);
   if (user && user.isDj) {
     return;
   }
@@ -27,14 +27,14 @@ export function setDj(
   if (userId && user) {
     const newUser = { ...user, isDj: true };
     const newUsers = uniqBy(
-      "userId",
-      concat(
+      [
+        ...reject(
+          map(users, (x) => ({ ...x, isDj: false })),
+          (u) => u.userId === userId
+        ),
         newUser,
-        reject(
-          { userId },
-          map((x) => ({ ...x, isDj: false }), users)
-        )
-      )
+      ],
+      (u) => u.userId
     );
     setters.setUsers(newUsers);
     const content = `${user.username} is now the DJ`;
@@ -51,8 +51,8 @@ export function setDj(
     });
   } else {
     const newUsers = uniqBy(
-      "userId",
-      map((x) => ({ ...x, isDj: false }), users)
+      map(users, (x) => ({ ...x, isDj: false })),
+      (u) => u.userId
     );
     setters.setUsers(newUsers);
     const content = `There's currently no DJ.`;
@@ -71,7 +71,7 @@ export function setDj(
 
 export function djDeputizeUser({ io }: { io: Server }, userId: User["userId"]) {
   const deputyDjs = getters.getDeputyDjs();
-  const socketId = get("id", find({ userId }, getters.getUsers()));
+  const socketId = getters.getUsers().find((u) => u.userId === userId)?.id;
   var eventType, message, isDeputyDj;
 
   if (deputyDjs.includes(userId)) {

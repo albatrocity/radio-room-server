@@ -1,4 +1,3 @@
-import { find } from "lodash/fp";
 import { Server } from "socket.io";
 
 import { getters, setters } from "../lib/dataStore";
@@ -81,10 +80,11 @@ export default async function fetchAndSetMeta(
       track,
       spotifyData: release,
       timestamp: Date.now(),
-      dj: find(
-        queuedTrack ? { userId: queuedTrack.userId } : { isDj: true },
-        getters.getUsers()
-      ),
+      dj: getters
+        .getUsers()
+        .find((u) =>
+          queuedTrack ? u.userId === queuedTrack.userId : u.isDj === true
+        ),
     },
   ]);
   setters.setFetching(false);

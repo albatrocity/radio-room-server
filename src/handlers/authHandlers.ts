@@ -1,7 +1,8 @@
 import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
 
-import { concat, find, get, isNil, reject, uniqBy } from "lodash/fp";
+import { isNil, uniqBy } from "remeda";
+import { reject } from "remeda";
 import { getters, setters } from "../lib/dataStore";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
@@ -60,7 +61,7 @@ export function login(
     status: "participating" as const,
     connectedAt: new Date().toISOString(),
   };
-  const newUsers = uniqBy("userId", users.concat(newUser));
+  const newUsers = uniqBy([...users, newUser], (u) => u.userId);
   setters.setUsers(newUsers);
 
   socket.broadcast.emit("event", {
@@ -101,13 +102,13 @@ export function changeUsername(
   { userId, username }: { userId: User["userId"]; username: User["username"] }
 ) {
   const users = getters.getUsers();
-  const user = find({ userId }, users);
-  const oldUsername = get("username", user);
+  const user = users.find((u) => u.userId === userId);
+  const oldUsername = user?.username;
   if (user) {
     const newUser: User = { ...user, username };
     const newUsers = uniqBy(
-      "userId",
-      concat(newUser, reject({ userId }, users))
+      [...reject(users, (u) => u.userId === userId), newUser],
+      (u) => u.userId
     );
     setters.setUsers(newUsers);
 
@@ -129,14 +130,14 @@ export function changeUsername(
 
 export function disconnect({ socket, io }: HandlerConnections) {
   const users = getters.getUsers();
-  const user = find({ userId: socket.data.userId }, users);
+  const user = users.find((u) => u.userId === socket.data.userId);
   if (user && user.isDj) {
     const newSettings = { ...getters.getDefaultSettings() };
     setters.setSettings(newSettings);
     io.emit("event", { type: "SETTINGS", data: newSettings });
   }
 
-  const newUsers = reject({ userId: socket.data.userId }, users);
+  const newUsers = reject(users, (u) => u.userId === socket.data.userId);
   setters.setUsers(newUsers);
 
   socket.broadcast.emit("event", {

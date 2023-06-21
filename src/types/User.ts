@@ -1,4 +1,5 @@
 export interface User {
+  id?: string; // socket ID
   userId: string;
   username?: string;
   isAdmin?: boolean;

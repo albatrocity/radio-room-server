@@ -1,4 +1,4 @@
-import { compact, concat, find, reject, uniq } from "lodash/fp";
+import { compact, uniq, reject } from "remeda";
 import { getters, setters } from "../lib/dataStore";
 import parseMessage from "../lib/parseMessage";
 import sendMessage from "../lib/sendMessage";
@@ -27,7 +27,7 @@ export function newMessage(
     timestamp: new Date().toISOString(),
   };
   const newTyping = compact(
-    uniq(reject({ userId: socket.data.userId }, typing))
+    uniq(reject(typing, (u) => u.userId === socket.data.userId))
   );
   setters.setTyping(newTyping);
   io.emit("event", { type: "TYPING", data: { typing: newTyping } });
@@ -51,12 +51,10 @@ export function clearMessages({ socket, io }: HandlerConnections) {
 
 export function startTyping({ socket, io }: HandlerConnections) {
   const newTyping = compact(
-    uniq(
-      concat(
-        getters.getTyping(),
-        find({ userId: socket.data.userId }, getters.getUsers())
-      )
-    )
+    uniq([
+      ...getters.getTyping(),
+      getters.getUsers().find((u) => u.userId === socket.data.userId),
+    ])
   );
   setters.setTyping(newTyping);
   socket.broadcast.emit("event", {
@@ -67,7 +65,9 @@ export function startTyping({ socket, io }: HandlerConnections) {
 
 export function stopTyping({ socket, io }: HandlerConnections) {
   const newTyping = compact(
-    uniq(reject({ userId: socket.data.userId }, getters.getTyping()))
+    uniq(
+      reject(getters.getTyping(), (user) => user.userId === socket.data.userId)
+    )
   );
   setters.setTyping(newTyping);
   socket.broadcast.emit("event", {
