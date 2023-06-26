@@ -3,13 +3,14 @@ version: "2"
 services:
   backend:
     build: .
+    stdin_open: true
     ports:
       - 3000:3000
       - 9229:9229 # debugger port
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
-    command: yarn start:docker
+    command: yarn dev
     depends_on:
       - redis
     environment:

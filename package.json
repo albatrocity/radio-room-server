@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "rm -rf dist && rm -rf dist && esbuild ./src/server.ts --bundle --target=es2022 --platform=node --sourcemap --outdir=dist",
-    "build:script": "rm -rf dist && node build.js",
     "start": "node --enable-source-maps dist/server.js",
-    "start:docker": "yarn build && node --enable-source-maps --inspect=0.0.0.0 dist/server.js",
+    "start:watch": "nodemon ./dist/server.js",
+    "build": "rm -rf dist && esbuild ./src/server.ts --bundle --target=es2022 --platform=node --sourcemap --outdir=dist",
+    "build:watch": "yarn build --watch",
+    "dev": "yarn build && yarn start:watch & yarn build:watch",
     "test": "jest --watch"
   },
   "engines": {
@@ -51,6 +52,7 @@
     "esbuild": "^0.18.5",
     "eslint": "^8.43.0",
     "jest": "^29.5.0",
+    "nodemon": "^2.0.22",
     "ts-jest": "^29.1.0"
   },
   "volta": {
