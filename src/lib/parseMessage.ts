@@ -1,14 +1,16 @@
-import * as mustache from "mustache";
+import mustache from "mustache";
 import getMessageVariables from "./getMessageVariables";
 
-const parseMessage = (message = "", variables?: Record<string, any>) => {
+export default function parseMessage(
+  message = "",
+  variables?: Record<string, any>
+) {
   const mentionRegex = /([])|\@\[(.*?)\]\(.*?\)/gm;
   const idRegex = /(\(.*\))/gm;
-  const mentionMatches = (message || "").match(mentionRegex);
+  const mentionMatches = (message || "").match(mentionRegex) ?? [];
   const mentions = mentionMatches.map((x) =>
     (x.match(idRegex) ?? "")?.[0].replace(/(\()/gm, "").replace(/(\))/gm, "")
   );
-
   const content = message.replace(mentionRegex, "@$2");
   const view = { ...getMessageVariables(), ...variables };
 
@@ -18,6 +20,4 @@ const parseMessage = (message = "", variables?: Record<string, any>) => {
     mentions,
     content: parsedContent,
   };
-};
-
-export default parseMessage;
+}
