@@ -1,4 +1,4 @@
-version: "2"
+version: "3.8"
 
 services:
   backend:
@@ -21,12 +21,14 @@ services:
       CLIENT_SECRET: "${CLIENT_SECRET}"
       REDIRECT_URI: http://localhost:3000/callback
   redis:
-    image: redis:7.0.11-alpine
+    image: redis/redis-stack:latest
     ports:
       - 6379:6379
+      - 8001:8001
     environment:
-      ALLOW_EMPTY_PASSWORD: yes
+      - REDIS_ARGS=--protected-mode no
+      - REDIS_ARGS=--appendonly yes
     volumes:
       - .db:/data
     restart: always
-    entrypoint: redis-server --appendonly yes
+    # entrypoint: redis-server --appendonly yes --protected-mode no

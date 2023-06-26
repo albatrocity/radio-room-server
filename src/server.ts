@@ -22,6 +22,7 @@ import djController, {
 } from "./controllers/djController";
 
 import messageController from "./controllers/messageController";
+import setup from "./entities/setup";
 
 const fortyFiveMins = 2700000;
 
@@ -72,6 +73,9 @@ io.on("connection", (socket) => {
 // lifecycle events
 djEvents(io);
 activityEvents(io);
+
+// DataStore setup
+setup();
 
 async function pollStationInfo() {
   if (getters.getFetching()) {

@@ -4,70 +4,53 @@ import { pubClient } from "../lib/redisClients";
 import { ChatMessage } from "../types/ChatMessage";
 
 // defines RedisOm schema for the message model
-export const messageSchema = new Schema(
-  "message",
-  {
-    id: {
-      type: "string",
-    },
-    userId: {
-      type: "string",
-    },
-    content: {
-      type: "string",
-    },
-    timestamp: {
-      type: "date",
-    },
-    mentions: {
-      type: "string[]",
-    },
+export const messageSchema = new Schema("message", {
+  id: {
+    type: "string",
   },
-  {
-    dataStructure: "HASH",
-  }
-);
+  userId: {
+    type: "string",
+    path: "$.user.userId",
+  },
+  username: {
+    type: "string",
+    path: "$.user.username",
+  },
+  content: {
+    type: "text",
+  },
+  timestamp: {
+    type: "string",
+  },
+  date: {
+    type: "date",
+    sortable: true,
+  },
+  mentions: {
+    type: "string[]",
+  },
+});
 
 export const messageRepository = new Repository(messageSchema, pubClient);
 
 export function messageToOm(message: ChatMessage) {
   return {
-    id: message.timestamp,
-    userId: message.user.userId,
-    username: message.user.username,
-    content: message.content,
-    timestamp: Math.floor(new Date(message.timestamp).getTime() / 1000),
-    mentions: message.mentions,
-  };
-}
-
-type StoredMessage = {
-  [key: string]: string;
-};
-
-function toMessageModel(message: StoredMessage): ChatMessage {
-  return {
-    content: message.content,
-    timestamp: new Date(Number(message.timestamp) * 1000).toISOString(),
+    ...message,
     user: {
-      userId: message.userId,
-      username: message.username,
+      id: message.user.id,
+      userId: message.user.userId,
+      username: message.user.username,
     },
-    // mentions: message.mentions,
+    date: Math.floor(new Date(message.timestamp).getTime() / 1000),
   };
 }
-
 export async function getAllMessages() {
-  const messages: StoredMessage[] = [];
-  await (async () => {
-    for await (const key of pubClient.scanIterator({
-      MATCH: "message:*",
-    })) {
-      const v = await pubClient.hGetAll(key);
-      messages.push(v);
-    }
-  })();
-  return messages.map(toMessageModel);
+  const messages = await messageRepository
+    .search()
+    .sortAscending("date")
+    .return.all();
+  console.log(messages);
+  return messages;
 }
 
 export async function deleteAllMessages() {
