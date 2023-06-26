@@ -1,0 +1,32 @@
+version: "2"
+
+services:
+  backend:
+    build: .
+    stdin_open: true
+    ports:
+      - 3000:3000
+      - 9229:9229 # debugger port
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    command: yarn dev
+    depends_on:
+      - redis
+    environment:
+      PORT: 3000
+      REDIS_URL: redis://redis:6379
+      SERVER_URL: "${SERVER_URL}"
+      CLIENT_ID: "${CLIENT_ID}"
+      CLIENT_SECRET: "${CLIENT_SECRET}"
+      REDIRECT_URI: http://localhost:3000/callback
+  redis:
+    image: redis:7.0.11-alpine
+    ports:
+      - 6379:6379
+    environment:
+      ALLOW_EMPTY_PASSWORD: yes
+    volumes:
+      - .db:/data
+    restart: always
+    entrypoint: redis-server --appendonly yes

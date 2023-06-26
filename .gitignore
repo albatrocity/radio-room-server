@@ -20,11 +20,6 @@ coverage
 # nyc test coverage
 .nyc_output
 
-# Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
-
-# Bower dependency directory (https://bower.io/)
-bower_components
 
 # node-waf configuration
 .lock-wscript
@@ -48,15 +43,10 @@ typings/
 # Optional REPL history
 .node_repl_history
 
-# Output of 'npm pack'
-*.tgz
 
 # dotenv environment variable files
 .env*
 
-# gatsby files
-.cache/
-public
 
 # Mac files
 .DS_Store
@@ -72,5 +62,13 @@ yarn-error.log
 .google/**
 
 
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+.db
 dist
-dist/**
