@@ -7,6 +7,7 @@ import { processTriggerAction } from "../operations/processTriggerAction";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 import { ChatMessage } from "../types/ChatMessage";
+import { deleteAllMessages } from "../entities";
 
 export function newMessage(
   { socket, io }: HandlerConnections,
@@ -41,8 +42,8 @@ export function newMessage(
   );
 }
 
-export function clearMessages({ socket, io }: HandlerConnections) {
-  setters.setMessages([]);
+export async function clearMessages({ socket, io }: HandlerConnections) {
+  await deleteAllMessages();
   setters.setTriggerEventHistory(
     getters.getTriggerEventHistory().filter((x) => x.target?.type !== "message")
   );

@@ -83,11 +83,13 @@ export function kickUser({ io }: HandlerConnections, user: User) {
     { status: "error", type: "alert", title: "Kicked" }
   );
 
-  io.to(socketId).emit("event", { type: "NEW_MESSAGE", data: newMessage });
-  io.to(socketId).emit("event", { type: "KICKED" });
+  if (socketId) {
+    io.to(socketId).emit("event", { type: "NEW_MESSAGE", data: newMessage });
+    io.to(socketId).emit("event", { type: "KICKED" });
 
-  if (io.sockets.sockets.get(socketId)) {
-    io.sockets.sockets.get(socketId)?.disconnect();
+    if (io.sockets.sockets.get(socketId)) {
+      io.sockets.sockets.get(socketId)?.disconnect();
+    }
   }
 }
 
@@ -125,7 +127,6 @@ export async function settings(
 
   if (prevSettings.fetchMeta !== values.fetchMeta) {
     const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-    console.log("STATION", station);
     await fetchAndSetMeta({ io }, station, station?.title, {
       silent: true,
     });

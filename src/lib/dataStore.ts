@@ -16,6 +16,7 @@ import { TriggerEvent, TriggerEventHistory } from "../types/Triggers";
 
 import defaultState from "../config/defaultState";
 import { Reaction, ReactionPayload } from "../types/Reaction";
+import { getAllMessages } from "../entities";
 
 const initialState: DataStores = defaultState;
 
@@ -41,7 +42,7 @@ export function createGetters(dataStores: DataStores): Getters {
   return {
     getDefaultSettings: createGetter<Settings>(dataStores, "defaultSettings"),
     getDeputyDjs: createGetter<User["userId"][]>(dataStores, "deputyDjs"),
-    getMessages: createGetter<ChatMessage[]>(dataStores, "messages"),
+    getMessages: getAllMessages,
     getMeta: createGetter<any>(dataStores, "meta"),
     getPlaylist: createGetter<PlaylistTrack[]>(dataStores, "playlist"),
     getQueue: createGetter<QueuedTrack[]>(dataStores, "queue"),

@@ -41,7 +41,7 @@ export type Getter<T> = () => T;
 export type Getters = {
   getDefaultSettings: Getter<Settings>;
   getDeputyDjs: Getter<User["userId"][]>;
-  getMessages: Getter<ChatMessage[]>;
+  getMessages: () => Promise<ChatMessage[]>;
   getMeta: Getter<any>;
   getPlaylist: Getter<PlaylistTrack[]>;
   getQueue: Getter<QueuedTrack[]>;

@@ -24,13 +24,14 @@ function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   return count * (conditions.threshold / 100);
 }
 
-function getCompareTo(target?: TriggerTarget) {
+async function getCompareTo(target?: TriggerTarget) {
+  const messages = await getters.getMessages();
   return {
     listeners: getters
       .getUsers()
       .filter(({ status }) => status === "listening"),
     users: getters.getUsers(),
-    messages: getters.getMessages(),
+    messages,
     reactions:
       target && target.id
         ? getters.getReactions()[target.type][target.id] || []
@@ -111,14 +112,14 @@ export function processReactionTriggers(
   triggers: ReactionTriggerEvent[],
   io: Server
 ) {
-  triggers.map((t) => {
+  triggers.map(async (t) => {
     const currentReactions =
       getters.getReactions()[data.reactTo.type][data.reactTo.id];
-    const target = getActionTarget(t.target);
-    const trigger = captureTriggerTarget<Reaction>(t);
+    const target = await getActionTarget(t.target);
+    const trigger = await captureTriggerTarget<Reaction>(t);
     const meta: TriggerMeta<Reaction> = {
       sourcesOnSubject: currentReactions,
-      compareTo: getCompareTo(t.target),
+      compareTo: await getCompareTo(t.target),
       target,
       ...trigger.meta,
     };
@@ -139,16 +140,16 @@ export function processMessageTriggers(
   triggers: MessageTriggerEvent[],
   io: Server
 ) {
-  triggers.map((t) => {
-    const currentMessages = getters.getMessages();
-    const target = getActionTarget(t.target);
-    const trigger = captureTriggerTarget(t);
+  triggers.map(async (t) => {
+    const currentMessages = await getters.getMessages();
+    const target = await getActionTarget(t.target);
+    const trigger = await captureTriggerTarget(t);
     return processTrigger<ChatMessage, ChatMessage>(
       {
         ...data,
         meta: {
           sourcesOnSubject: currentMessages,
-          compareTo: getCompareTo(t.target),
+          compareTo: await getCompareTo(t.target),
           target,
           ...trigger.meta,
         },
@@ -185,18 +186,18 @@ export function processTriggerAction<T extends ReactionPayload | ChatMessage>(
 /**
  * Finds and returns the full Target of the Trigger
  */
-function getActionTarget(target?: TriggerTarget) {
+async function getActionTarget(target?: TriggerTarget) {
   if (!target) {
     return undefined;
   }
 
-  return getTarget(target);
+  return await getTarget(target);
 }
 
-function getTarget(target: TriggerTarget) {
+async function getTarget(target: TriggerTarget) {
   switch (target.type) {
     case "message":
-      const messages = getters.getMessages();
+      const messages = await getters.getMessages();
       if (target.id === "latest") {
         return messages[0];
       }
@@ -215,9 +216,9 @@ function getTarget(target: TriggerTarget) {
 /**
  * Returns Trigger with identified Target if using the 'latest' id alias
  */
-function captureTriggerTarget<T>(trigger: TriggerEvent<T>) {
+async function captureTriggerTarget<T>(trigger: TriggerEvent<T>) {
   if (trigger.target?.id === "latest") {
-    const target = getActionTarget(trigger.target);
+    const target = await getActionTarget(trigger.target);
     return {
       ...trigger,
       target: {

@@ -37,7 +37,7 @@ export function submitPassword(
   });
 }
 
-export function login(
+export async function login(
   { socket, io }: HandlerConnections,
   {
     username,
@@ -49,6 +49,7 @@ export function login(
 
   socket.data.username = username;
   socket.data.userId = userId;
+  const allMessages = await getters.getMessages();
 
   const isDeputyDj = getters.getDeputyDjs().includes(userId);
 
@@ -81,7 +82,7 @@ export function login(
     type: "INIT",
     data: {
       users: newUsers,
-      messages: getters.getMessages(),
+      messages: allMessages,
       meta: getters.getSettings().artwork
         ? { ...getters.getMeta(), artwork: getters.getSettings().artwork }
         : getters.getMeta(),

@@ -30,6 +30,7 @@
     "qs": "^6.11.2",
     "querystring": "^0.2.1",
     "redis": "^4.6.7",
+    "redis-om": "beta",
     "remeda": "^1.19.0",
     "socket.io": "^4.6.2",
     "socket.io-adapter": "^2.5.2",

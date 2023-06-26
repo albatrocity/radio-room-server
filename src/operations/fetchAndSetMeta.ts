@@ -6,6 +6,7 @@ import { Station } from "../types/Station";
 
 import systemMessage from "../lib/systemMessage";
 import fetchReleaseInfo from "./fetchReleaseInfo";
+import sendMessage from "../lib/sendMessage";
 
 export default async function fetchAndSetMeta(
   { io }: { io: Server },
@@ -68,8 +69,7 @@ export default async function fetchAndSetMeta(
   });
 
   if (!silent) {
-    io.emit("event", { type: "NEW_MESSAGE", data: newMessage });
-    setters.setMessages([...getters.getMessages(), newMessage]);
+    sendMessage(io, newMessage);
   }
   const newPlaylist = setters.setPlaylist([
     ...getters.getPlaylist(),

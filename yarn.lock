@@ -4448,6 +4448,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jsonpath-plus@npm:^7.2.0":
+  version: 7.2.0
+  resolution: "jsonpath-plus@npm:7.2.0"
+  checksum: 05f447339d29be861e307d6e812aec1b9b88a3ba6bba286966a4e8bed3e752bee3d715eabfc21dce968be85ccb48bf79d2c1af78da7b9b74cd1b446d4d5d02f5
+  languageName: node
+  linkType: hard
+
 "jsprim@npm:^1.2.2":
   version: 1.4.1
   resolution: "jsprim@npm:1.4.1"
@@ -4457,6 +4464,13 @@ __metadata:
     json-schema: 0.2.3
     verror: 1.10.0
   checksum: 6bcb20ec265ae18bb48e540a6da2c65f9c844f7522712d6dfcb01039527a49414816f4869000493363f1e1ea96cbad00e46188d5ecc78257a19f152467587373
+  languageName: node
+  linkType: hard
+
+"just-clone@npm:^6.1.1":
+  version: 6.2.0
+  resolution: "just-clone@npm:6.2.0"
+  checksum: 2c3353e3524aba8adae499973d9b8663eed3a647c73fd60149ac8a10031353e82ff1941820b56c96d12263424f50e564c7dd1fd330cf6de630455909810e13a6
   languageName: node
   linkType: hard
 
@@ -5481,6 +5495,7 @@ __metadata:
     qs: ^6.11.2
     querystring: ^0.2.1
     redis: ^4.6.7
+    redis-om: beta
     remeda: ^1.19.0
     socket.io: ^4.6.2
     socket.io-adapter: ^2.5.2
@@ -5537,7 +5552,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis@npm:^4.6.7":
+"redis-om@npm:beta":
+  version: 0.4.0-beta.3
+  resolution: "redis-om@npm:0.4.0-beta.3"
+  dependencies:
+    jsonpath-plus: ^7.2.0
+    just-clone: ^6.1.1
+    redis: ^4.6.4
+    ulid: ^2.3.0
+  checksum: 5ce76826278c2d5cd884531a64f93d8c66f4eaf8006981dbc5d9b017707ce018c55fc34c700d02e28c763ff86a4a4876133c8a4211a101a31563f482753a1e47
+  languageName: node
+  linkType: hard
+
+"redis@npm:^4.6.4, redis@npm:^4.6.7":
   version: 4.6.7
   resolution: "redis@npm:4.6.7"
   dependencies:
@@ -6369,6 +6396,15 @@ __metadata:
   version: 1.0.0
   resolution: "uid2@npm:1.0.0"
   checksum: 7efad0da3839ef2bebc6fae4bd29905702cd64233b3907e3300aa2d7ea1a00c1ae8c41a5e16ca34ac2db2d25c5607d5989673e1df51a2a076fefbeed51605ec3
+  languageName: node
+  linkType: hard
+
+"ulid@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "ulid@npm:2.3.0"
+  bin:
+    ulid: ./bin/cli.js
+  checksum: d6dbf253fdc189f60fe2829d934ee5447b3dab62d05449a2e0fe89670d77087dd6eba4f844a69f9ffdb01384ec6fd97bdd9be638fc67d593569a45e8969f1e69
   languageName: node
   linkType: hard
 
