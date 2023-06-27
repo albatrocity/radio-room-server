@@ -17,6 +17,7 @@ jest.mock("../redisClient", () => ({
   createClient: () => ({
     get: mockGet,
     set: mockSet,
+    disconnect: jest.fn(),
   }),
 }));
 
@@ -135,7 +136,10 @@ describe("callback", () => {
     );
     expect(mockSet).toHaveBeenCalledWith(
       "spotifyRefreshToken:1234",
-      "refresh_token"
+      "refresh_token",
+      {
+        PX: THREE_DAYS,
+      }
     );
   });
 
@@ -195,6 +199,8 @@ describe("callback", () => {
     });
 
     await callback(request, response);
-    expect(response._getRedirectUrl()).toBe("https://www.listen.show");
+    expect(response._getRedirectUrl()).toBe(
+      "https://www.listen.show?spotifyAuth=true"
+    );
   });
 });

@@ -150,11 +150,14 @@ export function disconnect({ socket, io }: HandlerConnections) {
   });
 }
 
-export async function getUserShopifyAuth({ socket, io }: HandlerConnections) {
-  console.log("getUserShopifyAuth");
+export async function getUserShopifyAuth(
+  { socket, io }: HandlerConnections,
+  { userId }: { userId?: string }
+) {
   // get user's spotify access token from redis
-  const { accessToken } = await getStoredUserSpotifyTokens(socket.data.userId);
-  console.log("accessToken", accessToken);
+  const { accessToken } = await getStoredUserSpotifyTokens(
+    userId ?? socket.data.userId
+  );
   io.to(socket.id).emit("event", {
     type: "SPOTIFY_AUTHENTICATION_STATUS",
     data: {

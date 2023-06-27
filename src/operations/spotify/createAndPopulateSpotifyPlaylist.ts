@@ -1,9 +1,10 @@
 import { SpotifyEntity } from "../../types/SpotifyEntity";
-import spotifyApi from "../../lib/spotifyApi";
+import getSpotifyApiForUser from "./getSpotifyApiForUser";
 
 async function createAndPopulateSpotifyPlaylist(
   name: string,
-  uris: SpotifyEntity["uri"][]
+  uris: SpotifyEntity["uri"][],
+  userId?: string
 ) {
   const date_time = new Date();
   const date = date_time.getDate();
@@ -11,7 +12,7 @@ async function createAndPopulateSpotifyPlaylist(
   const year = date_time.getFullYear();
 
   const description = `Group Playlist ${month}-${date}-${year}`;
-
+  const spotifyApi = await getSpotifyApiForUser(userId);
   const { body } = await spotifyApi.createPlaylist(name, {
     description: description,
     public: true,

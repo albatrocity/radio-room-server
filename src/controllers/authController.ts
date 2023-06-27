@@ -45,9 +45,9 @@ export default function authController(socket: Socket, io: Server) {
     }) => changeUsername({ socket, io }, { username, userId })
   );
 
-  socket.on("get user spotify authentication status", () =>
-    getUserShopifyAuth({ socket, io })
-  );
+  socket.on("get user spotify authentication status", ({ userId }) => {
+    getUserShopifyAuth({ socket, io }, { userId });
+  });
 
   socket.on("disconnect", () => disconnect({ socket, io }));
 }

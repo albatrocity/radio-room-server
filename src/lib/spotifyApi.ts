@@ -7,6 +7,11 @@ const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirect_uri = process.env.REDIRECT_URI;
 
+type SpotifyTokenCredentials = {
+  accessToken?: string;
+  refreshToken?: string;
+};
+
 export async function getSpotifyToken(userId: string) {
   const client = await createClient();
   try {
@@ -20,11 +25,12 @@ export async function getSpotifyToken(userId: string) {
   }
 }
 
-export function makeSpotifyApi() {
+export function makeSpotifyApi(options: SpotifyTokenCredentials = {}) {
   return new SpotifyWebApi({
     clientId: client_id,
     clientSecret: client_secret,
     redirectUri: redirect_uri,
+    ...options,
   });
 }
 

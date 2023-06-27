@@ -21,7 +21,7 @@ export default async function getStoredUserSpotifyTokens(userId: string) {
     return { accessToken, refreshToken };
   } catch (e) {
     console.error(e);
-    return { accessToken: null, refreshToken: null };
+    return { accessToken: undefined, refreshToken: undefined };
   } finally {
     client.disconnect();
   }

@@ -77,7 +77,7 @@ export async function callback(req: Request, res: Response) {
       });
 
       if (process.env.APP_URL) {
-        res.redirect(process.env.APP_URL);
+        res.redirect(`${process.env.APP_URL}?spotifyAuth=true`);
       } else {
         res.send({ access_token });
       }

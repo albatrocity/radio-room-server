@@ -6,7 +6,6 @@ import {
   getTriggerEvents,
   setReactionTriggerEvents,
   kickUser,
-  savePlaylist,
   setPassword,
   settings,
   setMessageTriggerEvents,
@@ -22,11 +21,6 @@ export default function adminController(socket: Socket, io: Server) {
     setPassword({ socket, io }, value)
   );
   socket.on("kick user", (user: User) => kickUser({ socket, io }, user));
-  socket.on(
-    "save playlist",
-    ({ name, uris }: { name: string; uris: SpotifyEntity["uri"][] }) =>
-      savePlaylist({ socket, io }, { name, uris })
-  );
   socket.on("settings", (s: Settings) => settings({ socket, io }, s));
   socket.on("clear playlist", () => clearPlaylist({ socket, io }));
   socket.on("get trigger events", () => getTriggerEvents({ socket, io }));

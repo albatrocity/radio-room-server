@@ -5,6 +5,7 @@ import {
   queueSong,
   searchSpotifyTrack,
   setDj,
+  savePlaylist,
   handleUserJoined,
 } from "../handlers/djHandlers";
 import { events } from "../lib/eventEmitter";
@@ -26,6 +27,12 @@ export default function djController(socket: Socket, io: Server) {
 
   socket.on("search spotify track", (query: { query: string; options: any }) =>
     searchSpotifyTrack({ socket, io }, query)
+  );
+
+  socket.on(
+    "save playlist",
+    ({ name, uris }: { name: string; uris: SpotifyEntity["uri"][] }) =>
+      savePlaylist({ socket, io }, { name, uris })
   );
 }
 

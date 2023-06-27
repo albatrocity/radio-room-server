@@ -1,11 +1,9 @@
 import systemMessage from "../lib/systemMessage";
-import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 import fetchAndSetMeta from "../operations/fetchAndSetMeta";
 import getStation from "../operations/getStation";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { Settings } from "../types/Settings";
-import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 import { getters, setters } from "../lib/dataStore";
@@ -88,18 +86,6 @@ export function kickUser({ io }: HandlerConnections, user: User) {
 
   if (io.sockets.sockets.get(socketId)) {
     io.sockets.sockets.get(socketId)?.disconnect();
-  }
-}
-
-export async function savePlaylist(
-  { socket }: HandlerConnections,
-  { name, uris }: { name: string; uris: SpotifyEntity["uri"][] }
-) {
-  try {
-    const data = await createAndPopulateSpotifyPlaylist(name, uris);
-    socket.emit("event", { type: "PLAYLIST_SAVED", data });
-  } catch (error) {
-    socket.emit("event", { type: "SAVE_PLAYLIST_FAILED", error });
   }
 }
 
