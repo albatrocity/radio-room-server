@@ -20,6 +20,7 @@ services:
       CLIENT_ID: "${CLIENT_ID}"
       CLIENT_SECRET: "${CLIENT_SECRET}"
       REDIRECT_URI: http://localhost:3000/callback
+      APP_URL: http://localhost:8000
   redis:
     image: redis:7.0.11-alpine
     ports:
