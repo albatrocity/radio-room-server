@@ -6,6 +6,7 @@ import {
   checkPassword,
   disconnect,
   login,
+  getUserShopifyAuth,
   submitPassword,
 } from "../handlers/authHandlers";
 
@@ -42,6 +43,10 @@ export default function authController(socket: Socket, io: Server) {
       username: User["username"];
       userId: User["userId"];
     }) => changeUsername({ socket, io }, { username, userId })
+  );
+
+  socket.on("get user spotify authentication status", () =>
+    getUserShopifyAuth({ socket, io })
   );
 
   socket.on("disconnect", () => disconnect({ socket, io }));

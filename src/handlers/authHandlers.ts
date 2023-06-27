@@ -7,6 +7,7 @@ import { getters, setters } from "../lib/dataStore";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 import { events } from "../lib/eventEmitter";
+import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpotifyTokens";
 
 export function checkPassword(
   { socket, io }: HandlerConnections,
@@ -145,6 +146,19 @@ export function disconnect({ socket, io }: HandlerConnections) {
     data: {
       user: { username: socket.data.username },
       users: newUsers,
+    },
+  });
+}
+
+export async function getUserShopifyAuth({ socket, io }: HandlerConnections) {
+  console.log("getUserShopifyAuth");
+  // get user's spotify access token from redis
+  const { accessToken } = await getStoredUserSpotifyTokens(socket.data.userId);
+  console.log("accessToken", accessToken);
+  io.to(socket.id).emit("event", {
+    type: "SPOTIFY_AUTHENTICATION_STATUS",
+    data: {
+      isAuthenticated: !!accessToken,
     },
   });
 }
