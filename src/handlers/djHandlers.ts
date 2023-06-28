@@ -209,6 +209,17 @@ export async function savePlaylist(
   }
 }
 
+export async function getSavedTracks({ socket }: HandlerConnections) {
+  const spotifyApi = await getSpotifyApiForUser(socket.data.userId);
+  try {
+    const data = await spotifyApi.getMySavedTracks();
+    socket.emit("event", { type: "SAVED_TRACKS_RESULTS", data: data.body });
+  } catch (error) {
+    console.error(error);
+    socket.emit("event", { type: "SAVED_TRACKS_RESULTS_FAILURE", error });
+  }
+}
+
 export async function handleUserJoined(
   { io }: { io: Server },
   { user }: { user: User; users: User[] }

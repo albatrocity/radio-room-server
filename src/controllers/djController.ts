@@ -7,6 +7,7 @@ import {
   setDj,
   savePlaylist,
   handleUserJoined,
+  getSavedTracks,
 } from "../handlers/djHandlers";
 import { events } from "../lib/eventEmitter";
 import { SpotifyEntity } from "../types/SpotifyEntity";
@@ -27,6 +28,11 @@ export default function djController(socket: Socket, io: Server) {
 
   socket.on("search spotify track", (query: { query: string; options: any }) =>
     searchSpotifyTrack({ socket, io }, query)
+  );
+
+  socket.on(
+    "get spotify saved tracks",
+    (query: { query: string; options: any }) => getSavedTracks({ socket, io })
   );
 
   socket.on(
