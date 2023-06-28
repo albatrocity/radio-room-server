@@ -101,7 +101,7 @@ describe("djHandlers", () => {
     test("sets deputyDjs", () => {
       setters.setUsers([{ userId: "1", username: "Homer" }]);
       const spy = jest.spyOn(setters, "setDeputyDjs");
-      djDeputizeUser({ socket, io }, "1");
+      djDeputizeUser({ io }, "1");
       expect(spy).toHaveBeenCalledWith(["1"]);
     });
 
@@ -109,20 +109,20 @@ describe("djHandlers", () => {
       setters.setUsers([{ userId: "1", username: "Homer", isDeputyDj: true }]);
       setters.setDeputyDjs(["1"]);
       const spy = jest.spyOn(setters, "setDeputyDjs");
-      djDeputizeUser({ socket, io }, "1");
+      djDeputizeUser({ io }, "1");
       expect(spy).toHaveBeenCalledWith([]);
     });
 
     test("emits NEW_MESSAGE event to user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      djDeputizeUser({ socket, io }, "1");
+      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-4567" }]);
+      djDeputizeUser({ io }, "1");
       expect(toEmit).toHaveBeenCalledWith(
         "event",
         {
           type: "NEW_MESSAGE",
           data: {
             content:
-              "You've been promoted to a deputy DJ. You add song's to the DJ's queue.",
+              "You've been promoted to a deputy DJ. You may now add songs to the DJ's queue.",
             meta: {
               status: "info",
               type: "alert",
@@ -140,17 +140,17 @@ describe("djHandlers", () => {
     });
 
     test("emits START_DEPUTY_DJ_SESSION event to user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      djDeputizeUser({ socket, io }, "1");
+      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-4567" }]);
+      djDeputizeUser({ io }, "1");
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "START_DEPUTY_DJ_SESSION",
       });
     });
 
     test("emits END_DEPUTY_DJ_SESSION event to user if ending", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
+      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-4567" }]);
       setters.setDeputyDjs(["1"]);
-      djDeputizeUser({ socket, io }, "1");
+      djDeputizeUser({ io }, "1");
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "END_DEPUTY_DJ_SESSION",
       });
@@ -159,7 +159,7 @@ describe("djHandlers", () => {
     test("emits USER_JOINED event", () => {
       setters.setUsers([{ userId: "1", username: "Homer", isDeputyDj: false }]);
       setters.setDeputyDjs([]);
-      djDeputizeUser({ socket, io }, "1");
+      djDeputizeUser({ io }, "1");
       expect(emit).toHaveBeenCalledWith("event", {
         type: "USER_JOINED",
         data: {

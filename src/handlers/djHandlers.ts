@@ -90,16 +90,19 @@ export function djDeputizeUser({ io }: { io: Server }, userId: User["userId"]) {
 
   const { user, users } = updateUserAttributes(userId, { isDeputyDj });
 
-  io.to(socketId).emit(
-    "event",
-    {
-      type: "NEW_MESSAGE",
-      data: systemMessage(message, { type: "alert", status: "info" }),
-    },
-    { status: "info" }
-  );
+  if (socketId) {
+    io.to(socketId).emit(
+      "event",
+      {
+        type: "NEW_MESSAGE",
+        data: systemMessage(message, { type: "alert", status: "info" }),
+      },
+      { status: "info" }
+    );
 
-  io.to(socketId).emit("event", { type: eventType });
+    io.to(socketId).emit("event", { type: eventType });
+  }
+
   io.emit("event", {
     type: "USER_JOINED",
     data: {
