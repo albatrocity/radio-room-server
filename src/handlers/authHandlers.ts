@@ -107,9 +107,10 @@ export function changeUsername(
   if (user) {
     const newUser: User = { ...user, username };
     const newUsers = uniqBy(
-      [...reject(users, (u) => u.userId === userId), newUser],
+      [newUser, ...reject(users, (u) => u.userId === userId)],
       (u) => u.userId
     );
+
     setters.setUsers(newUsers);
 
     const content = `${oldUsername} transformed into ${username}`;

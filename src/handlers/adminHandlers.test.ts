@@ -43,6 +43,7 @@ describe("adminHandlers", () => {
           fetchMeta: true,
           extraInfo: undefined,
           password: null,
+          deputizeOnJoin: false,
         }
       );
       expect(spy).toHaveBeenCalledWith({ artwork: "google.com" });
@@ -56,6 +57,7 @@ describe("adminHandlers", () => {
           fetchMeta: true,
           extraInfo: undefined,
           password: null,
+          deputizeOnJoin: false,
         }
       );
       expect(spy).toHaveBeenCalledWith({
@@ -63,6 +65,7 @@ describe("adminHandlers", () => {
         extraInfo: undefined,
         fetchMeta: true,
         password: null,
+        deputizeOnJoin: false,
       });
     });
   });
@@ -82,6 +85,7 @@ describe("adminHandlers", () => {
           extraInfo: undefined,
           fetchMeta: true,
           password: null,
+          deputizeOnJoin: false,
         },
       });
     });
@@ -97,17 +101,18 @@ describe("adminHandlers", () => {
 
   describe("kickUser", () => {
     it("sends kicked event to kicked user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      // const spy = jest.spyOn(setters, "setUsers");
+      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-5678" }]);
       kickUser({ socket, io }, { userId: "1", username: "Homer" });
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "KICKED",
       });
     });
     it("sends system message to kicked user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      // const spy = jest.spyOn(setters, "setUsers");
-      kickUser({ socket, io }, { userId: "1", username: "Homer" });
+      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-5678" }]);
+      kickUser(
+        { socket, io },
+        { userId: "1", username: "Homer", id: "1234-5678" }
+      );
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "NEW_MESSAGE",
         data: {
@@ -172,6 +177,7 @@ describe("adminHandlers", () => {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
         password: null,
+        deputizeOnJoin: false,
       };
       settings({ socket, io }, newSettings);
       expect(spy).toHaveBeenCalledWith(newSettings);
@@ -182,6 +188,7 @@ describe("adminHandlers", () => {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
         password: null,
+        deputizeOnJoin: false,
       };
       settings({ socket, io }, newSettings);
       expect(emit).toHaveBeenCalledWith("event", {
@@ -198,11 +205,13 @@ describe("adminHandlers", () => {
         fetchMeta: false,
         extraInfo: undefined,
         password: null,
+        deputizeOnJoin: false,
       });
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: true,
         password: null,
+        deputizeOnJoin: false,
       };
       await settings({ socket, io }, newSettings);
       expect(fetchAndSetMeta).toHaveBeenCalledWith(
@@ -284,8 +293,8 @@ describe("adminHandlers", () => {
       getTriggerEvents({ socket, io });
       expect(emit).toHaveBeenCalledWith("event", {
         data: {
-          reactions: defaultReactionTriggerEvents,
-          messages: defaultMessageTriggerEvents,
+          reactions: [],
+          messages: [],
         },
         type: "TRIGGER_EVENTS",
       });

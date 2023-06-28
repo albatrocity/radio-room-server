@@ -52,7 +52,7 @@ export function addReaction(
     [reactTo.type]: {
       ...currentReactions[reactTo.type],
       [reactTo.id]: [
-        currentReactions[reactTo.type][reactTo.id] || [],
+        ...(currentReactions[reactTo.type][reactTo.id] || []),
         { emoji: emoji.shortcodes, user: user.userId },
       ],
     },
