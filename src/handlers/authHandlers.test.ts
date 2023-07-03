@@ -1,11 +1,18 @@
 import { describe, test } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
-import { login, changeUsername, disconnect } from "./authHandlers";
+import {
+  login,
+  changeUsername,
+  disconnect,
+  getUserShopifyAuth,
+} from "./authHandlers";
 import { setters, resetDataStores } from "../lib/dataStore";
 import { defaultSettings } from "../config/defaultState";
 import sendMessage from "../lib/sendMessage";
+import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpotifyTokens";
 
 jest.mock("../lib/sendMessage");
+jest.mock("../operations/spotify/getStoredUserSpotifyTokens");
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -13,7 +20,7 @@ afterEach(() => {
 });
 
 describe("authHandlers", () => {
-  const { socket, io, broadcastEmit, emit } = makeSocket();
+  const { socket, io, broadcastEmit, emit, toEmit } = makeSocket();
 
   describe("login", () => {
     test("broadcasts USER JOINED event", async () => {
@@ -178,7 +185,6 @@ describe("authHandlers", () => {
       ]);
       socket.data.userId = "1";
       socket.data.username = "Homer";
-      const spy = jest.spyOn(setters, "setUsers");
 
       disconnect({ socket, io });
 
@@ -203,6 +209,57 @@ describe("authHandlers", () => {
       disconnect({ socket, io });
 
       expect(spy).toHaveBeenCalledWith(defaultSettings);
+    });
+  });
+
+  describe("getUserShopifyAuth", () => {
+    it("looks up shopify tokens for socket user", async () => {
+      socket.data.userId = "1";
+      socket.data.username = "Homer";
+      (getStoredUserSpotifyTokens as jest.Mock).mockResolvedValueOnce({
+        accessToken: "1234",
+        refreshToken: "5678",
+      });
+
+      await getUserShopifyAuth({ socket, io }, { userId: "1" });
+
+      expect(getStoredUserSpotifyTokens).toHaveBeenCalledWith("1");
+    });
+
+    it("emits event with user shopify auth", async () => {
+      socket.data.userId = "1";
+      socket.data.username = "Homer";
+      (getStoredUserSpotifyTokens as jest.Mock).mockResolvedValueOnce({
+        accessToken: "1234",
+        refreshToken: "5678",
+      });
+
+      await getUserShopifyAuth({ socket, io }, { userId: "1" });
+
+      expect(toEmit).toHaveBeenCalledWith("event", {
+        data: {
+          isAuthenticated: true,
+        },
+        type: "SPOTIFY_AUTHENTICATION_STATUS",
+      });
+    });
+
+    it("sends false if no tokens found", async () => {
+      socket.data.userId = "1";
+      socket.data.username = "Homer";
+      (getStoredUserSpotifyTokens as jest.Mock).mockResolvedValueOnce({
+        accessToken: null,
+        refreshToken: null,
+      });
+
+      await getUserShopifyAuth({ socket, io }, { userId: "1" });
+
+      expect(toEmit).toHaveBeenCalledWith("event", {
+        data: {
+          isAuthenticated: false,
+        },
+        type: "SPOTIFY_AUTHENTICATION_STATUS",
+      });
     });
   });
 });

@@ -7,6 +7,8 @@ import { getters, setters } from "../lib/dataStore";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 import { events } from "../lib/eventEmitter";
+import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpotifyTokens";
+import removeStoredUserSpotifyTokens from "../operations/spotify/removeStoredUserSpotifyTokens";
 
 export function checkPassword(
   { socket, io }: HandlerConnections,
@@ -146,6 +148,38 @@ export function disconnect({ socket, io }: HandlerConnections) {
     data: {
       user: { username: socket.data.username },
       users: newUsers,
+    },
+  });
+}
+
+export async function getUserShopifyAuth(
+  { socket, io }: HandlerConnections,
+  { userId }: { userId?: string }
+) {
+  // get user's spotify access token from redis
+  const { accessToken } = await getStoredUserSpotifyTokens(
+    userId ?? socket.data.userId
+  );
+  io.to(socket.id).emit("event", {
+    type: "SPOTIFY_AUTHENTICATION_STATUS",
+    data: {
+      isAuthenticated: !!accessToken,
+    },
+  });
+}
+
+export async function logoutSpotifyAuth(
+  { socket, io }: HandlerConnections,
+  { userId }: { userId?: string } = {}
+) {
+  // removes user's spotify access token from redis
+  const { error } = await removeStoredUserSpotifyTokens(
+    userId ?? socket.data.userId
+  );
+  io.to(socket.id).emit("event", {
+    type: "SPOTIFY_AUTHENTICATION_STATUS",
+    data: {
+      isAuthenticated: error ? true : false,
     },
   });
 }

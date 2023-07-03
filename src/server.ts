@@ -4,13 +4,13 @@ import cors from "cors";
 import express from "express";
 import { Server } from "socket.io";
 
+import { FORTY_FIVE_MINS } from "./lib/constants";
 import { pubClient, subClient } from "./lib/redisClients";
 import { events } from "./lib/eventEmitter";
 import { getters, setters } from "./lib/dataStore";
 import fetchAndSetMeta from "./operations/fetchAndSetMeta";
 import getStation from "./operations/getStation";
-import refreshSpotifyToken from "./operations/spotify/refreshSpotifyToken";
-import { callback, login } from "./spotify";
+import { callback, login } from "./controllers/spotifyAuthController";
 
 import activityController, {
   lifecycleEvents as activityEvents,
@@ -22,8 +22,7 @@ import djController, {
 } from "./controllers/djController";
 
 import messageController from "./controllers/messageController";
-
-const fortyFiveMins = 2700000;
+import refreshAllSpotifyTokens from "./operations/spotify/refreshAllSpotifyTokens";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -104,8 +103,10 @@ async function pollStationInfo() {
     setters.setSettings({ ...getters.getSettings(), artwork: undefined });
     offline = false;
     try {
-      await refreshSpotifyToken();
-      oAuthInterval = setInterval(refreshSpotifyToken, fortyFiveMins);
+      await refreshAllSpotifyTokens();
+      oAuthInterval = setInterval(() => {
+        refreshAllSpotifyTokens();
+      }, FORTY_FIVE_MINS);
     } catch (e) {
       console.log(e);
     } finally {
