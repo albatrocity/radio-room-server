@@ -1,7 +1,7 @@
 import { createClient } from "../redisClient";
 import SpotifyWebApi from "spotify-web-api-node";
 
-const SPOTIFY_ACCESS_TOKEN = "spotifyAccessToken";
+import { SPOTIFY_ACCESS_TOKEN } from "../lib/constants";
 
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;

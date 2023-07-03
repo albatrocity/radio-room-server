@@ -3,5 +3,6 @@ export interface Settings {
   extraInfo: string | undefined;
   password: string | null;
   deputizeOnJoin: boolean;
+  enableSpotifyLogin: boolean;
   artwork?: string;
 }

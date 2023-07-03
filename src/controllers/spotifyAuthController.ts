@@ -12,14 +12,20 @@ const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 const stateKey = "spotify_auth_state";
 const userIdKey = "spotify_auth_user_id";
 
+function getUserIdParam(query: Request["query"]) {
+  if (Array.isArray(query.userId)) {
+    return query.userId[0];
+  }
+  if (Array.isArray(query.userId)) {
+    return query.userId[0];
+  }
+  return query.userId;
+}
+
 export async function login(req: Request, res: Response) {
   const state = generateRandomString(16);
   // get userId from query params
-  const userId = Array.isArray(req.query.userId)
-    ? req.query.userId[0]
-    : Array.isArray(req.query.userId)
-    ? req.query.userId[0]
-    : req.query.userId;
+  const userId = getUserIdParam(req.query);
 
   res.cookie(stateKey, state);
   if (userId) {
@@ -27,7 +33,8 @@ export async function login(req: Request, res: Response) {
   }
 
   const adminUserId = await getAdminUserId();
-  const isAdmin = !userId || adminUserId === userId;
+  const isApp = userId === "app";
+  const isAdmin = !userId || isApp || adminUserId === userId;
 
   const scope = isAdmin
     ? "user-read-private user-read-email playlist-read-collaborative playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-modify"
@@ -77,7 +84,9 @@ export async function callback(req: Request, res: Response) {
       });
 
       if (process.env.APP_URL) {
-        res.redirect(`${process.env.APP_URL}?spotifyAuth=true`);
+        res.redirect(
+          `${process.env.APP_URL}?toast=Spotify%20authentication%20successful`
+        );
       } else {
         res.send({ access_token });
       }

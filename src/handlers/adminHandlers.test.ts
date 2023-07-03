@@ -4,20 +4,14 @@ import {
   getSettings,
   setPassword,
   kickUser,
-  savePlaylist,
   settings,
   clearPlaylist,
   getTriggerEvents,
 } from "./adminHandlers";
 
 import { getters, setters, resetDataStores } from "../lib/dataStore";
-import {
-  defaultReactionTriggerEvents,
-  defaultMessageTriggerEvents,
-} from "../config/defaultTriggerActions";
 import fetchAndSetMeta from "../operations/fetchAndSetMeta";
 import getStation from "../operations/getStation";
-import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi");
@@ -44,6 +38,7 @@ describe("adminHandlers", () => {
           extraInfo: undefined,
           password: null,
           deputizeOnJoin: false,
+          enableSpotifyLogin: false,
         }
       );
       expect(spy).toHaveBeenCalledWith({ artwork: "google.com" });
@@ -58,6 +53,7 @@ describe("adminHandlers", () => {
           extraInfo: undefined,
           password: null,
           deputizeOnJoin: false,
+          enableSpotifyLogin: false,
         }
       );
       expect(spy).toHaveBeenCalledWith({
@@ -66,6 +62,7 @@ describe("adminHandlers", () => {
         fetchMeta: true,
         password: null,
         deputizeOnJoin: false,
+        enableSpotifyLogin: false,
       });
     });
   });
@@ -86,6 +83,7 @@ describe("adminHandlers", () => {
           fetchMeta: true,
           password: null,
           deputizeOnJoin: false,
+          enableSpotifyLogin: false,
         },
       });
     });
@@ -125,51 +123,6 @@ describe("adminHandlers", () => {
     });
   });
 
-  describe("savePlaylist", () => {
-    it("calls createAndPopulateSpotifyPlaylist", async () => {
-      await savePlaylist(
-        { socket, io },
-        { name: "Hot Jams", uris: ["track1", "track2", "track3"] }
-      );
-      expect(createAndPopulateSpotifyPlaylist).toHaveBeenCalledWith(
-        "Hot Jams",
-        ["track1", "track2", "track3"]
-      );
-    });
-
-    it("emits PLAYLIST_SAVED event on success", async () => {
-      (createAndPopulateSpotifyPlaylist as jest.Mock).mockResolvedValueOnce({
-        info: "Stuff from Spotify",
-      });
-      await savePlaylist(
-        { socket, io },
-        { name: "Hot Jams", uris: ["track1", "track2", "track3"] }
-      );
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "PLAYLIST_SAVED",
-        data: {
-          info: "Stuff from Spotify",
-        },
-      });
-    });
-
-    it("emits SAVE_PLAYLIST_FAILED event on error", async () => {
-      (createAndPopulateSpotifyPlaylist as jest.Mock).mockRejectedValueOnce({
-        error: "Boo",
-      });
-      await savePlaylist(
-        { socket, io },
-        { name: "Hot Jams", uris: ["track1", "track2", "track3"] }
-      );
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "SAVE_PLAYLIST_FAILED",
-        error: {
-          error: "Boo",
-        },
-      });
-    });
-  });
-
   describe("settings", () => {
     it("sets settings", async () => {
       const spy = jest.spyOn(setters, "setSettings");
@@ -178,6 +131,7 @@ describe("adminHandlers", () => {
         fetchMeta: false,
         password: null,
         deputizeOnJoin: false,
+        enableSpotifyLogin: false,
       };
       settings({ socket, io }, newSettings);
       expect(spy).toHaveBeenCalledWith(newSettings);
@@ -189,6 +143,7 @@ describe("adminHandlers", () => {
         fetchMeta: false,
         password: null,
         deputizeOnJoin: false,
+        enableSpotifyLogin: false,
       };
       settings({ socket, io }, newSettings);
       expect(emit).toHaveBeenCalledWith("event", {
@@ -206,12 +161,14 @@ describe("adminHandlers", () => {
         extraInfo: undefined,
         password: null,
         deputizeOnJoin: false,
+        enableSpotifyLogin: false,
       });
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: true,
         password: null,
         deputizeOnJoin: false,
+        enableSpotifyLogin: false,
       };
       await settings({ socket, io }, newSettings);
       expect(fetchAndSetMeta).toHaveBeenCalledWith(

@@ -200,7 +200,7 @@ describe("callback", () => {
 
     await callback(request, response);
     expect(response._getRedirectUrl()).toBe(
-      "https://www.listen.show?spotifyAuth=true"
+      "https://www.listen.show?toast=Spotify%20authentication%20successful"
     );
   });
 });

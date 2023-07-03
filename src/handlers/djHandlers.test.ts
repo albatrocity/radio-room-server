@@ -5,11 +5,13 @@ import {
   djDeputizeUser,
   queueSong,
   searchSpotifyTrack,
+  savePlaylist,
 } from "./djHandlers";
 import { setters, resetDataStores } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
 import spotifyApi from "../lib/spotifyApi";
 import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
+import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi", () => ({
@@ -25,6 +27,7 @@ jest.mock("../lib/spotifyApi", () => ({
 }));
 jest.mock("../operations/spotify/refreshSpotifyToken");
 jest.mock("../operations/spotify/syncQueue");
+jest.mock("../operations/spotify/createAndPopulateSpotifyPlaylist");
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -360,6 +363,52 @@ describe("djHandlers", () => {
         { query: "cottoneye joe", options: {} }
       );
       expect(refreshSpotifyToken).toHaveBeenCalled();
+    });
+  });
+
+  describe("savePlaylist", () => {
+    it("calls createAndPopulateSpotifyPlaylist", async () => {
+      await savePlaylist(
+        { socket, io },
+        { name: "Hot Jams", uris: ["track1", "track2", "track3"] }
+      );
+      expect(createAndPopulateSpotifyPlaylist).toHaveBeenCalledWith(
+        "Hot Jams",
+        ["track1", "track2", "track3"],
+        "1"
+      );
+    });
+
+    it("emits PLAYLIST_SAVED event on success", async () => {
+      (createAndPopulateSpotifyPlaylist as jest.Mock).mockResolvedValueOnce({
+        info: "Stuff from Spotify",
+      });
+      await savePlaylist(
+        { socket, io },
+        { name: "Hot Jams", uris: ["track1", "track2", "track3"] }
+      );
+      expect(emit).toHaveBeenCalledWith("event", {
+        type: "PLAYLIST_SAVED",
+        data: {
+          info: "Stuff from Spotify",
+        },
+      });
+    });
+
+    it("emits SAVE_PLAYLIST_FAILED event on error", async () => {
+      (createAndPopulateSpotifyPlaylist as jest.Mock).mockRejectedValueOnce({
+        error: "Boo",
+      });
+      await savePlaylist(
+        { socket, io },
+        { name: "Hot Jams", uris: ["track1", "track2", "track3"] }
+      );
+      expect(emit).toHaveBeenCalledWith("event", {
+        type: "SAVE_PLAYLIST_FAILED",
+        error: {
+          error: "Boo",
+        },
+      });
     });
   });
 });

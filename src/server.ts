@@ -10,7 +10,6 @@ import { events } from "./lib/eventEmitter";
 import { getters, setters } from "./lib/dataStore";
 import fetchAndSetMeta from "./operations/fetchAndSetMeta";
 import getStation from "./operations/getStation";
-import refreshSpotifyToken from "./operations/spotify/refreshSpotifyToken";
 import { callback, login } from "./controllers/spotifyAuthController";
 
 import activityController, {
@@ -105,7 +104,9 @@ async function pollStationInfo() {
     offline = false;
     try {
       await refreshAllSpotifyTokens();
-      oAuthInterval = setInterval(refreshAllSpotifyTokens, FORTY_FIVE_MINS);
+      oAuthInterval = setInterval(() => {
+        refreshAllSpotifyTokens();
+      }, FORTY_FIVE_MINS);
     } catch (e) {
       console.log(e);
     } finally {

@@ -12,7 +12,6 @@ import {
 } from "../handlers/adminHandlers";
 
 import { Settings } from "../types/Settings";
-import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 export default function adminController(socket: Socket, io: Server) {

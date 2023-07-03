@@ -22,7 +22,10 @@ async function refreshSpotifyToken(userId: string = "app") {
       const data = await spotifyApi.refreshAccessToken();
       spotifyApi.setAccessToken(data.body["access_token"]);
 
-      await redisClient.set(SPOTIFY_ACCESS_TOKEN, data.body["access_token"]);
+      await redisClient.set(
+        `${SPOTIFY_ACCESS_TOKEN}:${userId}`,
+        data.body["access_token"]
+      );
       return data.body["access_token"];
     }
   } catch (e) {

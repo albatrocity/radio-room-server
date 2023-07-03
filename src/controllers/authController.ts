@@ -8,6 +8,7 @@ import {
   login,
   getUserShopifyAuth,
   submitPassword,
+  logoutSpotifyAuth,
 } from "../handlers/authHandlers";
 
 export default function authController(socket: Socket, io: Server) {
@@ -47,6 +48,10 @@ export default function authController(socket: Socket, io: Server) {
 
   socket.on("get user spotify authentication status", ({ userId }) => {
     getUserShopifyAuth({ socket, io }, { userId });
+  });
+  socket.on("logout spotify", (args: { userId?: string } = {}) => {
+    const options = args ? { userId: args.userId } : { userId: "app" };
+    logoutSpotifyAuth({ socket, io }, options);
   });
 
   socket.on("disconnect", () => disconnect({ socket, io }));

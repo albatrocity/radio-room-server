@@ -185,7 +185,6 @@ describe("authHandlers", () => {
       ]);
       socket.data.userId = "1";
       socket.data.username = "Homer";
-      const spy = jest.spyOn(setters, "setUsers");
 
       disconnect({ socket, io });
 
@@ -222,7 +221,7 @@ describe("authHandlers", () => {
         refreshToken: "5678",
       });
 
-      await getUserShopifyAuth({ socket, io });
+      await getUserShopifyAuth({ socket, io }, { userId: "1" });
 
       expect(getStoredUserSpotifyTokens).toHaveBeenCalledWith("1");
     });
@@ -235,7 +234,7 @@ describe("authHandlers", () => {
         refreshToken: "5678",
       });
 
-      await getUserShopifyAuth({ socket, io });
+      await getUserShopifyAuth({ socket, io }, { userId: "1" });
 
       expect(toEmit).toHaveBeenCalledWith("event", {
         data: {
@@ -253,7 +252,7 @@ describe("authHandlers", () => {
         refreshToken: null,
       });
 
-      await getUserShopifyAuth({ socket, io });
+      await getUserShopifyAuth({ socket, io }, { userId: "1" });
 
       expect(toEmit).toHaveBeenCalledWith("event", {
         data: {
