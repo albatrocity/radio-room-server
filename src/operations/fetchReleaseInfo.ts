@@ -19,6 +19,7 @@ const fetchReleaseInfo = async (query: string) => {
           artworkImages: release?.images,
           url: track?.external_urls?.spotify,
           uri: track?.uri,
+          id: track?.id,
         }
       : null;
   } catch (e) {
