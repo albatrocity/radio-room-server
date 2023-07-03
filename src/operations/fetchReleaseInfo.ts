@@ -1,7 +1,11 @@
-import spotifyApi from "../lib/spotifyApi";
+import getSpotifyApiForUser from "../operations/spotify/getSpotifyApiForUser";
 
 const fetchReleaseInfo = async (query: string) => {
   try {
+    const spotifyApi = await getSpotifyApiForUser("app");
+    if (!spotifyApi.getAccessToken()) {
+      return {};
+    }
     const data = await spotifyApi.searchTracks(query);
 
     const track = data.body?.tracks?.items[0];

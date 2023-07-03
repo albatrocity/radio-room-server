@@ -1,10 +1,8 @@
-import { getters } from "../../lib/dataStore";
 import refreshSpotifyToken from "./refreshSpotifyToken";
 
 export default async function refreshAllSpotifyTokens() {
   console.log("refreshAllSpotifyTokens");
-  const users = await getters.getUsers();
-  const updates = [...users, { userId: "app" }].map(async (user) => {
+  const updates = [{ userId: "app" }].map(async (user) => {
     await refreshSpotifyToken(user.userId);
   });
   try {
