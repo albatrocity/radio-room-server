@@ -26,12 +26,14 @@ export default function authController(socket: Socket, io: Server) {
       username,
       userId,
       password,
+      roomId,
     }: {
       username: User["username"];
       userId: User["userId"];
       password?: string;
+      roomId: string;
     }) => {
-      login({ socket, io }, { username, userId, password });
+      login({ socket, io }, { username, userId, password, roomId });
     }
   );
 

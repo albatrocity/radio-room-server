@@ -9,13 +9,14 @@ import { User } from "../types/User";
 import { events } from "../lib/eventEmitter";
 import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpotifyTokens";
 import removeStoredUserSpotifyTokens from "../operations/spotify/removeStoredUserSpotifyTokens";
+import getRoomPath from "../lib/getRoomPath";
 
 export function checkPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
   const settings = getters.getSettings();
-  socket.emit("event", {
+  socket.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SET_PASSWORD_REQUIREMENT",
     data: {
       passwordRequired: !isNil(settings.password),
@@ -31,7 +32,7 @@ export function submitPassword(
   submittedPassword: string
 ) {
   const settings = getters.getSettings();
-  socket.emit("event", {
+  socket.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SET_PASSWORD_ACCEPTED",
     data: {
       passwordAccepted: settings.password === submittedPassword,
@@ -45,12 +46,22 @@ export function login(
     username,
     userId,
     password,
-  }: { username: User["username"]; userId: User["userId"]; password?: string }
+    roomId,
+  }: {
+    username: User["username"];
+    userId: User["userId"];
+    password?: string;
+    roomId?: string;
+  }
 ) {
   const users = getters.getUsers();
+  console.log(`joining ${getRoomPath(roomId)}`);
+  socket.join(getRoomPath(roomId));
+  console.log("ROOM ID", roomId);
 
   socket.data.username = username;
   socket.data.userId = userId;
+  socket.data.roomId = roomId;
 
   const isDeputyDj = getters.getDeputyDjs().includes(userId);
 
@@ -66,7 +77,7 @@ export function login(
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
   setters.setUsers(newUsers);
 
-  socket.broadcast.emit("event", {
+  socket.broadcast.to(getRoomPath(roomId)).emit("event", {
     type: "USER_JOINED",
     data: {
       user: newUser,
@@ -120,14 +131,14 @@ export function changeUsername(
       oldUsername,
       userId,
     });
-    io.emit("event", {
+    io.to(getRoomPath(socket.data.roomId)).emit("event", {
       type: "USER_JOINED",
       data: {
         user: newUser,
         users: newUsers,
       },
     });
-    sendMessage(io, newMessage);
+    sendMessage(io, newMessage, socket.data.roomId);
   }
 }
 
@@ -137,13 +148,16 @@ export function disconnect({ socket, io }: HandlerConnections) {
   if (user && user.isDj) {
     const newSettings = { ...getters.getDefaultSettings() };
     setters.setSettings(newSettings);
-    io.emit("event", { type: "SETTINGS", data: newSettings });
+    io.to(getRoomPath(socket.data.roomId)).emit("event", {
+      type: "SETTINGS",
+      data: newSettings,
+    });
   }
 
   const newUsers = reject(users, (u) => u.userId === socket.data.userId);
   setters.setUsers(newUsers);
 
-  socket.broadcast.emit("event", {
+  socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_LEFT",
     data: {
       user: { username: socket.data.username },

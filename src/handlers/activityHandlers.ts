@@ -12,12 +12,13 @@ import { ReactionSubject } from "../types/ReactionSubject";
 import { User } from "../types/User";
 import { ReactionPayload } from "../types/Reaction";
 import { Emoji } from "../types/Emoji";
+import getRoomPath from "../lib/getRoomPath";
 
 export function startListening({ socket, io }: HandlerConnections) {
   const { user, users } = updateUserAttributes(socket.data.userId, {
     status: "listening",
   });
-  io.emit("event", {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_JOINED",
     data: {
       user,
@@ -30,7 +31,7 @@ export function stopListening({ socket, io }: HandlerConnections) {
   const { user, users } = updateUserAttributes(socket.data.userId, {
     status: "participating",
   });
-  io.emit("event", {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_JOINED",
     data: {
       user,
@@ -40,7 +41,7 @@ export function stopListening({ socket, io }: HandlerConnections) {
 }
 
 export function addReaction(
-  { io }: HandlerConnections,
+  { io, socket }: HandlerConnections,
   { emoji, reactTo, user }: ReactionPayload
 ) {
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
@@ -58,7 +59,10 @@ export function addReaction(
     },
   };
   const reactions = setters.setReactions(newReactions);
-  io.emit("event", { type: "REACTIONS", data: { reactions } });
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "REACTIONS",
+    data: { reactions },
+  });
   processTriggerAction<ReactionPayload>(
     {
       type: "reaction",
@@ -69,7 +73,7 @@ export function addReaction(
 }
 
 export function removeReaction(
-  { io }: HandlerConnections,
+  { io, socket }: HandlerConnections,
   {
     emoji,
     reactTo,
@@ -96,7 +100,10 @@ export function removeReaction(
     },
   };
   const reactions = setters.setReactions(newReactions);
-  io.emit("event", { type: "REACTIONS", data: { reactions } });
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "REACTIONS",
+    data: { reactions },
+  });
   processTriggerAction<ReactionPayload>(
     {
       type: "reaction",
@@ -106,20 +113,16 @@ export function removeReaction(
   );
 }
 
-export function handlePlaybackPaused({ io }: { io: HandlerConnections["io"] }) {
+export function handlePlaybackPaused({ io, socket }: HandlerConnections) {
   const newMessage = systemMessage("Server playback has been paused", {
     type: "alert",
   });
-  sendMessage(io, newMessage);
+  sendMessage(io, newMessage, socket.data.roomId);
 }
 
-export function handlePlaybackResumed({
-  io,
-}: {
-  io: HandlerConnections["io"];
-}) {
+export function handlePlaybackResumed({ io, socket }: HandlerConnections) {
   const newMessage = systemMessage("Server playback has been resumed", {
     type: "alert",
   });
-  sendMessage(io, newMessage);
+  sendMessage(io, newMessage, socket.data.roomId);
 }

@@ -10,24 +10,28 @@ import { getters, setters } from "../lib/dataStore";
 import { TriggerEvent } from "../types/Triggers";
 import { Reaction } from "../types/Reaction";
 import { ChatMessage } from "../types/ChatMessage";
+import getRoomPath from "../lib/getRoomPath";
 
 const streamURL = process.env.SERVER_URL;
 
-function setArtwork({ io }: HandlerConnections, url?: string) {
+function setArtwork({ io, socket }: HandlerConnections, url?: string) {
   const newMeta = { ...getters.getMeta(), artwork: url };
   const meta = setters.setMeta(newMeta);
-  io.emit("event", { type: "META", data: { meta } });
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "META",
+    data: { meta },
+  });
 }
 
-export function getSettings({ io }: HandlerConnections) {
-  io.emit("event", {
+export function getSettings({ io, socket }: HandlerConnections) {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SETTINGS",
     data: getters.getSettings(),
   });
 }
 
-export function getTriggerEvents({ io }: HandlerConnections) {
-  io.emit("event", {
+export function getTriggerEvents({ io, socket }: HandlerConnections) {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TRIGGER_EVENTS",
     data: {
       reactions: getters.getReactionTriggerEvents(),
@@ -37,11 +41,11 @@ export function getTriggerEvents({ io }: HandlerConnections) {
 }
 
 export function setReactionTriggerEvents(
-  { io }: HandlerConnections,
+  { io, socket }: HandlerConnections,
   data: TriggerEvent<Reaction>[]
 ) {
   setters.setReactionTriggerEvents(data || []);
-  io.emit("event", {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TRIGGER_EVENTS",
     data: {
       reactions: getters.getReactionTriggerEvents(),
@@ -51,11 +55,11 @@ export function setReactionTriggerEvents(
 }
 
 export function setMessageTriggerEvents(
-  { io }: HandlerConnections,
+  { io, socket }: HandlerConnections,
   data: TriggerEvent<ChatMessage>[]
 ) {
   setters.setMessageTriggerEvents(data || []);
-  io.emit("event", {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TRIGGER_EVENTS",
     data: {
       reactions: getters.getReactionTriggerEvents(),
@@ -101,7 +105,10 @@ export async function settings(
     ...values,
   };
   setters.setSettings(newSettings);
-  io.emit("event", { type: "SETTINGS", data: newSettings });
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "SETTINGS",
+    data: newSettings,
+  });
 
   if (prevSettings.extraInfo !== values.extraInfo) {
     setters.setSettings(newSettings);
@@ -126,5 +133,8 @@ export function clearPlaylist({ socket, io }: HandlerConnections) {
   setters.setTriggerEventHistory(
     getters.getTriggerEventHistory().filter((x) => x.target?.type !== "track")
   );
-  io.emit("event", { type: "PLAYLIST", data: [] });
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "PLAYLIST",
+    data: [],
+  });
 }

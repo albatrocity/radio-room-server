@@ -15,6 +15,7 @@ import { User } from "../types/User";
 import { Server } from "socket.io";
 import getSpotifyApiForUser from "../operations/spotify/getSpotifyApiForUser";
 import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
+import getRoomPath from "../lib/getRoomPath";
 
 export function setDj(
   { io, socket }: HandlerConnections,
@@ -43,8 +44,8 @@ export function setDj(
     const newMessage = systemMessage(content, {
       userId,
     });
-    sendMessage(io, newMessage);
-    io.emit("event", {
+    sendMessage(io, newMessage, socket.data.roomId);
+    io.to(getRoomPath(socket.data.roomId)).emit("event", {
       type: "USER_JOINED",
       data: {
         user: newUser,
@@ -61,8 +62,8 @@ export function setDj(
     const newMessage = systemMessage(content, {
       userId,
     });
-    sendMessage(io, newMessage);
-    io.emit("event", {
+    sendMessage(io, newMessage, socket.data.roomId);
+    io.to(getRoomPath(socket.data.roomId)).emit("event", {
       type: "USER_JOINED",
       data: {
         users: newUsers,
@@ -71,7 +72,10 @@ export function setDj(
   }
 }
 
-export function djDeputizeUser({ io }: { io: Server }, userId: User["userId"]) {
+export function djDeputizeUser(
+  { io, socket }: HandlerConnections,
+  userId: User["userId"]
+) {
   const deputyDjs = getters.getDeputyDjs();
   const socketId = getters.getUsers().find((u) => u.userId === userId)?.id;
   var eventType, message, isDeputyDj;
@@ -103,7 +107,7 @@ export function djDeputizeUser({ io }: { io: Server }, userId: User["userId"]) {
     io.to(socketId).emit("event", { type: eventType });
   }
 
-  io.emit("event", {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_JOINED",
     data: {
       user,
@@ -153,7 +157,7 @@ export async function queueSong(
         currentUser ? currentUser.username : "Someone"
       } added a song to the queue`
     );
-    sendMessage(io, queueMessage);
+    sendMessage(io, queueMessage, socket.data.roomId);
   } catch (e) {
     socket.emit("event", {
       type: "SONG_QUEUE_FAILURE",
@@ -221,7 +225,7 @@ export async function getSavedTracks({ socket }: HandlerConnections) {
 }
 
 export async function handleUserJoined(
-  { io }: { io: Server },
+  { io, socket }: HandlerConnections,
   { user }: { user: User; users: User[] }
 ) {
   const deputyDjs = getters.getDeputyDjs();
@@ -229,6 +233,6 @@ export async function handleUserJoined(
     getters.getSettings().deputizeOnJoin &&
     !deputyDjs.includes(user.userId)
   ) {
-    djDeputizeUser({ io }, user.userId);
+    djDeputizeUser({ io, socket }, user.userId);
   }
 }

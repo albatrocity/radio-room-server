@@ -19,7 +19,7 @@ export default function djController(socket: Socket, io: Server) {
   );
 
   socket.on("dj deputize user", (userId: User["userId"]) =>
-    djDeputizeUser({ io }, userId)
+    djDeputizeUser({ socket, io }, userId)
   );
 
   socket.on("queue song", (uri: SpotifyEntity["uri"]) =>

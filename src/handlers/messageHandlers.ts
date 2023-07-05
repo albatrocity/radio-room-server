@@ -7,6 +7,7 @@ import { processTriggerAction } from "../operations/processTriggerAction";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 import { ChatMessage } from "../types/ChatMessage";
+import getRoomPath from "../lib/getRoomPath";
 
 export function newMessage(
   { socket, io }: HandlerConnections,
@@ -30,8 +31,11 @@ export function newMessage(
     uniq(reject(typing, (u) => u.userId === socket.data.userId))
   );
   setters.setTyping(newTyping);
-  io.emit("event", { type: "TYPING", data: { typing: newTyping } });
-  sendMessage(io, payload);
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "TYPING",
+    data: { typing: newTyping },
+  });
+  sendMessage(io, payload, socket.data.roomId);
   processTriggerAction<ChatMessage>(
     {
       type: "message",
@@ -46,10 +50,14 @@ export function clearMessages({ socket, io }: HandlerConnections) {
   setters.setTriggerEventHistory(
     getters.getTriggerEventHistory().filter((x) => x.target?.type !== "message")
   );
-  io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "SET_MESSAGES",
+    data: { messages: [] },
+  });
 }
 
 export function startTyping({ socket, io }: HandlerConnections) {
+  console.log("start ryping", socket.data.roomId);
   const newTyping = compact(
     uniq([
       ...getters.getTyping(),
@@ -57,7 +65,7 @@ export function startTyping({ socket, io }: HandlerConnections) {
     ])
   );
   setters.setTyping(newTyping);
-  socket.broadcast.emit("event", {
+  socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
     data: { typing: newTyping },
   });
@@ -70,7 +78,7 @@ export function stopTyping({ socket, io }: HandlerConnections) {
     )
   );
   setters.setTyping(newTyping);
-  socket.broadcast.emit("event", {
+  socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
     data: { typing: newTyping },
   });
