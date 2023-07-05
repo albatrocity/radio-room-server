@@ -2,7 +2,7 @@ import { reject, map, uniqBy } from "remeda";
 
 import { getters, setters } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
-import spotifyApi from "../lib/spotifyApi";
+import globalSpotifyApi from "../lib/spotifyApi";
 import systemMessage from "../lib/systemMessage";
 import updateUserAttributes from "../lib/updateUserAttributes";
 import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
@@ -13,6 +13,8 @@ import { SearchOptions } from "../types/SpotifyApi";
 import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 import { Server } from "socket.io";
+import getSpotifyApiForUser from "../operations/spotify/getSpotifyApiForUser";
+import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 
 export function setDj(
   { io, socket }: HandlerConnections,
@@ -136,7 +138,7 @@ export async function queueSong(
       });
       return;
     }
-    const data = await spotifyApi.addToQueue(uri);
+    const data = await globalSpotifyApi.addToQueue(uri);
 
     setters.setQueue([
       ...getters.getQueue(),
@@ -164,9 +166,11 @@ export async function queueSong(
 }
 
 export async function searchSpotifyTrack(
-  { socket, io }: HandlerConnections,
+  { socket }: HandlerConnections,
   { query, options }: { query: string; options: SearchOptions }
 ) {
+  const spotifyApi = await getSpotifyApiForUser(socket.data.userId);
+
   try {
     const data = await spotifyApi.searchTracks(query, options);
     socket.emit("event", {
@@ -174,7 +178,7 @@ export async function searchSpotifyTrack(
       data: data.body.tracks,
     });
   } catch (e) {
-    const token = await refreshSpotifyToken();
+    const token = await refreshSpotifyToken(socket.data.userId);
     if (token) {
       spotifyApi.setAccessToken(token);
     }
@@ -186,6 +190,33 @@ export async function searchSpotifyTrack(
         error: e,
       },
     });
+  }
+}
+
+export async function savePlaylist(
+  { socket }: HandlerConnections,
+  { name, uris }: { name: string; uris: SpotifyEntity["uri"][] }
+) {
+  try {
+    const data = await createAndPopulateSpotifyPlaylist(
+      name,
+      uris,
+      socket.data.userId
+    );
+    socket.emit("event", { type: "PLAYLIST_SAVED", data });
+  } catch (error) {
+    socket.emit("event", { type: "SAVE_PLAYLIST_FAILED", error });
+  }
+}
+
+export async function getSavedTracks({ socket }: HandlerConnections) {
+  const spotifyApi = await getSpotifyApiForUser(socket.data.userId);
+  try {
+    const data = await spotifyApi.getMySavedTracks();
+    socket.emit("event", { type: "SAVED_TRACKS_RESULTS", data: data.body });
+  } catch (error) {
+    console.error(error);
+    socket.emit("event", { type: "SAVED_TRACKS_RESULTS_FAILURE", error });
   }
 }
 

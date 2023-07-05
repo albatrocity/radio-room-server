@@ -6,6 +6,7 @@ export const defaultSettings: Settings = {
   extraInfo: undefined,
   password: null,
   deputizeOnJoin: false,
+  enableSpotifyLogin: false,
 };
 
 const initialState: DataStores = {
