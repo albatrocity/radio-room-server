@@ -11,6 +11,7 @@ import { getters, setters } from "./lib/dataStore";
 import fetchAndSetMeta from "./operations/fetchAndSetMeta";
 import getStation from "./operations/getStation";
 import { callback, login } from "./controllers/spotifyAuthController";
+import { create } from "./controllers/roomsController";
 
 import activityController, {
   lifecycleEvents as activityEvents,
@@ -31,9 +32,11 @@ const streamURL = process.env.SERVER_URL;
 const httpServer = express()
   .use(express.static(__dirname + "/public"))
   .use(cors())
+  .use(express.json())
   .use(cookieParser())
   .get("/login", login)
   .get("/callback", callback)
+  .post("/rooms", create)
   .set("event", events)
   .listen(PORT, "0.0.0.0", () => console.log(`Listening on ${PORT}`));
 

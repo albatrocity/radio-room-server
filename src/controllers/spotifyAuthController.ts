@@ -5,12 +5,14 @@ import generateRandomString from "../lib/generateRandomString";
 import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
 import getAdminUserId from "../lib/getAdminUserId";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
+import { makeSpotifyApi } from "../lib/spotifyApi";
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
 const stateKey = "spotify_auth_state";
 const userIdKey = "spotify_auth_user_id";
+const redirectKey = "after_spotify_auth_redirect";
 
 function getUserIdParam(query: Request["query"]) {
   if (Array.isArray(query.userId)) {
@@ -31,6 +33,7 @@ export async function login(req: Request, res: Response) {
   if (userId) {
     res.cookie(userIdKey, userId);
   }
+  res.cookie(redirectKey, req.query.redirect);
 
   const adminUserId = await getAdminUserId();
   const isApp = userId === "app";
@@ -56,13 +59,9 @@ export async function login(req: Request, res: Response) {
 export async function callback(req: Request, res: Response) {
   const code = req.query.code ?? null;
   const state = req.query.state ?? null;
-  const userId = req.cookies
-    ? req.cookies[userIdKey]
-      ? req.cookies[userIdKey]
-      : req.query.userId
-    : "app";
 
   const storedState = req.cookies ? req.cookies[stateKey] : null;
+  const redirect = req.cookies ? req.cookies[redirectKey] : null;
 
   if (state === null || state !== storedState || !code) {
     res.redirect(
@@ -77,15 +76,32 @@ export async function callback(req: Request, res: Response) {
     try {
       const { access_token, refresh_token } = await getSpotifyAuthTokens(code);
 
+      const spotify = await makeSpotifyApi({
+        accessToken: access_token,
+        refreshToken: refresh_token,
+      });
+      const me = await spotify.getMe();
+      const userId = me.body.id;
+      const challenge = generateRandomString(16);
+
       await storeUserSpotifyTokens({
         access_token,
         refresh_token,
         userId: userId,
+        challenge,
       });
 
       if (process.env.APP_URL) {
+        const params = {
+          toast: "Spotify authentication successful",
+          userId,
+          challenge,
+        };
+
         res.redirect(
-          `${process.env.APP_URL}?toast=Spotify%20authentication%20successful`
+          `${process.env.APP_URL}${redirect ?? ""}?${querystring.stringify(
+            params
+          )}`
         );
       } else {
         res.send({ access_token });

@@ -8,15 +8,18 @@ import {
   SPOTIFY_REFRESH_TOKEN,
   THREE_DAYS,
 } from "../../lib/constants";
+import { storeUserChallenge } from "../userChallenge";
 
 export default async function storeUserSpotifyTokens({
   access_token,
   refresh_token,
   userId,
+  challenge,
 }: {
   access_token: string;
   refresh_token: string;
   userId: string;
+  challenge?: string;
 }) {
   const adminUserId = await getAdminUserId();
   const isGlobalAccount = !userId || (!!userId && userId === adminUserId);
@@ -36,6 +39,9 @@ export default async function storeUserSpotifyTokens({
     await client.set(refreshKey, refresh_token, {
       PX: THREE_DAYS,
     });
+    if (challenge) {
+      storeUserChallenge({ userId, challenge });
+    }
   } catch (e) {
     console.error(e);
   } finally {
