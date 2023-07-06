@@ -6,6 +6,7 @@ import updateUserAttributes from "../lib/updateUserAttributes";
 import systemMessage from "../lib/systemMessage";
 import sendMessage from "../lib/sendMessage";
 import { processTriggerAction } from "../operations/processTriggerAction";
+import { addReaction as addReactionData } from "../operations/data";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { ReactionSubject } from "../types/ReactionSubject";
@@ -40,10 +41,11 @@ export function stopListening({ socket, io }: HandlerConnections) {
   });
 }
 
-export function addReaction(
+export async function addReaction(
   { io, socket }: HandlerConnections,
-  { emoji, reactTo, user }: ReactionPayload
+  reaction: ReactionPayload
 ) {
+  const { emoji, reactTo, user } = reaction;
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
     return;
   }
@@ -59,6 +61,7 @@ export function addReaction(
     },
   };
   const reactions = setters.setReactions(newReactions);
+  await addReactionData(socket.data.roomId, reaction, reactTo);
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "REACTIONS",
     data: { reactions },

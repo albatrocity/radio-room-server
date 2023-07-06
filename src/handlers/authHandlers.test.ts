@@ -4,7 +4,7 @@ import {
   login,
   changeUsername,
   disconnect,
-  getUserShopifyAuth,
+  getUserSpotifyAuth,
 } from "./authHandlers";
 import { setters, resetDataStores } from "../lib/dataStore";
 import { defaultSettings } from "../config/defaultState";
@@ -212,8 +212,8 @@ describe("authHandlers", () => {
     });
   });
 
-  describe("getUserShopifyAuth", () => {
-    it("looks up shopify tokens for socket user", async () => {
+  describe("getUserSpotifyAuth", () => {
+    it("looks up spotify tokens for socket user", async () => {
       socket.data.userId = "1";
       socket.data.username = "Homer";
       (getStoredUserSpotifyTokens as jest.Mock).mockResolvedValueOnce({
@@ -221,12 +221,12 @@ describe("authHandlers", () => {
         refreshToken: "5678",
       });
 
-      await getUserShopifyAuth({ socket, io }, { userId: "1" });
+      await getUserSpotifyAuth({ socket, io }, { userId: "1" });
 
       expect(getStoredUserSpotifyTokens).toHaveBeenCalledWith("1");
     });
 
-    it("emits event with user shopify auth", async () => {
+    it("emits event with user spotify auth", async () => {
       socket.data.userId = "1";
       socket.data.username = "Homer";
       (getStoredUserSpotifyTokens as jest.Mock).mockResolvedValueOnce({
@@ -234,7 +234,7 @@ describe("authHandlers", () => {
         refreshToken: "5678",
       });
 
-      await getUserShopifyAuth({ socket, io }, { userId: "1" });
+      await getUserSpotifyAuth({ socket, io }, { userId: "1" });
 
       expect(toEmit).toHaveBeenCalledWith("event", {
         data: {
@@ -252,7 +252,7 @@ describe("authHandlers", () => {
         refreshToken: null,
       });
 
-      await getUserShopifyAuth({ socket, io }, { userId: "1" });
+      await getUserSpotifyAuth({ socket, io }, { userId: "1" });
 
       expect(toEmit).toHaveBeenCalledWith("event", {
         data: {

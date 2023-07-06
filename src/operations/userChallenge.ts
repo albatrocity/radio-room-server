@@ -10,7 +10,7 @@ export async function checkUserChallenge({
 }) {
   try {
     const solution = await pubClient.get(`challenge:${userId}`);
-    if (solution !== challenge) {
+    if (solution && solution !== challenge) {
       throw new Error("Unauthorized", { cause: "invalid challenge" });
     }
   } catch (e) {

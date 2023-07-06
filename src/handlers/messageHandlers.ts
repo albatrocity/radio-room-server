@@ -8,8 +8,9 @@ import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 import { ChatMessage } from "../types/ChatMessage";
 import getRoomPath from "../lib/getRoomPath";
+import { addTypingUser, removeTypingUser } from "../operations/data";
 
-export function newMessage(
+export async function newMessage(
   { socket, io }: HandlerConnections,
   message: string
 ) {
@@ -31,11 +32,12 @@ export function newMessage(
     uniq(reject(typing, (u) => u.userId === socket.data.userId))
   );
   setters.setTyping(newTyping);
+  await removeTypingUser(socket.data.roomId, socket.data.userId);
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
     data: { typing: newTyping },
   });
-  sendMessage(io, payload, socket.data.roomId);
+  await sendMessage(io, payload, socket.data.roomId);
   processTriggerAction<ChatMessage>(
     {
       type: "message",
@@ -56,8 +58,7 @@ export function clearMessages({ socket, io }: HandlerConnections) {
   });
 }
 
-export function startTyping({ socket, io }: HandlerConnections) {
-  console.log("start ryping", socket.data.roomId);
+export async function startTyping({ socket, io }: HandlerConnections) {
   const newTyping = compact(
     uniq([
       ...getters.getTyping(),
@@ -65,19 +66,21 @@ export function startTyping({ socket, io }: HandlerConnections) {
     ])
   );
   setters.setTyping(newTyping);
+  await addTypingUser(socket.data.roomId, socket.data.userId);
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
     data: { typing: newTyping },
   });
 }
 
-export function stopTyping({ socket, io }: HandlerConnections) {
+export async function stopTyping({ socket, io }: HandlerConnections) {
   const newTyping = compact(
     uniq(
       reject(getters.getTyping(), (user) => user.userId === socket.data.userId)
     )
   );
   setters.setTyping(newTyping);
+  await removeTypingUser(socket.data.roomId, socket.data.userId);
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
     data: { typing: newTyping },

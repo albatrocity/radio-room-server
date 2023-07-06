@@ -1,10 +1,7 @@
 import { Request, Response } from "express";
 
-import {
-  createRoomId,
-  persistRoom,
-  withDefaults,
-} from "../operations/createRoom";
+import { createRoomId, withDefaults } from "../operations/createRoom";
+import { findRoom as findRoomData, persistRoom } from "../operations/data";
 import { checkUserChallenge } from "../operations/userChallenge";
 
 export async function create(req: Request, res: Response) {
@@ -21,4 +18,11 @@ export async function create(req: Request, res: Response) {
     res.statusCode = e === "Unauthorized" ? 401 : 400;
     res.send({ error: e, status: e === "Unauthorized" ? 401 : 400 });
   }
+}
+
+export async function findRoom(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const room = await findRoomData(id);
+  return res.send({ room: room });
 }

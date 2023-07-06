@@ -10,6 +10,12 @@ import { events } from "../lib/eventEmitter";
 import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpotifyTokens";
 import removeStoredUserSpotifyTokens from "../operations/spotify/removeStoredUserSpotifyTokens";
 import getRoomPath from "../lib/getRoomPath";
+import {
+  addOnlineUser,
+  deleteUser,
+  persistUser,
+  removeOnlineUser,
+} from "../operations/data";
 
 export function checkPassword(
   { socket, io }: HandlerConnections,
@@ -40,7 +46,7 @@ export function submitPassword(
   });
 }
 
-export function login(
+export async function login(
   { socket, io }: HandlerConnections,
   {
     username,
@@ -51,9 +57,12 @@ export function login(
     username: User["username"];
     userId: User["userId"];
     password?: string;
-    roomId?: string;
+    roomId: string;
   }
 ) {
+  // @ts-ignore
+  // socket.request.session.roomId = socket.id;
+  console.log("login", username, userId, password, roomId);
   const users = getters.getUsers();
   console.log(`joining ${getRoomPath(roomId)}`);
   socket.join(getRoomPath(roomId));
@@ -76,7 +85,8 @@ export function login(
   };
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
   setters.setUsers(newUsers);
-
+  await addOnlineUser(roomId, userId);
+  await persistUser(userId, newUser);
   socket.broadcast.to(getRoomPath(roomId)).emit("event", {
     type: "USER_JOINED",
     data: {
@@ -110,7 +120,7 @@ export function login(
   });
 }
 
-export function changeUsername(
+export async function changeUsername(
   { socket, io }: HandlerConnections,
   { userId, username }: { userId: User["userId"]; username: User["username"] }
 ) {
@@ -125,6 +135,7 @@ export function changeUsername(
     );
 
     setters.setUsers(newUsers);
+    await persistUser(userId, { username });
 
     const content = `${oldUsername} transformed into ${username}`;
     const newMessage = systemMessage(content, {
@@ -142,7 +153,7 @@ export function changeUsername(
   }
 }
 
-export function disconnect({ socket, io }: HandlerConnections) {
+export async function disconnect({ socket, io }: HandlerConnections) {
   const users = getters.getUsers();
   const user = users.find((u) => u.userId === socket.data.userId);
   if (user && user.isDj) {
@@ -154,7 +165,9 @@ export function disconnect({ socket, io }: HandlerConnections) {
     });
   }
 
+  await removeOnlineUser(socket.data.roomId, socket.data.userId);
   const newUsers = reject(users, (u) => u.userId === socket.data.userId);
+  await deleteUser(socket.data.userId);
   setters.setUsers(newUsers);
 
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
@@ -166,7 +179,7 @@ export function disconnect({ socket, io }: HandlerConnections) {
   });
 }
 
-export async function getUserShopifyAuth(
+export async function getUserSpotifyAuth(
   { socket, io }: HandlerConnections,
   { userId }: { userId?: string }
 ) {

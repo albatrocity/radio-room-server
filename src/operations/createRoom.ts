@@ -1,14 +1,6 @@
 const { createHash } = require("crypto");
 
 import { Room } from "../types/Room";
-import { pubClient } from "../lib/redisClients";
-import { SEVEN_DAYS } from "../lib/constants";
-
-export async function persistRoom(room: Room) {
-  return pubClient.SET(`room:${room.id}`, JSON.stringify(room), {
-    PX: SEVEN_DAYS,
-  });
-}
 
 export function createRoomId({
   creator,

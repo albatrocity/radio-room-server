@@ -12,7 +12,6 @@ import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
 import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
-import { Server } from "socket.io";
 import getSpotifyApiForUser from "../operations/spotify/getSpotifyApiForUser";
 import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 import getRoomPath from "../lib/getRoomPath";

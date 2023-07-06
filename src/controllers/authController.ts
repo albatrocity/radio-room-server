@@ -6,7 +6,7 @@ import {
   checkPassword,
   disconnect,
   login,
-  getUserShopifyAuth,
+  getUserSpotifyAuth,
   submitPassword,
   logoutSpotifyAuth,
 } from "../handlers/authHandlers";
@@ -33,6 +33,7 @@ export default function authController(socket: Socket, io: Server) {
       password?: string;
       roomId: string;
     }) => {
+      console.log("LOG IN???????");
       login({ socket, io }, { username, userId, password, roomId });
     }
   );
@@ -49,7 +50,7 @@ export default function authController(socket: Socket, io: Server) {
   );
 
   socket.on("get user spotify authentication status", ({ userId }) => {
-    getUserShopifyAuth({ socket, io }, { userId });
+    getUserSpotifyAuth({ socket, io }, { userId });
   });
   socket.on("logout spotify", (args: { userId?: string } = {}) => {
     const options = args ? { userId: args.userId } : { userId: "app" };
