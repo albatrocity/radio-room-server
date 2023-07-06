@@ -1,10 +1,11 @@
 import { pubClient } from "../../lib/redisClients";
 import { Room } from "../../types/Room";
 import { SEVEN_DAYS } from "../../lib/constants";
+import { writeJsonToHset } from "./utils";
 
 export async function persistRoom(room: Room) {
   try {
-    return pubClient.SET(`room:${room.id}`, JSON.stringify(room), {
+    return writeJsonToHset(`room:${room.id}:details`, room, {
       PX: SEVEN_DAYS,
     });
   } catch (e) {
@@ -14,12 +15,12 @@ export async function persistRoom(room: Room) {
 }
 
 export async function findRoom(roomId: string) {
-  const roomKey = `room:${roomId}`;
+  const roomKey = `room:${roomId}:details`;
   try {
-    const results = await pubClient.get(roomKey);
+    const results = await pubClient.hGetAll(roomKey);
 
     if (results) {
-      return JSON.parse(results);
+      return results;
     } else {
       return null;
     }
