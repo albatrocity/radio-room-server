@@ -11,6 +11,8 @@ import { TriggerEvent } from "../types/Triggers";
 import { Reaction } from "../types/Reaction";
 import { ChatMessage } from "../types/ChatMessage";
 import getRoomPath from "../lib/getRoomPath";
+import { Room } from "../types/Room";
+import { getRoomUsers, getUser } from "../operations/data";
 
 const streamURL = process.env.SERVER_URL;
 
@@ -76,9 +78,10 @@ export function fixMeta({ io }: HandlerConnections, title?: string) {
   fetchAndSetMeta({ io }, getters.getMeta().station, title);
 }
 
-export function kickUser({ io }: HandlerConnections, user: User) {
+export async function kickUser({ io, socket }: HandlerConnections, user: User) {
   const { userId } = user;
-  const socketId = getters.getUsers().find((u) => u.userId === userId)?.id;
+  const storedUser = await getUser(userId);
+  const socketId = storedUser?.id;
 
   const newMessage = systemMessage(
     `You have been kicked. I hope you deserved it.`,

@@ -3,7 +3,7 @@ import { objectKeys } from "ts-extras";
 import { pubClient } from "../../lib/redisClients";
 import { Reaction } from "../../types/Reaction";
 import { Room } from "../../types/Room";
-import { User } from "../../types/User";
+import { StoredUser, User } from "../../types/User";
 import { ChatMessage } from "../../types/ChatMessage";
 
 type HSetOptions = {
@@ -22,4 +22,25 @@ export async function writeJsonToHset(
     pubClient.pExpire(setKey, options.PX);
   }
   return Promise.all(writes);
+}
+
+type HSet = {
+  [x: string]: string;
+};
+
+export function hSetToObject(hset: HSet) {
+  objectKeys(hset).reduce((acc, key) => {
+    hset[key] = JSON.parse(hset[key]);
+    return acc;
+  }, hset);
+  return hset;
+}
+
+export function mapUserBooleans(user: StoredUser) {
+  return {
+    ...user,
+    isDj: user.isDj === "true",
+    isDeputyDj: user.isDeputyDj === "true",
+    isAdmin: user.isAdmin === "true",
+  };
 }

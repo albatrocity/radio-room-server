@@ -6,7 +6,11 @@ import updateUserAttributes from "../lib/updateUserAttributes";
 import systemMessage from "../lib/systemMessage";
 import sendMessage from "../lib/sendMessage";
 import { processTriggerAction } from "../operations/processTriggerAction";
-import { addReaction as addReactionData } from "../operations/data";
+import {
+  addReaction as addReactionData,
+  getAllRoomReactions,
+  removeReaction as removeReactionData,
+} from "../operations/data";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { ReactionSubject } from "../types/ReactionSubject";
@@ -45,37 +49,26 @@ export async function addReaction(
   { io, socket }: HandlerConnections,
   reaction: ReactionPayload
 ) {
-  const { emoji, reactTo, user } = reaction;
+  const { reactTo } = reaction;
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
     return;
   }
-  const currentReactions = getters.getReactions();
-  const newReactions = {
-    ...currentReactions,
-    [reactTo.type]: {
-      ...currentReactions[reactTo.type],
-      [reactTo.id]: [
-        ...(currentReactions[reactTo.type][reactTo.id] || []),
-        { emoji: emoji.shortcodes, user: user.userId },
-      ],
-    },
-  };
-  const reactions = setters.setReactions(newReactions);
   await addReactionData(socket.data.roomId, reaction, reactTo);
+  const reactions = await getAllRoomReactions(socket.data.roomId);
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "REACTIONS",
     data: { reactions },
   });
-  processTriggerAction<ReactionPayload>(
-    {
-      type: "reaction",
-      data: { emoji, reactTo, user },
-    },
-    io
-  );
+  // processTriggerAction<ReactionPayload>(
+  //   {
+  //     type: "reaction",
+  //     data: { emoji, reactTo, user },
+  //   },
+  //   io
+  // );
 }
 
-export function removeReaction(
+export async function removeReaction(
   { io, socket }: HandlerConnections,
   {
     emoji,
@@ -90,30 +83,21 @@ export function removeReaction(
   if (REACTIONABLE_TYPES.indexOf(reactTo.type) === -1) {
     return;
   }
-  const currentReactions = getters.getReactions();
+  const roomId = socket.data.roomId;
+  await removeReactionData(roomId, { emoji, reactTo, user }, reactTo);
+  const reactions = await getAllRoomReactions(roomId);
 
-  const newReactions = {
-    ...currentReactions,
-    [reactTo.type]: {
-      ...currentReactions[reactTo.type],
-      [reactTo.id]: reject(
-        currentReactions[reactTo.type][reactTo.id] || [],
-        (x) => x.emoji === emoji.shortcodes && x.user === user.userId
-      ),
-    },
-  };
-  const reactions = setters.setReactions(newReactions);
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "REACTIONS",
     data: { reactions },
   });
-  processTriggerAction<ReactionPayload>(
-    {
-      type: "reaction",
-      data: { emoji, reactTo, user },
-    },
-    io
-  );
+  // processTriggerAction<ReactionPayload>(
+  //   {
+  //     type: "reaction",
+  //     data: { emoji, reactTo, user },
+  //   },
+  //   io
+  // );
 }
 
 export function handlePlaybackPaused({ io, socket }: HandlerConnections) {

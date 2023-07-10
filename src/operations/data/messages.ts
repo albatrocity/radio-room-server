@@ -31,16 +31,17 @@ export async function getMessages(
    * 2. Fetch messages from last hour
    **/
   try {
-    const roomKey = `room:${roomId}`;
+    const roomKey = `room:${roomId}:messages`;
     const roomExists = await pubClient.exists(roomKey);
     if (!roomExists) {
       return [];
     } else {
       const results = await pubClient.zRange(roomKey, offset, offset + size);
-      return results;
+      return results.map((m) => JSON.parse(m) as ChatMessage) || [];
     }
   } catch (e) {
     console.log("ERROR FROM data/messages/getMessages", roomId, offset, size);
     console.error(e);
+    return [];
   }
 }

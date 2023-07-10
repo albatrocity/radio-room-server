@@ -13,9 +13,16 @@ import getRoomPath from "../lib/getRoomPath";
 import {
   addOnlineUser,
   deleteUser,
+  getAllRoomReactions,
+  getMessages,
+  getRoomUsers,
+  getUser,
+  isDj,
   persistUser,
   removeOnlineUser,
 } from "../operations/data";
+import updateUserAttributes from "../lib/updateUserAttributes";
+import { pubUserJoined } from "../operations/sockets/users";
 
 export function checkPassword(
   { socket, io }: HandlerConnections,
@@ -60,19 +67,16 @@ export async function login(
     roomId: string;
   }
 ) {
-  // @ts-ignore
-  // socket.request.session.roomId = socket.id;
   console.log("login", username, userId, password, roomId);
-  const users = getters.getUsers();
+  const users = await getRoomUsers(roomId);
   console.log(`joining ${getRoomPath(roomId)}`);
   socket.join(getRoomPath(roomId));
-  console.log("ROOM ID", roomId);
 
   socket.data.username = username;
   socket.data.userId = userId;
   socket.data.roomId = roomId;
 
-  const isDeputyDj = getters.getDeputyDjs().includes(userId);
+  const isDeputyDj = await isDj(roomId, userId);
 
   const newUser = {
     username,
@@ -84,9 +88,9 @@ export async function login(
     connectedAt: new Date().toISOString(),
   };
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
-  setters.setUsers(newUsers);
   await addOnlineUser(roomId, userId);
   await persistUser(userId, newUser);
+
   socket.broadcast.to(getRoomPath(roomId)).emit("event", {
     type: "USER_JOINED",
     data: {
@@ -100,16 +104,21 @@ export async function login(
     users: newUsers,
   });
 
+  const messages = await getMessages(roomId, 0, 100);
+
+  const allReactions = await getAllRoomReactions(roomId);
+  console.log("allReactions", allReactions);
+
   socket.emit("event", {
     type: "INIT",
     data: {
       users: newUsers,
-      messages: getters.getMessages(),
+      messages,
       meta: getters.getSettings().artwork
         ? { ...getters.getMeta(), artwork: getters.getSettings().artwork }
         : getters.getMeta(),
       playlist: getters.getPlaylist(),
-      reactions: getters.getReactions(),
+      reactions: allReactions,
       currentUser: {
         userId: socket.data.userId,
         username: socket.data.username,
@@ -124,39 +133,34 @@ export async function changeUsername(
   { socket, io }: HandlerConnections,
   { userId, username }: { userId: User["userId"]; username: User["username"] }
 ) {
-  const users = getters.getUsers();
-  const user = users.find((u) => u.userId === userId);
+  const user = await getUser(userId);
   const oldUsername = user?.username;
   if (user) {
-    const newUser: User = { ...user, username };
-    const newUsers = uniqBy(
-      [newUser, ...reject(users, (u) => u.userId === userId)],
-      (u) => u.userId
+    const { users: newUsers, user: newUser } = await updateUserAttributes(
+      userId,
+      { username },
+      socket.data.roomId
     );
 
-    setters.setUsers(newUsers);
-    await persistUser(userId, { username });
-
     const content = `${oldUsername} transformed into ${username}`;
-    const newMessage = systemMessage(content, {
-      oldUsername,
-      userId,
+    pubUserJoined({ io }, socket.data.roomId, {
+      users: newUsers,
+      user: newUser,
     });
-    io.to(getRoomPath(socket.data.roomId)).emit("event", {
-      type: "USER_JOINED",
-      data: {
-        user: newUser,
-        users: newUsers,
-      },
-    });
-    sendMessage(io, newMessage, socket.data.roomId);
+    sendMessage(
+      io,
+      systemMessage(content, {
+        oldUsername,
+        userId,
+      }),
+      socket.data.roomId
+    );
   }
 }
 
 export async function disconnect({ socket, io }: HandlerConnections) {
-  const users = getters.getUsers();
-  const user = users.find((u) => u.userId === socket.data.userId);
-  if (user && user.isDj) {
+  const user = await getUser(socket.data.userId);
+  if (user?.isDj) {
     const newSettings = { ...getters.getDefaultSettings() };
     setters.setSettings(newSettings);
     io.to(getRoomPath(socket.data.roomId)).emit("event", {
@@ -166,15 +170,15 @@ export async function disconnect({ socket, io }: HandlerConnections) {
   }
 
   await removeOnlineUser(socket.data.roomId, socket.data.userId);
-  const newUsers = reject(users, (u) => u.userId === socket.data.userId);
   await deleteUser(socket.data.userId);
-  setters.setUsers(newUsers);
+
+  const users = await getRoomUsers(socket.data.roomId);
 
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_LEFT",
     data: {
       user: { username: socket.data.username },
-      users: newUsers,
+      users,
     },
   });
 }

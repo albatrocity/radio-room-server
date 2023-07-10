@@ -1,6 +1,7 @@
+import { compact } from "remeda";
 import { pubClient } from "../../lib/redisClients";
-import { User } from "../../types/User";
-import { writeJsonToHset } from "./utils";
+import { StoredUser, User } from "../../types/User";
+import { hSetToObject, mapUserBooleans, writeJsonToHset } from "./utils";
 
 export async function addOnlineUser(roomId: string, userId: string) {
   try {
@@ -43,11 +44,55 @@ export async function decrementRoomUsers(roomId: string) {
   }
 }
 
+export async function getRoomUsers(roomId: string) {
+  try {
+    const users = await pubClient.sMembers(`room:${roomId}:online_users`);
+    const reads = users.map(async (userId) => {
+      const userData = await getUser(userId);
+      if (!userData) {
+        return null;
+      }
+      return userData;
+    });
+    const allUsers = await Promise.all(reads);
+    return compact(allUsers);
+  } catch (e) {
+    console.log("ERROR FROM data/users/getRoomUsers", roomId);
+    console.error(e);
+    return [];
+  }
+}
+
 export async function persistUser(userId: string, attributes: Partial<User>) {
   try {
     return writeJsonToHset(`user:${userId}`, attributes);
   } catch (e) {
     console.log("ERROR FROM data/users/persistUser", userId, attributes);
+    console.error(e);
+    return null;
+  }
+}
+
+export async function getUser(userId: string) {
+  try {
+    const userAttributes = await pubClient.hGetAll(`user:${userId}`);
+    if (!userAttributes) {
+      return null;
+    }
+    return mapUserBooleans(userAttributes as unknown as StoredUser);
+  } catch (e) {
+    console.log("ERROR FROM data/users/getUser", userId);
+    console.error(e);
+    return null;
+  }
+}
+
+export async function getRoomDj(roomId: string) {
+  try {
+    const users = await getRoomUsers(roomId);
+    return users.find((u) => u.isDj);
+  } catch (e) {
+    console.log("ERROR FROM data/users/getRoomDj", roomId);
     console.error(e);
     return null;
   }

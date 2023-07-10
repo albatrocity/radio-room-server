@@ -1,6 +1,6 @@
 import { uniqBy, reject } from "remeda";
-import { getters, setters } from "../lib/dataStore";
 import { User } from "../types/User";
+import { getRoomUsers, persistUser } from "../operations/data";
 
 function addUser(user: User | null, users: User[]) {
   const newUsers = user
@@ -12,15 +12,15 @@ function addUser(user: User | null, users: User[]) {
   return newUsers.filter((user) => !!user.userId);
 }
 
-function updateUserAttributes(userId: string, attributes: Partial<User>) {
-  const { getUsers } = getters;
-  const { setUsers } = setters;
-  const users = getUsers();
-  const user = users.find((u) => u.userId === userId);
-  const newUser: User | null = user ? { ...user, ...attributes } : null;
-  const cleanedUsers = addUser(newUser, users);
-  setUsers(cleanedUsers);
-  return { users: cleanedUsers, user: newUser };
+async function updateUserAttributes(
+  userId: string,
+  attributes: Partial<User>,
+  roomId?: string
+) {
+  await persistUser(userId, attributes);
+  const users = roomId ? await getRoomUsers(roomId) : [];
+  const user = users.find((u) => u?.userId === userId);
+  return { user, users };
 }
 
 export default updateUserAttributes;

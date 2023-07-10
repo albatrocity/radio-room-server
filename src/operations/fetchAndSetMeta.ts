@@ -6,9 +6,12 @@ import { Station } from "../types/Station";
 
 import systemMessage from "../lib/systemMessage";
 import fetchReleaseInfo from "./fetchReleaseInfo";
+import sendMessage from "../lib/sendMessage";
+import { Room } from "../types/Room";
 
 export default async function fetchAndSetMeta(
   { io }: { io: Server },
+  roomId: Room["id"],
   station?: Station,
   title?: string,
   options: FetchMetaOptions = {}
@@ -68,8 +71,7 @@ export default async function fetchAndSetMeta(
   });
 
   if (!silent) {
-    io.emit("event", { type: "NEW_MESSAGE", data: newMessage });
-    setters.setMessages([...getters.getMessages(), newMessage]);
+    await sendMessage(io, newMessage, roomId);
   }
   const newPlaylist = setters.setPlaylist([
     ...getters.getPlaylist(),

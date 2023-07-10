@@ -40,8 +40,6 @@ export function createGetter<T>(
 export function createGetters(dataStores: DataStores): Getters {
   return {
     getDefaultSettings: createGetter<Settings>(dataStores, "defaultSettings"),
-    getDeputyDjs: createGetter<User["userId"][]>(dataStores, "deputyDjs"),
-    getMessages: createGetter<ChatMessage[]>(dataStores, "messages"),
     getMeta: createGetter<any>(dataStores, "meta"),
     getPlaylist: createGetter<PlaylistTrack[]>(dataStores, "playlist"),
     getQueue: createGetter<QueuedTrack[]>(dataStores, "queue"),

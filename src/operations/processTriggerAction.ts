@@ -15,6 +15,8 @@ import { Reaction, ReactionPayload } from "../types/Reaction";
 import { Server } from "socket.io";
 import { ChatMessage } from "../types/ChatMessage";
 import { PlaylistTrack } from "../types/PlaylistTrack";
+import { Room } from "../types/Room";
+import { getMessages } from "./data";
 
 function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   if (conditions.thresholdType === "count") {
@@ -24,13 +26,14 @@ function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   return count * (conditions.threshold / 100);
 }
 
-function getCompareTo(target?: TriggerTarget) {
+async function getCompareTo(roomId: Room["id"], target?: TriggerTarget) {
+  const messages = await getMessages(roomId, 0, 200);
   return {
     listeners: getters
       .getUsers()
       .filter(({ status }) => status === "listening"),
     users: getters.getUsers(),
-    messages: getters.getMessages(),
+    messages,
     reactions:
       target && target.id
         ? getters.getReactions()[target.type][target.id] || []
@@ -108,17 +111,18 @@ export function processTrigger<Incoming, Source>(
 
 export function processReactionTriggers(
   data: ReactionPayload,
+  roomId: Room["id"],
   triggers: ReactionTriggerEvent[],
   io: Server
 ) {
-  triggers.map((t) => {
+  triggers.map(async (t) => {
     const currentReactions =
       getters.getReactions()[data.reactTo.type][data.reactTo.id];
-    const target = getActionTarget(t.target);
-    const trigger = captureTriggerTarget<Reaction>(t);
+    const target = await getActionTarget(roomId, t.target);
+    const trigger = await captureTriggerTarget<Reaction>(roomId, t);
     const meta: TriggerMeta<Reaction> = {
       sourcesOnSubject: currentReactions,
-      compareTo: getCompareTo(t.target),
+      compareTo: await getCompareTo(roomId, t.target),
       target,
       ...trigger.meta,
     };
@@ -134,21 +138,22 @@ export function processReactionTriggers(
   });
 }
 
-export function processMessageTriggers(
+export async function processMessageTriggers(
   data: ChatMessage,
+  roomId: Room["id"],
   triggers: MessageTriggerEvent[],
   io: Server
 ) {
-  triggers.map((t) => {
-    const currentMessages = getters.getMessages();
-    const target = getActionTarget(t.target);
-    const trigger = captureTriggerTarget(t);
+  const currentMessages = await getMessages(roomId, 0, 200);
+  triggers.map(async (t) => {
+    const target = await getActionTarget(roomId, t.target);
+    const trigger = await captureTriggerTarget(roomId, t);
     return processTrigger<ChatMessage, ChatMessage>(
       {
         ...data,
         meta: {
           sourcesOnSubject: currentMessages,
-          compareTo: getCompareTo(t.target),
+          compareTo: await getCompareTo(roomId, t.target),
           target,
           ...trigger.meta,
         },
@@ -164,18 +169,21 @@ export function processMessageTriggers(
  */
 export function processTriggerAction<T extends ReactionPayload | ChatMessage>(
   { type, data }: TriggerSourceEvent<T>,
+  roomId: Room["id"],
   io: Server
 ) {
   switch (type) {
     case "reaction":
       return processReactionTriggers(
         data as ReactionPayload,
+        roomId,
         getters.getReactionTriggerEvents(),
         io
       );
     case "message":
       return processMessageTriggers(
         data as ChatMessage,
+        roomId,
         getters.getMessageTriggerEvents(),
         io
       );
@@ -185,18 +193,18 @@ export function processTriggerAction<T extends ReactionPayload | ChatMessage>(
 /**
  * Finds and returns the full Target of the Trigger
  */
-function getActionTarget(target?: TriggerTarget) {
+function getActionTarget(roomId: Room["id"], target?: TriggerTarget) {
   if (!target) {
     return undefined;
   }
 
-  return getTarget(target);
+  return getTarget(target, roomId);
 }
 
-function getTarget(target: TriggerTarget) {
+async function getTarget(target: TriggerTarget, roomId: Room["id"]) {
   switch (target.type) {
     case "message":
-      const messages = getters.getMessages();
+      const messages = await getMessages(roomId, 0, 200);
       if (target.id === "latest") {
         return messages[0];
       }
@@ -215,9 +223,12 @@ function getTarget(target: TriggerTarget) {
 /**
  * Returns Trigger with identified Target if using the 'latest' id alias
  */
-function captureTriggerTarget<T>(trigger: TriggerEvent<T>) {
+async function captureTriggerTarget<T>(
+  roomId: Room["id"],
+  trigger: TriggerEvent<T>
+) {
   if (trigger.target?.id === "latest") {
-    const target = getActionTarget(trigger.target);
+    const target = await getActionTarget(roomId, trigger.target);
     return {
       ...trigger,
       target: {
