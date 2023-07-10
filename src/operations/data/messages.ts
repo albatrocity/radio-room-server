@@ -1,13 +1,6 @@
 import { pubClient } from "../../lib/redisClients";
 import { ChatMessage } from "../../types/ChatMessage";
 
-export async function addTypingUser(roomId: string, userId: string) {
-  return pubClient.sAdd(`room:${roomId}:typing_users`, userId);
-}
-export async function removeTypingUser(roomId: string, userId: string) {
-  return pubClient.sRem(`room:${roomId}:typing_users`, userId);
-}
-
 export async function persistMessage(roomId: string, message: ChatMessage) {
   try {
     const messageString = JSON.stringify(message);
@@ -25,11 +18,6 @@ export async function getMessages(
   offset: number = 0,
   size: number = 50
 ) {
-  /**
-   * Logic:
-   * 1. Check if room with id exists
-   * 2. Fetch messages from last hour
-   **/
   try {
     const roomKey = `room:${roomId}:messages`;
     const roomExists = await pubClient.exists(roomKey);
@@ -43,5 +31,16 @@ export async function getMessages(
     console.log("ERROR FROM data/messages/getMessages", roomId, offset, size);
     console.error(e);
     return [];
+  }
+}
+
+export async function clearMessages(roomId: string) {
+  try {
+    console.log("CLEARING MESSAGES", roomId);
+    const roomKey = `room:${roomId}:messages`;
+    return pubClient.del(roomKey);
+  } catch (e) {
+    console.log("ERROR FROM data/messages/clearMessages", roomId);
+    console.error(e);
   }
 }

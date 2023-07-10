@@ -15,6 +15,7 @@ import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPop
 import getRoomPath from "../lib/getRoomPath";
 import {
   addDj,
+  findRoom,
   getDjs,
   getRoomUsers,
   getUser,
@@ -215,12 +216,9 @@ export async function handleUserJoined(
   { io, socket }: HandlerConnections,
   { user }: { user: User; users: User[] }
 ) {
+  const room = await findRoom(socket.data.roomId);
   const deputyDjs = await getDjs(socket.data.roomId);
-  console.log("deputyDjs", deputyDjs);
-  if (
-    getters.getSettings().deputizeOnJoin &&
-    !deputyDjs.includes(user.userId)
-  ) {
+  if (room?.deputizeOnJoin && !deputyDjs.includes(user.userId)) {
     djDeputizeUser({ io, socket }, user.userId);
   }
 }

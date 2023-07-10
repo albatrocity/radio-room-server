@@ -44,7 +44,6 @@ export type Getters = {
   getPlaylist: Getter<PlaylistTrack[]>;
   getQueue: Getter<QueuedTrack[]>;
   getReactions: Getter<ReactionStore>;
-  getSettings: Getter<Settings>;
   getTyping: Getter<User[]>;
   getUsers: Getter<User[]>;
   getFetching: Getter<boolean>;

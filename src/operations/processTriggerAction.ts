@@ -16,7 +16,12 @@ import { Server } from "socket.io";
 import { ChatMessage } from "../types/ChatMessage";
 import { PlaylistTrack } from "../types/PlaylistTrack";
 import { Room } from "../types/Room";
-import { getMessages } from "./data";
+import {
+  getMessages,
+  getReactionsForSubject,
+  getRoomPlaylist,
+  getRoomUsers,
+} from "./data";
 
 function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
   if (conditions.thresholdType === "count") {
@@ -28,11 +33,12 @@ function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
 
 async function getCompareTo(roomId: Room["id"], target?: TriggerTarget) {
   const messages = await getMessages(roomId, 0, 200);
+  const users = await getRoomUsers(roomId);
   return {
     listeners: getters
       .getUsers()
       .filter(({ status }) => status === "listening"),
-    users: getters.getUsers(),
+    users: users,
     messages,
     reactions:
       target && target.id
@@ -116,8 +122,7 @@ export function processReactionTriggers(
   io: Server
 ) {
   triggers.map(async (t) => {
-    const currentReactions =
-      getters.getReactions()[data.reactTo.type][data.reactTo.id];
+    const currentReactions = await getReactionsForSubject(roomId, data.reactTo);
     const target = await getActionTarget(roomId, t.target);
     const trigger = await captureTriggerTarget<Reaction>(roomId, t);
     const meta: TriggerMeta<Reaction> = {
@@ -210,7 +215,7 @@ async function getTarget(target: TriggerTarget, roomId: Room["id"]) {
       }
       return messages.find((t) => t.timestamp === target.id);
     case "track":
-      const playlist = getters.getPlaylist();
+      const playlist = await getRoomPlaylist(roomId);
       if (target.id === "latest") {
         return playlist[playlist.length - 1];
       }

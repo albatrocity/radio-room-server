@@ -1,7 +1,26 @@
 import { compact } from "remeda";
 import { pubClient } from "../../lib/redisClients";
 import { StoredUser, User } from "../../types/User";
-import { hSetToObject, mapUserBooleans, writeJsonToHset } from "./utils";
+import { mapUserBooleans, writeJsonToHset } from "./utils";
+
+export async function addTypingUser(roomId: string, userId: string) {
+  return pubClient.sAdd(`room:${roomId}:typing_users`, userId);
+}
+export async function removeTypingUser(roomId: string, userId: string) {
+  return pubClient.sRem(`room:${roomId}:typing_users`, userId);
+}
+export async function getTypingUsers(roomId: string) {
+  const users = await pubClient.sMembers(`room:${roomId}:typing_users`);
+  const reads = users.map(async (userId) => {
+    const userData = await getUser(userId);
+    if (!userData) {
+      return null;
+    }
+    return userData;
+  });
+  const allUsers = await Promise.all(reads);
+  return compact(allUsers);
+}
 
 export async function addOnlineUser(roomId: string, userId: string) {
   try {
@@ -60,6 +79,17 @@ export async function getRoomUsers(roomId: string) {
     console.log("ERROR FROM data/users/getRoomUsers", roomId);
     console.error(e);
     return [];
+  }
+}
+
+export async function getRoomUsersCount(roomId: string) {
+  try {
+    const users = await pubClient.sMembers(`room:${roomId}:online_users`);
+    return users.length;
+  } catch (e) {
+    console.log("ERROR FROM data/users/getRoomUsersCount", roomId);
+    console.error(e);
+    return 0;
   }
 }
 

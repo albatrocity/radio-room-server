@@ -44,7 +44,6 @@ export function createGetters(dataStores: DataStores): Getters {
     getPlaylist: createGetter<PlaylistTrack[]>(dataStores, "playlist"),
     getQueue: createGetter<QueuedTrack[]>(dataStores, "queue"),
     getReactions: createGetter<ReactionStore>(dataStores, "reactions"),
-    getSettings: createGetter<Settings>(dataStores, "settings"),
     getTyping: createGetter<User[]>(dataStores, "typing"),
     getUsers: createGetter<User[]>(dataStores, "users"),
     getFetching: createGetter<boolean>(dataStores, "fetching"),

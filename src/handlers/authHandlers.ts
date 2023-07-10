@@ -13,6 +13,7 @@ import getRoomPath from "../lib/getRoomPath";
 import {
   addOnlineUser,
   deleteUser,
+  findRoom,
   getAllRoomReactions,
   getMessages,
   getRoomUsers,
@@ -20,35 +21,37 @@ import {
   isDj,
   persistUser,
   removeOnlineUser,
+  getRoomPlaylist,
 } from "../operations/data";
 import updateUserAttributes from "../lib/updateUserAttributes";
 import { pubUserJoined } from "../operations/sockets/users";
 
-export function checkPassword(
+export async function checkPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
-  const settings = getters.getSettings();
+  const room = await findRoom(socket.data.roomId);
+
   socket.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SET_PASSWORD_REQUIREMENT",
     data: {
-      passwordRequired: !isNil(settings.password),
-      passwordAccepted: settings.password
-        ? submittedPassword === settings.password
+      passwordRequired: !isNil(room?.password),
+      passwordAccepted: room?.password
+        ? submittedPassword === room?.password
         : true,
     },
   });
 }
 
-export function submitPassword(
+export async function submitPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
-  const settings = getters.getSettings();
+  const room = await findRoom(socket.data.roomId);
   socket.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SET_PASSWORD_ACCEPTED",
     data: {
-      passwordAccepted: settings.password === submittedPassword,
+      passwordAccepted: room?.password === submittedPassword,
     },
   });
 }
@@ -69,6 +72,7 @@ export async function login(
 ) {
   console.log("login", username, userId, password, roomId);
   const users = await getRoomUsers(roomId);
+  const room = await findRoom(roomId);
   console.log(`joining ${getRoomPath(roomId)}`);
   socket.join(getRoomPath(roomId));
 
@@ -105,19 +109,19 @@ export async function login(
   });
 
   const messages = await getMessages(roomId, 0, 100);
+  const playlist = await getRoomPlaylist(roomId);
 
   const allReactions = await getAllRoomReactions(roomId);
-  console.log("allReactions", allReactions);
 
   socket.emit("event", {
     type: "INIT",
     data: {
       users: newUsers,
       messages,
-      meta: getters.getSettings().artwork
-        ? { ...getters.getMeta(), artwork: getters.getSettings().artwork }
+      meta: room?.artwork
+        ? { ...getters.getMeta(), artwork: room?.artwork }
         : getters.getMeta(),
-      playlist: getters.getPlaylist(),
+      playlist: playlist,
       reactions: allReactions,
       currentUser: {
         userId: socket.data.userId,
@@ -159,16 +163,6 @@ export async function changeUsername(
 }
 
 export async function disconnect({ socket, io }: HandlerConnections) {
-  const user = await getUser(socket.data.userId);
-  if (user?.isDj) {
-    const newSettings = { ...getters.getDefaultSettings() };
-    setters.setSettings(newSettings);
-    io.to(getRoomPath(socket.data.roomId)).emit("event", {
-      type: "SETTINGS",
-      data: newSettings,
-    });
-  }
-
   await removeOnlineUser(socket.data.roomId, socket.data.userId);
   await deleteUser(socket.data.userId);
 

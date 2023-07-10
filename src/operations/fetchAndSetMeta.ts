@@ -8,6 +8,12 @@ import systemMessage from "../lib/systemMessage";
 import fetchReleaseInfo from "./fetchReleaseInfo";
 import sendMessage from "../lib/sendMessage";
 import { Room } from "../types/Room";
+import {
+  addTrackToRoomPlaylist,
+  findRoom,
+  getRoomPlaylist,
+  getUser,
+} from "./data";
 
 export default async function fetchAndSetMeta(
   { io }: { io: Server },
@@ -16,7 +22,10 @@ export default async function fetchAndSetMeta(
   title?: string,
   options: FetchMetaOptions = {}
 ) {
-  const { fetchMeta } = getters.getSettings();
+  const room = await findRoom(roomId);
+  if (!room) {
+    return null;
+  }
   const silent = options.silent || false;
   if (!station) {
     setters.setFetching(false);
@@ -33,7 +42,7 @@ export default async function fetchAndSetMeta(
   const fallbackAlbum = info[5];
   setters.setFetching(false);
 
-  const useSpotify = sourceArtist && sourceAlbum && fetchMeta;
+  const useSpotify = sourceArtist && sourceAlbum && room.fetchMeta;
   const track = sourceTrack || fallbackTrack;
   const artist = sourceArtist || fallbackArtist;
   const album = sourceAlbum || fallbackAlbum;
@@ -51,7 +60,7 @@ export default async function fetchAndSetMeta(
     album,
     track,
     release,
-    artwork: getters.getSettings().artwork,
+    artwork: room.artwork,
     dj: queuedTrack?.userId
       ? { userId: queuedTrack.userId, username: queuedTrack.username }
       : null,
@@ -73,25 +82,25 @@ export default async function fetchAndSetMeta(
   if (!silent) {
     await sendMessage(io, newMessage, roomId);
   }
-  const newPlaylist = setters.setPlaylist([
-    ...getters.getPlaylist(),
-    {
-      text: `${track} - ${artist} - ${album}`,
-      album,
-      artist,
-      track,
-      spotifyData: release,
-      timestamp: Date.now(),
-      dj: getters
-        .getUsers()
-        .find((u) =>
-          queuedTrack ? u.userId === queuedTrack.userId : u.isDj === true
-        ),
-    },
-  ]);
+
+  const trackDj = queuedTrack?.userId
+    ? await getUser(queuedTrack?.userId)
+    : null;
+
+  await addTrackToRoomPlaylist(roomId, {
+    text: `${track} - ${artist} - ${album}`,
+    album,
+    artist,
+    track,
+    spotifyData: release,
+    timestamp: Date.now(),
+    dj: trackDj,
+  });
+  const playlist = await getRoomPlaylist(roomId);
+
   setters.setFetching(false);
   io.emit("event", { type: "META", data: { meta: newMeta } });
-  io.emit("event", { type: "PLAYLIST", data: newPlaylist });
+  io.emit("event", { type: "PLAYLIST", data: playlist });
   if (queuedTrack) {
     setters.setQueue(
       getters.getQueue().filter(({ uri }) => uri !== queuedTrack.uri)

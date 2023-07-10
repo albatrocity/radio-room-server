@@ -6,5 +6,5 @@ export type PlaylistTrack = {
   text: string;
   spotifyData: Partial<SpotifyTrack> | null;
   timestamp: number;
-  dj?: User;
+  dj?: User | null;
 } & Pick<Track, "album" | "artist" | "track">;

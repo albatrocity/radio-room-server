@@ -12,7 +12,7 @@ import { Reaction } from "../types/Reaction";
 import { ChatMessage } from "../types/ChatMessage";
 import getRoomPath from "../lib/getRoomPath";
 import { Room } from "../types/Room";
-import { getRoomUsers, getUser } from "../operations/data";
+import { findRoom, getUser, persistRoom } from "../operations/data";
 
 const streamURL = process.env.SERVER_URL;
 
@@ -25,10 +25,11 @@ function setArtwork({ io, socket }: HandlerConnections, url?: string) {
   });
 }
 
-export function getSettings({ io, socket }: HandlerConnections) {
+export async function getSettings({ io, socket }: HandlerConnections) {
+  const room = await findRoom(socket.data.roomId);
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SETTINGS",
-    data: getters.getSettings(),
+    data: room,
   });
 }
 
@@ -74,8 +75,12 @@ export function setPassword(connections: HandlerConnections, value: string) {
   setters.setPassword(value);
 }
 
-export function fixMeta({ io }: HandlerConnections, title?: string) {
-  fetchAndSetMeta({ io }, getters.getMeta().station, title);
+export function fixMeta(
+  { io }: HandlerConnections,
+  roomId: string,
+  title?: string
+) {
+  fetchAndSetMeta({ io }, roomId, getters.getMeta().station, title);
 }
 
 export async function kickUser({ io, socket }: HandlerConnections, user: User) {
@@ -102,12 +107,17 @@ export async function settings(
   { socket, io }: HandlerConnections,
   values: Settings
 ) {
-  const prevSettings = { ...getters.getSettings() };
+  const roomId = socket.data.roomId;
+  const prevSettings = await findRoom(roomId);
+  if (!prevSettings) {
+    return {};
+  }
   const newSettings = {
     ...prevSettings,
     ...values,
   };
   setters.setSettings(newSettings);
+  await persistRoom(newSettings as Room);
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SETTINGS",
     data: newSettings,
@@ -124,7 +134,7 @@ export async function settings(
   if (prevSettings.fetchMeta !== values.fetchMeta) {
     const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
     console.log("STATION", station);
-    await fetchAndSetMeta({ io }, station, station?.title, {
+    await fetchAndSetMeta({ io }, roomId, station, station?.title, {
       silent: true,
     });
   }

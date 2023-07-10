@@ -12,3 +12,11 @@ export type Room = {
   radioUrl?: string;
   createdAt: string;
 };
+
+type Bool = "true" | "false";
+export interface StoredRoom
+  extends Omit<Room, "fetchMeta" | "enableSpotifyLogin" | "deputizeOnJoin"> {
+  fetchMeta: Bool;
+  enableSpotifyLogin: Bool;
+  deputizeOnJoin: Bool;
+}

@@ -2,7 +2,7 @@ import { objectKeys } from "ts-extras";
 
 import { pubClient } from "../../lib/redisClients";
 import { Reaction } from "../../types/Reaction";
-import { Room } from "../../types/Room";
+import { Room, StoredRoom } from "../../types/Room";
 import { StoredUser, User } from "../../types/User";
 import { ChatMessage } from "../../types/ChatMessage";
 
@@ -42,5 +42,14 @@ export function mapUserBooleans(user: StoredUser) {
     isDj: user.isDj === "true",
     isDeputyDj: user.isDeputyDj === "true",
     isAdmin: user.isAdmin === "true",
+  };
+}
+
+export function mapRoomBooleans(room: StoredRoom): Room {
+  return {
+    ...room,
+    fetchMeta: room.fetchMeta === "true",
+    enableSpotifyLogin: room.enableSpotifyLogin === "true",
+    deputizeOnJoin: room.deputizeOnJoin === "true",
   };
 }

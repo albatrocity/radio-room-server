@@ -1,7 +1,6 @@
-import { getters } from "./dataStore";
+import { findRoom } from "../operations/data";
 
-export default async function getAdminUserId() {
-  const users = getters.getUsers();
-  const adminUser = users.find((u) => u.isAdmin)?.userId;
-  return adminUser;
+export default async function getAdminUserId(roomId: string) {
+  const room = await findRoom(roomId);
+  return room?.creator;
 }

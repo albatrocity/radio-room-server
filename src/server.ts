@@ -78,50 +78,50 @@ io.on("connection", (socket) => {
 djEvents(io);
 activityEvents(io);
 
-async function pollStationInfo() {
-  if (getters.getFetching()) {
-    return;
-  }
-  setters.setFetching(true);
-  const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-  if ((!station || station.bitrate === "0") && !offline) {
-    fetchAndSetMeta({ io });
-    offline = true;
-    setters.setFetching(false);
-    if (oAuthInterval) {
-      clearInterval(oAuthInterval);
-    }
-    oAuthInterval = null;
-    return;
-  }
+// async function pollStationInfo() {
+//   if (getters.getFetching()) {
+//     return;
+//   }
+//   setters.setFetching(true);
+//   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
+//   if ((!station || station.bitrate === "0") && !offline) {
+//     fetchAndSetMeta({ io });
+//     offline = true;
+//     setters.setFetching(false);
+//     if (oAuthInterval) {
+//       clearInterval(oAuthInterval);
+//     }
+//     oAuthInterval = null;
+//     return;
+//   }
 
-  if (station && station.title !== getters.getMeta().title && !offline) {
-    await fetchAndSetMeta({ io }, station, station.title);
-  }
+//   if (station && station.title !== getters.getMeta().title && !offline) {
+//     await fetchAndSetMeta({ io }, station, station.title);
+//   }
 
-  if (
-    offline &&
-    station &&
-    station.bitrate &&
-    station.bitrate !== "" &&
-    station.bitrate !== "0"
-  ) {
-    setters.setSettings({ ...getters.getSettings(), artwork: undefined });
-    offline = false;
-    try {
-      await refreshAllSpotifyTokens();
-      oAuthInterval = setInterval(() => {
-        refreshAllSpotifyTokens();
-      }, FORTY_FIVE_MINS);
-    } catch (e) {
-      console.log(e);
-    } finally {
-      await fetchAndSetMeta({ io }, station);
-    }
-  }
-  setters.setFetching(false);
-}
+//   if (
+//     offline &&
+//     station &&
+//     station.bitrate &&
+//     station.bitrate !== "" &&
+//     station.bitrate !== "0"
+//   ) {
+//     setters.setSettings({ ...getters.getSettings(), artwork: undefined });
+//     offline = false;
+//     try {
+//       await refreshAllSpotifyTokens();
+//       oAuthInterval = setInterval(() => {
+//         refreshAllSpotifyTokens();
+//       }, FORTY_FIVE_MINS);
+//     } catch (e) {
+//       console.log(e);
+//     } finally {
+//       await fetchAndSetMeta({ io }, station);
+//     }
+//   }
+//   setters.setFetching(false);
+// }
 
-setInterval(() => {
-  pollStationInfo();
-}, 3000);
+// setInterval(() => {
+//   pollStationInfo();
+// }, 3000);

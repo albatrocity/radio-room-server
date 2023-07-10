@@ -1,7 +1,7 @@
 import { pubClient } from "../../lib/redisClients";
-import { Room } from "../../types/Room";
+import { Room, StoredRoom } from "../../types/Room";
 import { SEVEN_DAYS } from "../../lib/constants";
-import { writeJsonToHset } from "./utils";
+import { mapRoomBooleans, writeJsonToHset } from "./utils";
 
 export async function persistRoom(room: Room) {
   try {
@@ -20,7 +20,7 @@ export async function findRoom(roomId: string) {
     const results = await pubClient.hGetAll(roomKey);
 
     if (results) {
-      return results;
+      return mapRoomBooleans(results as unknown as StoredRoom);
     } else {
       return null;
     }

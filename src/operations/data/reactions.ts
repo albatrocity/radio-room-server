@@ -1,22 +1,19 @@
 import { compact } from "remeda";
 import { pubClient } from "../../lib/redisClients";
 import { ReactionStore } from "../../types/DataStores";
-import { ReactionPayload } from "../../types/Reaction";
+import { Reaction, ReactionPayload } from "../../types/Reaction";
 import { ReactionSubject } from "../../types/ReactionSubject";
 
 function makeReactionKey(roomId: string, reaction: ReactionPayload) {
   return `room:${roomId}:reactions:${reaction.reactTo.type}:${reaction.reactTo.id}:${reaction.user.userId}-${reaction.emoji.shortcodes}`;
 }
 
-function makeReactionTypeKey(
-  roomId: string,
-  reaction: Pick<ReactionPayload, "reactTo">
-) {
-  return `room:${roomId}:reactions_list:${reaction.reactTo.type}`;
+function makeReactionTypeKey(roomId: string, reactTo: ReactionSubject) {
+  return `room:${roomId}:reactions_list:${reactTo.type}`;
 }
 
-function makeReactionSubjectKey(roomId: string, reaction: ReactionPayload) {
-  return `${makeReactionTypeKey(roomId, reaction)}:${reaction.reactTo.id}`;
+function makeReactionSubjectKey(roomId: string, reactTo: ReactionSubject) {
+  return `${makeReactionTypeKey(roomId, reactTo)}:${reactTo.id}`;
 }
 
 export async function addReaction(
@@ -27,8 +24,8 @@ export async function addReaction(
   try {
     const reactionString = JSON.stringify(reaction);
     const key = makeReactionKey(roomId, reaction);
-    const reactionTypeKey = makeReactionTypeKey(roomId, reaction);
-    const reactionSubjectKey = makeReactionSubjectKey(roomId, reaction);
+    const reactionTypeKey = makeReactionTypeKey(roomId, reaction.reactTo);
+    const reactionSubjectKey = makeReactionSubjectKey(roomId, reaction.reactTo);
     await pubClient.zAdd(reactionTypeKey, { score: Date.now(), value: key });
     await pubClient.zAdd(reactionSubjectKey, { score: Date.now(), value: key });
     return pubClient.set(key, reactionString);
@@ -50,8 +47,8 @@ export async function removeReaction(
 ) {
   try {
     const key = makeReactionKey(roomId, reaction);
-    const reactionTypeKey = makeReactionTypeKey(roomId, reaction);
-    const reactionSubjectKey = makeReactionSubjectKey(roomId, reaction);
+    const reactionTypeKey = makeReactionTypeKey(roomId, reaction.reactTo);
+    const reactionSubjectKey = makeReactionSubjectKey(roomId, reaction.reactTo);
     await pubClient.zRem(reactionTypeKey, key);
     await pubClient.zRem(reactionSubjectKey, key);
     return pubClient.del(key);
@@ -82,12 +79,12 @@ function reduceReactionType(
 export async function getAllRoomReactions(roomId: string) {
   try {
     const messageKeys = await pubClient.zRange(
-      makeReactionTypeKey(roomId, { reactTo: { type: "message", id: "" } }),
+      makeReactionTypeKey(roomId, { type: "message", id: "" }),
       0,
       -1
     );
     const trackKeys = await pubClient.zRange(
-      makeReactionTypeKey(roomId, { reactTo: { type: "message", id: "" } }),
+      makeReactionTypeKey(roomId, { type: "message", id: "" }),
       0,
       -1
     );
@@ -114,5 +111,30 @@ export async function getAllRoomReactions(roomId: string) {
   } catch (e) {
     console.log("ERROR FROM data/reactions/getAllRoomReactions", roomId);
     console.error(e);
+  }
+}
+
+export async function getReactionsForSubject(
+  roomId: string,
+  reactTo: ReactionSubject
+) {
+  try {
+    const reactionKeys = await pubClient.zRange(
+      makeReactionSubjectKey(roomId, reactTo),
+      0,
+      -1
+    );
+
+    const reactionStrings = await Promise.all(
+      reactionKeys.map(async (key) => {
+        return await pubClient.get(key);
+      })
+    );
+
+    return compact(reactionStrings).map((m) => JSON.parse(m) as Reaction);
+  } catch (e) {
+    console.log("ERROR FROM data/reactions/getAllRoomReactions", roomId);
+    console.error(e);
+    return [];
   }
 }
