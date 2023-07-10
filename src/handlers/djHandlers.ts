@@ -15,6 +15,7 @@ import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPop
 import getRoomPath from "../lib/getRoomPath";
 import {
   addDj,
+  addToQueue,
   findRoom,
   getDjs,
   getRoomUsers,
@@ -113,7 +114,7 @@ export async function queueSong(
 ) {
   try {
     const currentUser = await getUser(socket.data.userId);
-    await syncQueue();
+    await syncQueue(socket.data.roomId);
     const inQueue = getters.getQueue().find((x) => x.uri === uri);
 
     if (inQueue) {
@@ -132,10 +133,12 @@ export async function queueSong(
     }
     const data = await globalSpotifyApi.addToQueue(uri);
 
-    setters.setQueue([
-      ...getters.getQueue(),
-      { uri, userId: socket.data.userId, username: currentUser?.username },
-    ]);
+    await addToQueue(socket.data.roomId, {
+      uri,
+      userId: socket.data.userId,
+      username: currentUser?.username,
+    });
+
     socket.emit("event", {
       type: "SONG_QUEUED",
       data,

@@ -1,7 +1,8 @@
 import spotifyApi from "../../lib/spotifyApi";
-import { getters, setters } from "../../lib/dataStore";
 import axios from "axios";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
+import { setQueue, getQueue } from "../data";
+import { compact } from "remeda";
 
 const ENDPOINT = "https://api.spotify.com/v1/me/player/queue";
 
@@ -10,7 +11,7 @@ type QueueResponse = {
   queue: SpotifyTrack[];
 };
 
-export default async function syncQueue() {
+export default async function syncQueue(roomId: string) {
   try {
     const accessToken = spotifyApi.getAccessToken();
     const { data }: { data: QueueResponse } = await axios.get(ENDPOINT, {
@@ -19,14 +20,14 @@ export default async function syncQueue() {
       },
     });
     const queuedUris = data.queue.map(({ uri }) => uri);
-    const currentQueue = getters.getQueue();
-    setters.setQueue(
-      currentQueue.filter((t) => {
-        return queuedUris.includes(t.uri);
-      })
-    );
-    return getters.getQueue();
+    const currentQueue = (await getQueue(roomId)) ?? [];
+    const newQueue = compact(currentQueue).filter((t) => {
+      return queuedUris.includes(t.uri);
+    });
+    await setQueue(roomId, newQueue);
+
+    return getQueue(roomId);
   } catch (e) {
-    return getters.getQueue();
+    return (await getQueue(roomId)) ?? [];
   }
 }

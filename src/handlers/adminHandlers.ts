@@ -12,7 +12,7 @@ import { Reaction } from "../types/Reaction";
 import { ChatMessage } from "../types/ChatMessage";
 import getRoomPath from "../lib/getRoomPath";
 import { Room } from "../types/Room";
-import { findRoom, getUser, persistRoom } from "../operations/data";
+import { clearQueue, findRoom, getUser, persistRoom } from "../operations/data";
 
 const streamURL = process.env.SERVER_URL;
 
@@ -71,8 +71,14 @@ export function setMessageTriggerEvents(
   });
 }
 
-export function setPassword(connections: HandlerConnections, value: string) {
-  setters.setPassword(value);
+export async function setPassword(
+  connections: HandlerConnections,
+  value: string
+) {
+  const room = await findRoom(connections.socket.data.roomId);
+  if (room) {
+    await persistRoom({ ...room, password: value });
+  }
 }
 
 export function fixMeta(
@@ -116,16 +122,11 @@ export async function settings(
     ...prevSettings,
     ...values,
   };
-  setters.setSettings(newSettings);
   await persistRoom(newSettings as Room);
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SETTINGS",
     data: newSettings,
   });
-
-  if (prevSettings.extraInfo !== values.extraInfo) {
-    setters.setSettings(newSettings);
-  }
 
   if (prevSettings.artwork !== values.artwork) {
     setArtwork({ socket, io }, values.artwork);
@@ -140,9 +141,10 @@ export async function settings(
   }
 }
 
-export function clearPlaylist({ socket, io }: HandlerConnections) {
-  setters.setPlaylist([]);
-  setters.setQueue([]);
+export async function clearPlaylist({ socket, io }: HandlerConnections) {
+  await clearPlaylist(socket.data.roomId);
+  await clearQueue(socket.data.roomId);
+
   setters.setTriggerEventHistory(
     getters.getTriggerEventHistory().filter((x) => x.target?.type !== "track")
   );

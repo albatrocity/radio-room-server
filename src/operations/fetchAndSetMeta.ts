@@ -13,6 +13,8 @@ import {
   findRoom,
   getRoomPlaylist,
   getUser,
+  removeFromQueue,
+  setRoomFetching,
 } from "./data";
 
 export default async function fetchAndSetMeta(
@@ -22,13 +24,14 @@ export default async function fetchAndSetMeta(
   title?: string,
   options: FetchMetaOptions = {}
 ) {
+  await setRoomFetching(roomId, true);
   const room = await findRoom(roomId);
   if (!room) {
     return null;
   }
   const silent = options.silent || false;
   if (!station) {
-    setters.setFetching(false);
+    await setRoomFetching(roomId, false);
     io.emit("event", { type: "META", data: { meta: setters.setMeta({}) } });
     return;
   }
@@ -40,7 +43,7 @@ export default async function fetchAndSetMeta(
   const fallbackTrack = info[3];
   const fallbackArtist = info[4];
   const fallbackAlbum = info[5];
-  setters.setFetching(false);
+  await setRoomFetching(roomId, false);
 
   const useSpotify = sourceArtist && sourceAlbum && room.fetchMeta;
   const track = sourceTrack || fallbackTrack;
@@ -98,12 +101,10 @@ export default async function fetchAndSetMeta(
   });
   const playlist = await getRoomPlaylist(roomId);
 
-  setters.setFetching(false);
+  await setRoomFetching(roomId, false);
   io.emit("event", { type: "META", data: { meta: newMeta } });
   io.emit("event", { type: "PLAYLIST", data: playlist });
   if (queuedTrack) {
-    setters.setQueue(
-      getters.getQueue().filter(({ uri }) => uri !== queuedTrack.uri)
-    );
+    await removeFromQueue(roomId, queuedTrack.uri);
   }
 }
