@@ -1,5 +1,7 @@
+import { isEmpty } from "remeda";
+
 import { pubClient } from "../../lib/redisClients";
-import { Room, StoredRoom } from "../../types/Room";
+import { Room, RoomMeta, StoredRoom } from "../../types/Room";
 import { SEVEN_DAYS } from "../../lib/constants";
 import { mapRoomBooleans, writeJsonToHset } from "./utils";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
@@ -22,10 +24,10 @@ export async function findRoom(roomId: string) {
   try {
     const results = await pubClient.hGetAll(roomKey);
 
-    if (results) {
-      return mapRoomBooleans(results as unknown as StoredRoom);
-    } else {
+    if (isEmpty(results)) {
       return null;
+    } else {
+      return mapRoomBooleans(results as unknown as StoredRoom);
     }
   } catch (e) {
     console.log("ERROR FROM data/rooms/findRoom", roomId);
@@ -69,7 +71,7 @@ export async function getRoomCurrent(roomId: string) {
   return {
     ...result,
     ...(result.release ? { release: JSON.parse(result.release) } : {}),
-  };
+  } as RoomMeta;
 }
 
 export async function makeJukeboxCurrentPayload(

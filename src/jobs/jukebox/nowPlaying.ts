@@ -1,5 +1,5 @@
 import { client } from "./redis";
-import getSpotifyApiForUser from "../../operations/spotify/getSpotifyApi";
+import { getSpotifyApiForUser } from "../../operations/spotify/getSpotifyApi";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { PUBSUB_JUKEBOX_NOW_PLAYING_FETCHED } from "../../lib/constants";
 import { getRoomCurrent, setRoomCurrent } from "../../operations/data";
@@ -8,6 +8,9 @@ import { pubClient } from "../../lib/redisClients";
 export async function communicateNowPlaying(roomId: string) {
   const room = await pubClient.hGetAll(`room:${roomId}:details`);
   try {
+    if (room.fetchMeta === "false") {
+      return null;
+    }
     if (room.creator) {
       const nowPlaying = (await fetchNowPlaying(room.creator)) as SpotifyTrack;
       console.log("get current ");
@@ -19,7 +22,7 @@ export async function communicateNowPlaying(roomId: string) {
       if (!nowPlaying || !nowPlaying.uri) {
         return null;
       }
-      if (current?.uri === nowPlaying?.uri) {
+      if (current?.release?.uri === nowPlaying?.uri) {
         return null;
       }
 

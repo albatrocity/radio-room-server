@@ -1,4 +1,5 @@
 import { objectKeys } from "../../lib/tsExtras";
+import { isNil } from "remeda";
 
 import { pubClient } from "../../lib/redisClients";
 import { Reaction } from "../../types/Reaction";
@@ -6,7 +7,6 @@ import { Room, RoomMeta, StoredRoom, StoredRoomMeta } from "../../types/Room";
 import { StoredUser, User } from "../../types/User";
 import { ChatMessage } from "../../types/ChatMessage";
 import { compact } from "remeda";
-import { SpotifyTrack } from "../../types/SpotifyTrack";
 
 type HSetOptions = {
   PX?: number;
@@ -18,7 +18,9 @@ export async function writeJsonToHset(
   options: HSetOptions = {}
 ) {
   const writes = objectKeys(attributes).map((key) => {
-    return pubClient.hSet(setKey, key, String(attributes[key]));
+    if (!isNil(attributes[key])) {
+      return pubClient.hSet(setKey, key, String(attributes[key]));
+    }
   });
   if (options.PX) {
     pubClient.pExpire(setKey, options.PX);
