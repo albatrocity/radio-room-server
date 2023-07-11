@@ -1312,13 +1312,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash@npm:^4.14.195":
-  version: 4.14.195
-  resolution: "@types/lodash@npm:4.14.195"
-  checksum: 39b75ca635b3fa943d17d3d3aabc750babe4c8212485a4df166fe0516e39288e14b0c60afc6e21913cc0e5a84734633c71e617e2bd14eaa1cf51b8d7799c432e
-  languageName: node
-  linkType: hard
-
 "@types/mime@npm:*":
   version: 3.0.1
   resolution: "@types/mime@npm:3.0.1"
@@ -4588,13 +4581,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash-es@npm:^4.17.21":
-  version: 4.17.21
-  resolution: "lodash-es@npm:4.17.21"
-  checksum: 05cbffad6e2adbb331a4e16fbd826e7faee403a1a04873b82b42c0f22090f280839f85b95393f487c1303c8a3d2a010048bf06151a6cbe03eee4d388fb0a12d2
-  languageName: node
-  linkType: hard
-
 "lodash.assignin@npm:^4.0.9":
   version: 4.2.0
   resolution: "lodash.assignin@npm:4.2.0"
@@ -4683,13 +4669,6 @@ __metadata:
   version: 4.6.0
   resolution: "lodash.some@npm:4.6.0"
   checksum: 4469e76a389446d1166a29f844fb21398c36060d00258ce799710e046c55ed3c1af150c31b4856504e252bc813ba3fdcb6f255c490d9846738dd363a44665322
-  languageName: node
-  linkType: hard
-
-"lodash@npm:^4.17.21":
-  version: 4.17.21
-  resolution: "lodash@npm:4.17.21"
-  checksum: eb835a2e51d381e561e508ce932ea50a8e5a68f4ebdd771ea240d3048244a8d13658acbd502cd4829768c56f2e16bdd4340b9ea141297d472517b83868e677f7
   languageName: node
   linkType: hard
 
@@ -5598,7 +5577,6 @@ __metadata:
     "@types/express": ^4.17.17
     "@types/express-session": ^1
     "@types/jest": ^29.5.2
-    "@types/lodash": ^4.14.195
     "@types/mustache": ^4.2.2
     "@types/spotify-web-api-node": ^5.0.7
     "@typescript-eslint/eslint-plugin": latest
@@ -5613,8 +5591,6 @@ __metadata:
     express: ^4.18.2
     express-session: ^1.17.3
     jest: ^29.5.0
-    lodash: ^4.17.21
-    lodash-es: ^4.17.21
     mustache: ^4.2.0
     node-internet-radio: ^0.2.1
     node-mocks-http: ^1.12.2
