@@ -47,7 +47,11 @@ export async function djDeputizeUser(
     await addDj(socket.data.roomId, userId);
   }
 
-  const { user, users } = await updateUserAttributes(userId, { isDeputyDj });
+  const { user, users } = await updateUserAttributes(
+    userId,
+    { isDeputyDj },
+    socket.data.roomId
+  );
 
   if (socketId) {
     io.to(socketId).emit(

@@ -96,18 +96,26 @@ describe("djHandlers", () => {
       const { user } = setupDjTest();
 
       await djDeputizeUser({ io, socket }, user.userId);
-      expect(updateUserAttributes).toHaveBeenCalledWith("1", {
-        isDeputyDj: true,
-      });
+      expect(updateUserAttributes).toHaveBeenCalledWith(
+        "1",
+        {
+          isDeputyDj: true,
+        },
+        "djRoom"
+      );
     });
 
     test("unmarks user as deputy dj if already deputy dj", async () => {
       setupDjTest({ isAlreadyDj: true });
 
       await djDeputizeUser({ io, socket }, "1");
-      expect(updateUserAttributes).toHaveBeenCalledWith("1", {
-        isDeputyDj: false,
-      });
+      expect(updateUserAttributes).toHaveBeenCalledWith(
+        "1",
+        {
+          isDeputyDj: false,
+        },
+        "djRoom"
+      );
     });
 
     test("emits NEW_MESSAGE event to user", async () => {
