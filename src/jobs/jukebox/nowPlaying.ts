@@ -13,10 +13,8 @@ export async function communicateNowPlaying(roomId: string) {
     }
     if (room.creator) {
       const nowPlaying = (await fetchNowPlaying(room.creator)) as SpotifyTrack;
-      console.log("get current ");
       // Check currently playing track in the room
       const current = await getRoomCurrent(roomId);
-      console.log("current", current);
 
       // If there is no currently playing track, or the currently playing track is different from the one we just fetched, publish the new track data
       if (!nowPlaying || !nowPlaying.uri) {

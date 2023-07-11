@@ -83,7 +83,7 @@ export async function getAllRoomReactions(roomId: string) {
       -1
     );
     const trackKeys = await pubClient.zRange(
-      makeReactionTypeKey(roomId, { type: "message", id: "" }),
+      makeReactionTypeKey(roomId, { type: "track", id: "" }),
       0,
       -1
     );
