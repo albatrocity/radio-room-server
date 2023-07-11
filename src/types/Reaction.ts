@@ -12,3 +12,10 @@ export interface ReactionPayload {
   reactTo: ReactionSubject;
   user: User;
 }
+
+export type ReactionableType = "message" | "track";
+
+export type ReactionStore = Record<
+  ReactionableType,
+  Record<string, Reaction[]>
+>;

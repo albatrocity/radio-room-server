@@ -1,7 +1,6 @@
 import { compact } from "remeda";
 import { pubClient } from "../../lib/redisClients";
-import { ReactionStore } from "../../types/DataStores";
-import { Reaction, ReactionPayload } from "../../types/Reaction";
+import { Reaction, ReactionPayload, ReactionStore } from "../../types/Reaction";
 import { ReactionSubject } from "../../types/ReactionSubject";
 
 function makeReactionKey(roomId: string, reaction: ReactionPayload) {

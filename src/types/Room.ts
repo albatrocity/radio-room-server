@@ -1,3 +1,6 @@
+import { SpotifyTrack } from "./SpotifyTrack";
+import { User } from "./User";
+
 export type Room = {
   id: string;
   creator: string;
@@ -19,4 +22,17 @@ export interface StoredRoom
   fetchMeta: Bool;
   enableSpotifyLogin: Bool;
   deputizeOnJoin: Bool;
+}
+
+export type RoomMeta = {
+  release?: SpotifyTrack;
+  track?: string;
+  artist?: string;
+  album?: string;
+  title?: string;
+  bitrate?: number;
+  dj?: User;
+};
+export interface StoredRoomMeta extends Omit<StoredRoom, "release"> {
+  release?: string;
 }

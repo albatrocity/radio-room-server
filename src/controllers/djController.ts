@@ -4,9 +4,7 @@ import {
   djDeputizeUser,
   queueSong,
   searchSpotifyTrack,
-  setDj,
   savePlaylist,
-  handleUserJoined,
   getSavedTracks,
 } from "../handlers/djHandlers";
 import { events } from "../lib/eventEmitter";
@@ -14,10 +12,6 @@ import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 export default function djController(socket: Socket, io: Server) {
-  socket.on("set DJ", (userId: User["userId"]) =>
-    setDj({ socket, io }, userId)
-  );
-
   socket.on("dj deputize user", (userId: User["userId"]) =>
     djDeputizeUser({ socket, io }, userId)
   );

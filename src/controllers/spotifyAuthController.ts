@@ -3,7 +3,6 @@ import querystring from "querystring";
 import { Request, Response } from "express";
 import generateRandomString from "../lib/generateRandomString";
 import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
-import getAdminUserId from "../lib/getAdminUserId";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
 import { makeSpotifyApi } from "../lib/spotifyApi";
 
@@ -35,13 +34,8 @@ export async function login(req: Request, res: Response) {
   }
   res.cookie(redirectKey, req.query.redirect);
 
-  const adminUserId = await getAdminUserId();
-  const isApp = userId === "app";
-  const isAdmin = !userId || isApp || adminUserId === userId;
-
-  const scope = isAdmin
-    ? "user-read-private user-read-email playlist-read-collaborative playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-modify"
-    : "playlist-read-collaborative playlist-read-private playlist-modify-private user-library-read";
+  const scope =
+    "user-read-private user-read-email playlist-read-collaborative playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-modify";
 
   res.redirect(
     "https://accounts.spotify.com/authorize?" +

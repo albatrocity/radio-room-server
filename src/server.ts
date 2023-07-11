@@ -1,15 +1,13 @@
+import { execa } from "execa";
 import { createAdapter } from "@socket.io/redis-adapter";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { Server } from "socket.io";
 
-import { FORTY_FIVE_MINS } from "./lib/constants";
 import { pubClient, subClient } from "./lib/redisClients";
+import { bindPubSubHandlers } from "./pubSub/handlers";
 import { events } from "./lib/eventEmitter";
-import { getters, setters } from "./lib/dataStore";
-import fetchAndSetMeta from "./operations/fetchAndSetMeta";
-import getStation from "./operations/getStation";
 import { callback, login } from "./controllers/spotifyAuthController";
 import { create, findRoom } from "./controllers/roomsController";
 
@@ -23,11 +21,8 @@ import djController, {
 } from "./controllers/djController";
 
 import messageController from "./controllers/messageController";
-import refreshAllSpotifyTokens from "./operations/spotify/refreshAllSpotifyTokens";
 
 const PORT = Number(process.env.PORT ?? 3000);
-
-const streamURL = process.env.SERVER_URL;
 
 const httpServer = express()
   .use(express.static(__dirname + "/public"))
@@ -77,51 +72,15 @@ io.on("connection", (socket) => {
 // lifecycle events
 djEvents(io);
 activityEvents(io);
+bindPubSubHandlers(io);
 
-// async function pollStationInfo() {
-//   if (getters.getFetching()) {
-//     return;
-//   }
-//   setters.setFetching(true);
-//   const station = await getStation(`${streamURL}/stream?type=http&nocache=4`);
-//   if ((!station || station.bitrate === "0") && !offline) {
-//     fetchAndSetMeta({ io });
-//     offline = true;
-//     setters.setFetching(false);
-//     if (oAuthInterval) {
-//       clearInterval(oAuthInterval);
-//     }
-//     oAuthInterval = null;
-//     return;
-//   }
+async function startJobs() {
+  try {
+    // @ts-ignore
+    await execa("node", ["dist/jobs/processor.js"]).pipeStdout(process.stdout);
+  } catch (e) {
+    console.error(e);
+  }
+}
 
-//   if (station && station.title !== getters.getMeta().title && !offline) {
-//     await fetchAndSetMeta({ io }, station, station.title);
-//   }
-
-//   if (
-//     offline &&
-//     station &&
-//     station.bitrate &&
-//     station.bitrate !== "" &&
-//     station.bitrate !== "0"
-//   ) {
-//     setters.setSettings({ ...getters.getSettings(), artwork: undefined });
-//     offline = false;
-//     try {
-//       await refreshAllSpotifyTokens();
-//       oAuthInterval = setInterval(() => {
-//         refreshAllSpotifyTokens();
-//       }, FORTY_FIVE_MINS);
-//     } catch (e) {
-//       console.log(e);
-//     } finally {
-//       await fetchAndSetMeta({ io }, station);
-//     }
-//   }
-//   setters.setFetching(false);
-// }
-
-// setInterval(() => {
-//   pollStationInfo();
-// }, 3000);
+startJobs();

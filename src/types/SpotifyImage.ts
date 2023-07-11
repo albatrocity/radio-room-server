@@ -1,5 +1,5 @@
 export interface SpotifyImage {
-  width: number;
-  height: number;
+  width?: number | undefined;
+  height?: number | undefined;
   url: string;
 }

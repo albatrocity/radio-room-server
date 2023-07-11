@@ -2,8 +2,6 @@ import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
 
 import { isNil, uniqBy } from "remeda";
-import { reject } from "remeda";
-import { getters, setters } from "../lib/dataStore";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 import { events } from "../lib/eventEmitter";
@@ -22,8 +20,9 @@ import {
   persistUser,
   removeOnlineUser,
   getRoomPlaylist,
+  getRoomCurrent,
+  updateUserAttributes,
 } from "../operations/data";
-import updateUserAttributes from "../lib/updateUserAttributes";
 import { pubUserJoined } from "../operations/sockets/users";
 
 export async function checkPassword(
@@ -70,10 +69,7 @@ export async function login(
     roomId: string;
   }
 ) {
-  console.log("login", username, userId, password, roomId);
   const users = await getRoomUsers(roomId);
-  const room = await findRoom(roomId);
-  console.log(`joining ${getRoomPath(roomId)}`);
   socket.join(getRoomPath(roomId));
 
   socket.data.username = username;
@@ -95,13 +91,7 @@ export async function login(
   await addOnlineUser(roomId, userId);
   await persistUser(userId, newUser);
 
-  socket.broadcast.to(getRoomPath(roomId)).emit("event", {
-    type: "USER_JOINED",
-    data: {
-      user: newUser,
-      users: newUsers,
-    },
-  });
+  pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
 
   events.emit("USER_JOINED", {
     user: newUser,
@@ -110,7 +100,7 @@ export async function login(
 
   const messages = await getMessages(roomId, 0, 100);
   const playlist = await getRoomPlaylist(roomId);
-
+  const meta = await getRoomCurrent(roomId);
   const allReactions = await getAllRoomReactions(roomId);
 
   socket.emit("event", {
@@ -118,9 +108,7 @@ export async function login(
     data: {
       users: newUsers,
       messages,
-      meta: room?.artwork
-        ? { ...getters.getMeta(), artwork: room?.artwork }
-        : getters.getMeta(),
+      meta,
       playlist: playlist,
       reactions: allReactions,
       currentUser: {
@@ -139,6 +127,7 @@ export async function changeUsername(
 ) {
   const user = await getUser(userId);
   const oldUsername = user?.username;
+
   if (user) {
     const { users: newUsers, user: newUser } = await updateUserAttributes(
       userId,
@@ -153,11 +142,11 @@ export async function changeUsername(
     });
     sendMessage(
       io,
+      socket.data.roomId,
       systemMessage(content, {
         oldUsername,
         userId,
-      }),
-      socket.data.roomId
+      })
     );
   }
 }

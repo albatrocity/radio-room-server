@@ -1,11 +1,9 @@
-import { getters, setters } from "../lib/dataStore";
 import parseMessage from "../lib/parseMessage";
 import sendMessage from "../lib/sendMessage";
 import {
   clearMessages as clearMessagesData,
   getUser,
 } from "../operations/data";
-// import { processTriggerAction } from "../operations/processTriggerAction";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
@@ -21,7 +19,7 @@ export async function newMessage(
   message: string
 ) {
   const user = await getUser(socket.data.userId);
-  const { content, mentions } = parseMessage(message);
+  const { content, mentions } = parseMessage(socket.data.roomId, message);
   const fallbackUser: User = {
     username: socket.data.username,
     userId: socket.data.userId,
@@ -40,22 +38,12 @@ export async function newMessage(
     type: "TYPING",
     data: { typing },
   });
-  await sendMessage(io, payload, socket.data.roomId);
-  // processTriggerAction<ChatMessage>(
-  //   {
-  //     type: "message",
-  //     data: payload,
-  //   },
-  //   io
-  // );
+  await sendMessage(io, socket.data.roomId, payload);
 }
 
 export async function clearMessages({ socket, io }: HandlerConnections) {
   const roomId = socket?.data?.roomId;
   await clearMessagesData(roomId);
-  setters.setTriggerEventHistory(
-    getters.getTriggerEventHistory().filter((x) => x.target?.type !== "message")
-  );
   io.to(getRoomPath(roomId)).emit("event", {
     type: "SET_MESSAGES",
     data: { messages: [] },

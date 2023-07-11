@@ -1,11 +1,12 @@
-import { objectKeys } from "ts-extras";
+import { objectKeys } from "../../lib/tsExtras";
 
 import { pubClient } from "../../lib/redisClients";
 import { Reaction } from "../../types/Reaction";
-import { Room, StoredRoom } from "../../types/Room";
+import { Room, RoomMeta, StoredRoom, StoredRoomMeta } from "../../types/Room";
 import { StoredUser, User } from "../../types/User";
 import { ChatMessage } from "../../types/ChatMessage";
 import { compact } from "remeda";
+import { SpotifyTrack } from "../../types/SpotifyTrack";
 
 type HSetOptions = {
   PX?: number;
@@ -13,7 +14,7 @@ type HSetOptions = {
 
 export async function writeJsonToHset(
   setKey: string,
-  attributes: Partial<User | Room | ChatMessage | Reaction>,
+  attributes: Partial<User | Room | ChatMessage | Reaction | StoredRoomMeta>,
   options: HSetOptions = {}
 ) {
   const writes = objectKeys(attributes).map((key) => {
@@ -82,5 +83,6 @@ export function mapRoomBooleans(room: StoredRoom): Room {
     fetchMeta: room.fetchMeta === "true",
     enableSpotifyLogin: room.enableSpotifyLogin === "true",
     deputizeOnJoin: room.deputizeOnJoin === "true",
+    ...(room.artwork === "undefined" ? {} : { artwork: room.artwork }),
   };
 }

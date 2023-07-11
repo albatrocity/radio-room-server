@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node --enable-source-maps dist/server.js",
-    "start:watch": "nodemon ./dist/server.js",
-    "build": "rm -rf dist && esbuild ./src/server.ts --bundle --target=es2022 --platform=node --sourcemap --outdir=dist",
+    "start:watch": "nodemon ./dist/server.js ./dist/jobs/processor.ts",
+    "build": "rm -rf dist && esbuild ./src/server.ts ./src/jobs/processor.ts --bundle --target=es2022 --platform=node --sourcemap --outdir=dist",
     "build:watch": "yarn build --watch",
     "dev": "yarn build && yarn start:watch & yarn build:watch",
     "test": "jest --watch"
@@ -23,6 +23,7 @@
     "connect-redis": "^7.1.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "execa": "^7.1.1",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "lodash": "^4.17.21",
@@ -36,7 +37,6 @@
     "socket.io": "^4.6.2",
     "socket.io-adapter": "^2.5.2",
     "spotify-web-api-node": "^5.0.2",
-    "ts-extras": "^0.11.0",
     "typescript": "^5.1.3",
     "xstate": "^4.37.2"
   },

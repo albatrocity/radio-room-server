@@ -1,21 +1,19 @@
-import { getRoomUsersCount, getRoomPlaylist } from "../operations/data";
-import { getters } from "./dataStore";
+import { getQueue, getRoomPlaylist, getRoomUsers } from "../operations/data";
 
 export default async function getMessageVariables(roomId: string) {
-  const userCount = await getRoomUsersCount(roomId);
+  const users = await getRoomUsers(roomId);
   const playlist = await getRoomPlaylist(roomId);
   const nowPlaying = playlist[playlist.length - 1];
+  const queue = await getQueue(roomId);
+
   return {
     currentTrack: { ...nowPlaying, title: nowPlaying?.track },
     nowPlaying: nowPlaying?.text,
-    listenerCount: getters
-      .getUsers()
-      .filter(({ status }) => status == "listening").length,
-    participantCount: getters
-      .getUsers()
-      .filter(({ status }) => status == "participating").length,
-    userCount: userCount,
+    listenerCount: users.filter(({ status }) => status == "listening").length,
+    participantCount: users.filter(({ status }) => status == "participating")
+      .length,
+    userCount: users.length,
     playlistCount: playlist.length,
-    queueCount: getters.getQueue().length,
+    queueCount: queue.length,
   };
 }

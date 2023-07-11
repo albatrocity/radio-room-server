@@ -1,5 +1,4 @@
 import performTriggerAction from "./performTriggerAction";
-import { getters } from "../lib/dataStore";
 import {
   TriggerEvent,
   TriggerSourceEvent,
@@ -32,19 +31,19 @@ function getThresholdValue<T>(count: number, conditions: TriggerConditions<T>) {
 }
 
 async function getCompareTo(roomId: Room["id"], target?: TriggerTarget) {
-  const messages = await getMessages(roomId, 0, 200);
-  const users = await getRoomUsers(roomId);
-  return {
-    listeners: getters
-      .getUsers()
-      .filter(({ status }) => status === "listening"),
-    users: users,
-    messages,
-    reactions:
-      target && target.id
-        ? getters.getReactions()[target.type][target.id] || []
-        : [],
-  };
+  // const messages = await getMessages(roomId, 0, 200);
+  // const users = await getRoomUsers(roomId);
+  // return {
+  //   listeners: getters
+  //     .getUsers()
+  //     .filter(({ status }) => status === "listening"),
+  //   users: users,
+  //   messages,
+  //   reactions:
+  //     target && target.id
+  //       ? getters.getReactions()[target.type][target.id] || []
+  //       : [],
+  // };
 }
 
 function meetsThreshold<Incoming, Source>(
@@ -56,45 +55,45 @@ function meetsThreshold<Incoming, Source>(
   if (!conditions) {
     return true;
   }
-  const instances = getters.getTriggerEventHistory().filter((event) => {
-    const matchOn = event.on === trigger.on;
-    const matchConditions = event.conditions === trigger.conditions;
-    const matchSubject = event.subject === trigger.subject;
-    const matchTargetId = event.target?.id === trigger.target?.id;
-    const matchTargetType = event.target?.type === trigger.target?.type;
-    const matchAction = event.action === trigger.action;
-    return (
-      matchOn &&
-      matchConditions &&
-      matchSubject &&
-      matchTargetId &&
-      matchTargetType &&
-      matchAction
-    );
-  });
+  // const instances = getters.getTriggerEventHistory().filter((event) => {
+  //   const matchOn = event.on === trigger.on;
+  //   const matchConditions = event.conditions === trigger.conditions;
+  //   const matchSubject = event.subject === trigger.subject;
+  //   const matchTargetId = event.target?.id === trigger.target?.id;
+  //   const matchTargetType = event.target?.type === trigger.target?.type;
+  //   const matchAction = event.action === trigger.action;
+  //   return (
+  //     matchOn &&
+  //     matchConditions &&
+  //     matchSubject &&
+  //     matchTargetId &&
+  //     matchTargetType &&
+  //     matchAction
+  //   );
+  // });
 
-  if (conditions.maxTimes && instances.length >= conditions.maxTimes) {
-    return false;
-  }
+  // if (conditions.maxTimes && instances.length >= conditions.maxTimes) {
+  //   return false;
+  // }
 
-  const compareTo = conditions.compareTo
-    ? data.meta.compareTo?.[conditions.compareTo] || data.meta.sourcesOnSubject
-    : data.meta.sourcesOnSubject;
+  // const compareTo = conditions.compareTo
+  //   ? data.meta.compareTo?.[conditions.compareTo] || data.meta.sourcesOnSubject
+  //   : data.meta.sourcesOnSubject;
 
-  const threshValue = getThresholdValue<Source>(compareTo.length, conditions);
+  // const threshValue = getThresholdValue<Source>(compareTo.length, conditions);
 
-  switch (conditions.comparator) {
-    case "<":
-      return count < threshValue;
-    case "<=":
-      return count <= threshValue;
-    case "=":
-      return count == threshValue;
-    case ">":
-      return count > threshValue;
-    case ">=":
-      return count >= threshValue;
-  }
+  // switch (conditions.comparator) {
+  //   case "<":
+  //     return count < threshValue;
+  //   case "<=":
+  //     return count <= threshValue;
+  //   case "=":
+  //     return count == threshValue;
+  //   case ">":
+  //     return count > threshValue;
+  //   case ">=":
+  //     return count >= threshValue;
+  // }
 }
 
 export function processTrigger<Incoming, Source>(
@@ -102,17 +101,16 @@ export function processTrigger<Incoming, Source>(
   trigger: TriggerEvent<Source>,
   io: Server
 ) {
-  const eligible = data.meta.sourcesOnSubject.filter((x) => {
-    if (trigger.conditions) {
-      return makeQualifierFn<Source>(trigger.conditions.qualifier, x);
-    } else {
-      return true;
-    }
-  });
-
-  if (meetsThreshold<Incoming, Source>(eligible.length, trigger, data)) {
-    performTriggerAction<Incoming, Source>(data, trigger, io);
-  }
+  // const eligible = data.meta.sourcesOnSubject.filter((x) => {
+  //   if (trigger.conditions) {
+  //     return makeQualifierFn<Source>(trigger.conditions.qualifier, x);
+  //   } else {
+  //     return true;
+  //   }
+  // });
+  // if (meetsThreshold<Incoming, Source>(eligible.length, trigger, data)) {
+  //   performTriggerAction<Incoming, Source>(data, trigger, io);
+  // }
 }
 
 export function processReactionTriggers(
@@ -121,26 +119,25 @@ export function processReactionTriggers(
   triggers: ReactionTriggerEvent[],
   io: Server
 ) {
-  triggers.map(async (t) => {
-    const currentReactions = await getReactionsForSubject(roomId, data.reactTo);
-    const target = await getActionTarget(roomId, t.target);
-    const trigger = await captureTriggerTarget<Reaction>(roomId, t);
-    const meta: TriggerMeta<Reaction> = {
-      sourcesOnSubject: currentReactions,
-      compareTo: await getCompareTo(roomId, t.target),
-      target,
-      ...trigger.meta,
-    };
-
-    return processTrigger<ReactionPayload, Reaction>(
-      {
-        ...data,
-        meta,
-      },
-      trigger,
-      io
-    );
-  });
+  // triggers.map(async (t) => {
+  //   const currentReactions = await getReactionsForSubject(roomId, data.reactTo);
+  //   const target = await getActionTarget(roomId, t.target);
+  //   const trigger = await captureTriggerTarget<Reaction>(roomId, t);
+  //   const meta: TriggerMeta<Reaction> = {
+  //     sourcesOnSubject: currentReactions,
+  //     compareTo: await getCompareTo(roomId, t.target),
+  //     target,
+  //     ...trigger.meta,
+  //   };
+  //   return processTrigger<ReactionPayload, Reaction>(
+  //     {
+  //       ...data,
+  //       meta,
+  //     },
+  //     trigger,
+  //     io
+  //   );
+  // });
 }
 
 export async function processMessageTriggers(
@@ -150,23 +147,23 @@ export async function processMessageTriggers(
   io: Server
 ) {
   const currentMessages = await getMessages(roomId, 0, 200);
-  triggers.map(async (t) => {
-    const target = await getActionTarget(roomId, t.target);
-    const trigger = await captureTriggerTarget(roomId, t);
-    return processTrigger<ChatMessage, ChatMessage>(
-      {
-        ...data,
-        meta: {
-          sourcesOnSubject: currentMessages,
-          compareTo: await getCompareTo(roomId, t.target),
-          target,
-          ...trigger.meta,
-        },
-      },
-      trigger,
-      io
-    );
-  });
+  // triggers.map(async (t) => {
+  //   const target = await getActionTarget(roomId, t.target);
+  //   const trigger = await captureTriggerTarget(roomId, t);
+  //   return processTrigger<ChatMessage, ChatMessage>(
+  //     {
+  //       ...data,
+  //       meta: {
+  //         sourcesOnSubject: currentMessages,
+  //         compareTo: await getCompareTo(roomId, t.target),
+  //         target,
+  //         ...trigger.meta,
+  //       },
+  //     },
+  //     trigger,
+  //     io
+  //   );
+  // });
 }
 
 /**
@@ -177,22 +174,22 @@ export function processTriggerAction<T extends ReactionPayload | ChatMessage>(
   roomId: Room["id"],
   io: Server
 ) {
-  switch (type) {
-    case "reaction":
-      return processReactionTriggers(
-        data as ReactionPayload,
-        roomId,
-        getters.getReactionTriggerEvents(),
-        io
-      );
-    case "message":
-      return processMessageTriggers(
-        data as ChatMessage,
-        roomId,
-        getters.getMessageTriggerEvents(),
-        io
-      );
-  }
+  // switch (type) {
+  //   case "reaction":
+  //     return processReactionTriggers(
+  //       data as ReactionPayload,
+  //       roomId,
+  //       getters.getReactionTriggerEvents(),
+  //       io
+  //     );
+  //   case "message":
+  //     return processMessageTriggers(
+  //       data as ChatMessage,
+  //       roomId,
+  //       getters.getMessageTriggerEvents(),
+  //       io
+  //     );
+  // }
 }
 
 /**

@@ -4,7 +4,7 @@ import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
 
 jest.mock("../operations/spotify/getSpotifyAuthTokens");
-jest.mock("../lib/updateUserAttributes");
+jest.mock("../operations/data");
 jest.mock("../lib/generateRandomString", () => () => "RANDOM_STRING");
 jest.mock("../operations/spotify/storeUserSpotifyTokens", () => jest.fn());
 jest.mock("../lib/spotifyApi", () => ({
@@ -44,24 +44,6 @@ describe("login", () => {
 
     expect(response._getRedirectUrl()).toBe(
       `https://accounts.spotify.com/authorize?response_type=code&client_id=&scope=user-read-private%20user-read-email%20playlist-read-collaborative%20playlist-modify-private%20playlist-modify-public%20user-read-playback-state%20user-modify-playback-state%20user-read-currently-playing%20user-library-modify&redirect_uri=&state=RANDOM_STRING`
-    );
-  });
-
-  it("uses limited spotify scope for guests", async () => {
-    const request = httpMocks.createRequest({
-      method: "GET",
-      url: "/login",
-      query: {
-        userId: 1234,
-      },
-    });
-
-    const response = httpMocks.createResponse();
-
-    await login(request, response);
-
-    expect(response._getRedirectUrl()).toBe(
-      `https://accounts.spotify.com/authorize?response_type=code&client_id=&scope=playlist-read-collaborative%20playlist-read-private%20playlist-modify-private%20user-library-read&redirect_uri=&state=RANDOM_STRING&userId=1234`
     );
   });
 });

@@ -137,3 +137,14 @@ export async function deleteUser(userId: string) {
     return null;
   }
 }
+
+export async function updateUserAttributes(
+  userId: string,
+  attributes: Partial<User>,
+  roomId?: string
+) {
+  await persistUser(userId, attributes);
+  const users = roomId ? await getRoomUsers(roomId) : [];
+  const user = users.find((u) => u?.userId === userId);
+  return { user, users };
+}

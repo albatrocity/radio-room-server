@@ -14,9 +14,15 @@ import { User } from "../types/User";
 import { events } from "../lib/eventEmitter";
 
 export default function activityController(socket: Socket, io: Server) {
-  socket.on("start listening", () => startListening({ socket, io }));
+  socket.on("start listening", () => {
+    console.log("START LISTENING SOCKET EVENT");
+    startListening({ socket, io });
+  });
 
-  socket.on("stop listening", () => stopListening({ socket, io }));
+  socket.on("stop listening", () => {
+    console.log("STOP LISTENING SOCKET EVENT");
+    stopListening({ socket, io });
+  });
 
   socket.on(
     "add reaction",

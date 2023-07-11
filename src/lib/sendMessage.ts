@@ -5,8 +5,8 @@ import { persistMessage } from "../operations/data";
 
 async function sendMessage(
   io: Server,
-  message: ChatMessage,
-  roomId: string = "/"
+  roomId: string = "/",
+  message: ChatMessage
 ) {
   io.to(getRoomPath(roomId)).emit("event", {
     type: "NEW_MESSAGE",

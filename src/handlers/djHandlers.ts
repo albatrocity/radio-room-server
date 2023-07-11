@@ -1,8 +1,5 @@
-import { getters, setters } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
-import globalSpotifyApi from "../lib/spotifyApi";
 import systemMessage from "../lib/systemMessage";
-import updateUserAttributes from "../lib/updateUserAttributes";
 import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
 import syncQueue from "../operations/spotify/syncQueue";
 
@@ -10,56 +7,22 @@ import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
 import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
-import getSpotifyApiForUser from "../operations/spotify/getSpotifyApiForUser";
+import { getSpotifyApiForRoom } from "../operations/spotify/getSpotifyApi";
 import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
-import getRoomPath from "../lib/getRoomPath";
+
 import {
   addDj,
   addToQueue,
   findRoom,
   getDjs,
+  getQueue,
   getRoomUsers,
   getUser,
   isDj,
   removeDj,
+  updateUserAttributes,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
-
-export async function setDj(
-  { io, socket }: HandlerConnections,
-  userId?: User["userId"]
-) {
-  if (userId) {
-    const foundUser = await getUser(userId);
-    // Skip if user is the DJ
-    if (foundUser?.isDj) {
-      return;
-    }
-
-    const { user, users } = await updateUserAttributes(userId, { isDj: true });
-    const content = `${user?.username} is now the DJ`;
-    const newMessage = systemMessage(content, {
-      userId,
-    });
-    await sendMessage(io, newMessage, socket.data.roomId);
-    await pubUserJoined({ io }, socket.data.roomId, { user, users });
-  } else {
-    const users = await getRoomUsers(socket.data.roomId);
-    const dj = users.find((u) => u.isDj);
-    if (!dj) {
-      return;
-    }
-    await updateUserAttributes(dj?.userId, { isDj: false });
-
-    const content = `There's currently no DJ.`;
-    const newMessage = systemMessage(content, {
-      userId,
-    });
-
-    await sendMessage(io, newMessage, socket.data.roomId);
-    await pubUserJoined({ io }, socket.data.roomId, { users });
-  }
-}
 
 export async function djDeputizeUser(
   { io, socket }: HandlerConnections,
@@ -99,13 +62,7 @@ export async function djDeputizeUser(
     io.to(socketId).emit("event", { type: eventType });
   }
 
-  io.to(getRoomPath(socket.data.roomId)).emit("event", {
-    type: "USER_JOINED",
-    data: {
-      user,
-      users,
-    },
-  });
+  pubUserJoined({ io }, socket.data.roomId, { user, users });
 }
 
 export async function queueSong(
@@ -115,7 +72,10 @@ export async function queueSong(
   try {
     const currentUser = await getUser(socket.data.userId);
     await syncQueue(socket.data.roomId);
-    const inQueue = getters.getQueue().find((x) => x.uri === uri);
+
+    const queue = await getQueue(socket.data.roomId);
+
+    const inQueue = queue.find((x) => x.uri === uri);
 
     if (inQueue) {
       const djUsername = (await getUser(inQueue.userId))?.username ?? "Someone";
@@ -131,8 +91,8 @@ export async function queueSong(
       });
       return;
     }
-    const data = await globalSpotifyApi.addToQueue(uri);
-
+    const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
+    const data = await spotifyApi.addToQueue(uri);
     await addToQueue(socket.data.roomId, {
       uri,
       userId: socket.data.userId,
@@ -148,7 +108,7 @@ export async function queueSong(
         currentUser ? currentUser.username : "Someone"
       } added a song to the queue`
     );
-    sendMessage(io, queueMessage, socket.data.roomId);
+    sendMessage(io, socket.data.roomId, queueMessage);
   } catch (e) {
     socket.emit("event", {
       type: "SONG_QUEUE_FAILURE",
@@ -164,7 +124,7 @@ export async function searchSpotifyTrack(
   { socket }: HandlerConnections,
   { query, options }: { query: string; options: SearchOptions }
 ) {
-  const spotifyApi = await getSpotifyApiForUser(socket.data.userId);
+  const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
 
   try {
     const data = await spotifyApi.searchTracks(query, options);
@@ -205,7 +165,7 @@ export async function savePlaylist(
 }
 
 export async function getSavedTracks({ socket }: HandlerConnections) {
-  const spotifyApi = await getSpotifyApiForUser(socket.data.userId);
+  const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
   try {
     const data = await spotifyApi.getMySavedTracks();
     socket.emit("event", { type: "SAVED_TRACKS_RESULTS", data: data.body });

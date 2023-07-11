@@ -1,7 +1,7 @@
 import { create } from "../controllers/roomsController";
 import httpMocks from "node-mocks-http";
 import { checkUserChallenge } from "../operations/userChallenge";
-import { persistRoom } from "../operations/createRoom";
+import { persistRoom } from "../operations/data";
 
 jest.mock("../operations/userChallenge", () => ({
   checkUserChallenge: jest.fn(),
@@ -11,6 +11,7 @@ jest.mock("../operations/createRoom", () => ({
   persistRoom: jest.fn(),
   withDefaults: jest.requireActual("../operations/createRoom").withDefaults,
 }));
+jest.mock("../operations/data");
 
 describe("create", () => {
   it("should check user challenge", async () => {

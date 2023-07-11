@@ -1,15 +1,12 @@
-import { reject } from "remeda";
-
 import { REACTIONABLE_TYPES } from "../lib/constants";
-import { getters, setters } from "../lib/dataStore";
-import updateUserAttributes from "../lib/updateUserAttributes";
 import systemMessage from "../lib/systemMessage";
 import sendMessage from "../lib/sendMessage";
-import { processTriggerAction } from "../operations/processTriggerAction";
+
 import {
   addReaction as addReactionData,
   getAllRoomReactions,
   removeReaction as removeReactionData,
+  updateUserAttributes,
 } from "../operations/data";
 
 import { HandlerConnections } from "../types/HandlerConnections";
@@ -18,31 +15,28 @@ import { User } from "../types/User";
 import { ReactionPayload } from "../types/Reaction";
 import { Emoji } from "../types/Emoji";
 import getRoomPath from "../lib/getRoomPath";
+import { pubUserJoined } from "../operations/sockets/users";
 
-export function startListening({ socket, io }: HandlerConnections) {
-  const { user, users } = updateUserAttributes(socket.data.userId, {
-    status: "listening",
-  });
-  io.to(getRoomPath(socket.data.roomId)).emit("event", {
-    type: "USER_JOINED",
-    data: {
-      user,
-      users,
+export async function startListening({ socket, io }: HandlerConnections) {
+  const { user, users } = await updateUserAttributes(
+    socket.data.userId,
+    {
+      status: "listening",
     },
-  });
+    socket.data.roomId
+  );
+  pubUserJoined({ io }, socket.data.roomId, { user, users });
 }
 
-export function stopListening({ socket, io }: HandlerConnections) {
-  const { user, users } = updateUserAttributes(socket.data.userId, {
-    status: "participating",
-  });
-  io.to(getRoomPath(socket.data.roomId)).emit("event", {
-    type: "USER_JOINED",
-    data: {
-      user,
-      users,
+export async function stopListening({ socket, io }: HandlerConnections) {
+  const { user, users } = await updateUserAttributes(
+    socket.data.userId,
+    {
+      status: "participating",
     },
-  });
+    socket.data.roomId
+  );
+  pubUserJoined({ io }, socket.data.roomId, { user, users });
 }
 
 export async function addReaction(
@@ -59,13 +53,6 @@ export async function addReaction(
     type: "REACTIONS",
     data: { reactions },
   });
-  // processTriggerAction<ReactionPayload>(
-  //   {
-  //     type: "reaction",
-  //     data: { emoji, reactTo, user },
-  //   },
-  //   io
-  // );
 }
 
 export async function removeReaction(
@@ -91,25 +78,18 @@ export async function removeReaction(
     type: "REACTIONS",
     data: { reactions },
   });
-  // processTriggerAction<ReactionPayload>(
-  //   {
-  //     type: "reaction",
-  //     data: { emoji, reactTo, user },
-  //   },
-  //   io
-  // );
 }
 
 export function handlePlaybackPaused({ io, socket }: HandlerConnections) {
   const newMessage = systemMessage("Server playback has been paused", {
     type: "alert",
   });
-  sendMessage(io, newMessage, socket.data.roomId);
+  sendMessage(io, socket.data.roomId, newMessage);
 }
 
 export function handlePlaybackResumed({ io, socket }: HandlerConnections) {
   const newMessage = systemMessage("Server playback has been resumed", {
     type: "alert",
   });
-  sendMessage(io, newMessage, socket.data.roomId);
+  sendMessage(io, socket.data.roomId, newMessage);
 }

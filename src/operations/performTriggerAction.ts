@@ -4,10 +4,7 @@ import likeSpotifyTrack from "../operations/spotify/likeSpotifyTrack";
 import skipSpotifyTrack from "../operations/spotify/skipSpotifyTrack";
 import pauseSpotify from "../operations/spotify/pauseSpotify";
 import resumeSpotify from "../operations/spotify/resumeSpotify";
-import { getters, setters } from "../lib/dataStore";
-import sendMessage from "../lib/sendMessage";
-import systemMessage from "../lib/systemMessage";
-import parseMessage from "../lib/parseMessage";
+
 import { WithTimestamp } from "../types/Utility";
 import { PlaylistTrack } from "../types/PlaylistTrack";
 
@@ -16,26 +13,26 @@ function sendMetaMessage<Incoming, Source>(
   trigger: TriggerEvent<Source>,
   io: Server
 ) {
-  if (trigger.meta?.messageTemplate) {
-    const message = parseMessage(trigger.meta.messageTemplate, {
-      ...data,
-      target: {
-        ...data.meta.target,
-      },
-      trigger,
-    });
-    sendMessage(
-      io,
-      systemMessage(
-        message.content,
-        {
-          status: "info",
-          title: `${trigger.action} action was triggered`,
-        },
-        message.mentions
-      )
-    );
-  }
+  // if (trigger.meta?.messageTemplate) {
+  //   const message = parseMessage(trigger.meta.messageTemplate, {
+  //     ...data,
+  //     target: {
+  //       ...data.meta.target,
+  //     },
+  //     trigger,
+  //   });
+  //   sendMessage(
+  //     io,
+  //     systemMessage(
+  //       message.content,
+  //       {
+  //         status: "info",
+  //         title: `${trigger.action} action was triggered`,
+  //       },
+  //       message.mentions
+  //     )
+  //   );
+  // }
 }
 
 export default function performTriggerAction<Incoming, Source>(
@@ -69,13 +66,13 @@ export default function performTriggerAction<Incoming, Source>(
       break;
   }
 
-  const currentEvents = getters.getTriggerEventHistory();
+  // const currentEvents = getters.getTriggerEventHistory();
 
-  setters.setTriggerEventHistory([
-    ...currentEvents,
-    {
-      ...trigger,
-      timestamp: new Date().toString(),
-    },
-  ] as WithTimestamp<TriggerEvent<any>>[]);
+  // setters.setTriggerEventHistory([
+  //   ...currentEvents,
+  //   {
+  //     ...trigger,
+  //     timestamp: new Date().toString(),
+  //   },
+  // ] as WithTimestamp<TriggerEvent<any>>[]);
 }

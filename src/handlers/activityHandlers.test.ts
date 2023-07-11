@@ -6,128 +6,136 @@ import {
   addReaction,
   removeReaction,
 } from "./activityHandlers";
-import { setters, resetDataStores } from "../lib/dataStore";
+import {
+  updateUserAttributes,
+  addReaction as addReactionData,
+  removeReaction as removeReactionData,
+  getAllRoomReactions,
+} from "../operations/data";
+import { pubUserJoined } from "../operations/sockets/users";
 
 jest.mock("../lib/sendMessage");
+jest.mock("../operations/data");
 jest.mock("../operations/performTriggerAction");
+jest.mock("../operations/sockets/users");
 
 afterEach(() => {
-  jest.restoreAllMocks();
-  resetDataStores();
+  jest.clearAllMocks();
 });
 
+function setupTest({ updatedStatus = "listening" } = {}) {
+  (updateUserAttributes as jest.Mock).mockResolvedValueOnce({
+    user: {
+      status: updatedStatus,
+      userId: "1",
+      username: "Homer",
+    },
+    users: [
+      {
+        status: updatedStatus,
+        userId: "1",
+        username: "Homer",
+      },
+    ],
+  });
+}
+
+function setupReactionTest({} = {}) {
+  (addReactionData as jest.Mock).mockResolvedValueOnce(null);
+
+  (getAllRoomReactions as jest.Mock).mockResolvedValueOnce({
+    message: {},
+    track: {},
+  });
+}
+
 describe("activityHandlers", () => {
-  const { socket, io, broadcastEmit, emit } = makeSocket();
+  const { socket, io, broadcastEmit, emit, toEmit } = makeSocket({
+    roomId: "activityRoom",
+  });
 
   describe("startListening", () => {
-    test("broadcasts USER_JOINED event", async () => {
+    test("calls pubUserJoined", async () => {
+      setupTest();
       socket.data.userId = "1";
       socket.data.username = "Homer";
-      setters.setUsers([
-        {
+
+      await startListening({ socket, io });
+      expect(pubUserJoined).toHaveBeenCalledWith({ io }, "activityRoom", {
+        user: {
+          status: "listening",
           userId: "1",
           username: "Homer",
         },
-      ]);
-
-      startListening({ socket, io });
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "USER_JOINED",
-        data: {
-          user: {
+        users: [
+          {
             status: "listening",
             userId: "1",
             username: "Homer",
           },
-          users: [
-            {
-              status: "listening",
-              userId: "1",
-              username: "Homer",
-            },
-          ],
-        },
+        ],
       });
     });
-
-    test("calls setUsers with new users", async () => {
+    test("calls updateUserAttributes", async () => {
+      setupTest();
       socket.data.userId = "1";
       socket.data.username = "Homer";
-      setters.setUsers([
-        {
-          userId: "1",
-          username: "Homer",
-        },
-      ]);
-      const spy = jest.spyOn(setters, "setUsers");
 
-      startListening({ socket, io });
-      expect(spy).toHaveBeenCalledWith([
-        { status: "listening", userId: "1", username: "Homer" },
-      ]);
+      await startListening({ socket, io });
+      expect(updateUserAttributes).toHaveBeenCalledWith(
+        "1",
+        {
+          status: "listening",
+        },
+        "activityRoom"
+      );
     });
   });
 
   describe("stopListening", () => {
-    test("broadcasts USER_JOINED event", async () => {
+    test("calls pubUserJoined", async () => {
+      setupTest({ updatedStatus: "participating" });
       socket.data.userId = "1";
       socket.data.username = "Homer";
-      setters.setUsers([
-        {
+
+      await stopListening({ socket, io });
+      expect(pubUserJoined).toHaveBeenCalledWith({ io }, "activityRoom", {
+        user: {
+          status: "participating",
           userId: "1",
           username: "Homer",
         },
-      ]);
-
-      stopListening({ socket, io });
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "USER_JOINED",
-        data: {
-          user: {
+        users: [
+          {
             status: "participating",
             userId: "1",
             username: "Homer",
           },
-          users: [
-            {
-              status: "participating",
-              userId: "1",
-              username: "Homer",
-            },
-          ],
-        },
+        ],
       });
     });
 
-    test("calls setUsers with new users", async () => {
+    test("calls updateUserAttributes", async () => {
+      setupTest({ updatedStatus: "participating" });
       socket.data.userId = "1";
       socket.data.username = "Homer";
-      setters.setUsers([
-        {
-          userId: "1",
-          username: "Homer",
-        },
-      ]);
-      const spy = jest.spyOn(setters, "setUsers");
 
-      stopListening({ socket, io });
-      expect(spy).toHaveBeenCalledWith([
-        { status: "participating", userId: "1", username: "Homer" },
-      ]);
+      await stopListening({ socket, io });
+      expect(updateUserAttributes).toHaveBeenCalledWith(
+        "1",
+        {
+          status: "participating",
+        },
+        "activityRoom"
+      );
     });
   });
 
   describe("addReaction", () => {
-    it("sets reactions for messages", () => {
-      setters.setReactions({
-        message: {
-          2: [{ emoji: ":-1:", user: "2" }],
-        },
-        track: {},
-      });
-      const spy = jest.spyOn(setters, "setReactions");
+    it("calls addReaction data operation for messages", async () => {
+      setupReactionTest();
 
-      addReaction(
+      await addReaction(
         { socket, io },
         {
           emoji: {
@@ -146,27 +154,36 @@ describe("activityHandlers", () => {
           },
         }
       );
-      expect(spy).toHaveBeenCalledWith({
-        message: {
-          "2": [
-            { emoji: ":-1:", user: "2" },
-            { emoji: ":+1:", user: "1" },
-          ],
+
+      expect(addReactionData).toHaveBeenCalledWith(
+        "activityRoom",
+        {
+          emoji: {
+            id: "thumbs up",
+            name: "thumbs up",
+            keywords: [],
+            shortcodes: ":+1:",
+          },
+          reactTo: {
+            type: "message",
+            id: "2",
+          },
+          user: {
+            userId: "1",
+            username: "Homer",
+          },
         },
-        track: {},
-      });
+        {
+          id: "2",
+          type: "message",
+        }
+      );
     });
 
-    it("sets reactions for tracks", () => {
-      setters.setReactions({
-        message: {},
-        track: {
-          2: [{ emoji: ":-1:", user: "2" }],
-        },
-      });
-      const spy = jest.spyOn(setters, "setReactions");
+    it("calls addReaction data operation for tracks", async () => {
+      setupReactionTest();
 
-      addReaction(
+      await addReaction(
         { socket, io },
         {
           emoji: {
@@ -185,19 +202,35 @@ describe("activityHandlers", () => {
           },
         }
       );
-      expect(spy).toHaveBeenCalledWith({
-        message: {},
-        track: {
-          "2": [
-            { emoji: ":-1:", user: "2" },
-            { emoji: ":+1:", user: "1" },
-          ],
+
+      expect(addReactionData).toHaveBeenCalledWith(
+        "activityRoom",
+        {
+          emoji: {
+            id: "thumbs up",
+            name: "thumbs up",
+            keywords: [],
+            shortcodes: ":+1:",
+          },
+          reactTo: {
+            type: "track",
+            id: "2",
+          },
+          user: {
+            userId: "1",
+            username: "Homer",
+          },
         },
-      });
+        {
+          id: "2",
+          type: "track",
+        }
+      );
     });
 
-    it("emits a REACTIONS event", () => {
-      addReaction(
+    it("emits a REACTIONS event", async () => {
+      setupReactionTest();
+      await addReaction(
         { socket, io },
         {
           emoji: {
@@ -216,14 +249,14 @@ describe("activityHandlers", () => {
           },
         }
       );
-      expect(emit).toHaveBeenCalledWith("event", {
+      // actual reaction payloads are fetched before emitting, and
+      // not stubbed here
+      expect(toEmit).toHaveBeenCalledWith("event", {
         type: "REACTIONS",
         data: {
           reactions: {
             message: {},
-            track: {
-              "2": [{ emoji: ":+1:", user: "1" }],
-            },
+            track: {},
           },
         },
       });
@@ -231,16 +264,10 @@ describe("activityHandlers", () => {
   });
 
   describe("removeReaction", () => {
-    it("sets reactions for messages", () => {
-      setters.setReactions({
-        message: {
-          2: [{ emoji: ":+1:", user: "1" }],
-        },
-        track: {},
-      });
-      const spy = jest.spyOn(setters, "setReactions");
+    it("calls removeReaction data operation for messages", async () => {
+      setupReactionTest();
 
-      removeReaction(
+      await removeReaction(
         { socket, io },
         {
           emoji: {
@@ -259,24 +286,26 @@ describe("activityHandlers", () => {
           },
         }
       );
-      expect(spy).toHaveBeenCalledWith({
-        message: {
-          "2": [],
+      expect(removeReactionData).toHaveBeenCalledWith(
+        "activityRoom",
+        {
+          emoji: {
+            id: "thumbs up",
+            keywords: [],
+            name: "thumbs up",
+            shortcodes: ":+1:",
+          },
+          reactTo: { id: "2", type: "message" },
+          user: { userId: "1", username: "Homer" },
         },
-        track: {},
-      });
+        { id: "2", type: "message" }
+      );
     });
 
-    it("sets reactions for tracks", () => {
-      setters.setReactions({
-        message: {},
-        track: {
-          2: [{ emoji: ":+1:", user: "1" }],
-        },
-      });
-      const spy = jest.spyOn(setters, "setReactions");
+    it("calls removeReaction data operation for tracks", async () => {
+      setupReactionTest();
 
-      removeReaction(
+      await removeReaction(
         { socket, io },
         {
           emoji: {
@@ -295,16 +324,26 @@ describe("activityHandlers", () => {
           },
         }
       );
-      expect(spy).toHaveBeenCalledWith({
-        message: {},
-        track: {
-          "2": [],
+      expect(removeReactionData).toHaveBeenCalledWith(
+        "activityRoom",
+        {
+          emoji: {
+            id: "thumbs up",
+            keywords: [],
+            name: "thumbs up",
+            shortcodes: ":+1:",
+          },
+          reactTo: { id: "2", type: "track" },
+          user: { userId: "1", username: "Homer" },
         },
-      });
+        { id: "2", type: "track" }
+      );
     });
 
-    it("emits a REACTIONS event", () => {
-      removeReaction(
+    it("emits a REACTIONS event", async () => {
+      setupReactionTest();
+
+      await removeReaction(
         { socket, io },
         {
           emoji: {
@@ -323,14 +362,14 @@ describe("activityHandlers", () => {
           },
         }
       );
-      expect(emit).toHaveBeenCalledWith("event", {
+      // actual reaction payloads are fetched before emitting, and
+      // not stubbed here
+      expect(toEmit).toHaveBeenCalledWith("event", {
         type: "REACTIONS",
         data: {
           reactions: {
             message: {},
-            track: {
-              2: [],
-            },
+            track: {},
           },
         },
       });
