@@ -1,7 +1,7 @@
 import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
 
-import { isNil, uniqBy } from "remeda";
+import { find, isNil, uniqBy } from "remeda";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
 import { events } from "../lib/eventEmitter";
@@ -90,6 +90,7 @@ export async function login(
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
   await addOnlineUser(roomId, userId);
   await persistUser(userId, newUser);
+  const room = await findRoom(roomId);
 
   pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
 
@@ -103,6 +104,7 @@ export async function login(
   const meta = await getRoomCurrent(roomId);
   const allReactions = await getAllRoomReactions(roomId);
 
+  console.log(newUsers);
   socket.emit("event", {
     type: "INIT",
     data: {
@@ -116,6 +118,7 @@ export async function login(
         username: socket.data.username,
         status: "participating",
         isDeputyDj,
+        isAdmin: room?.creator === socket.data.userId,
       },
     },
   });

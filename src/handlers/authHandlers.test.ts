@@ -75,6 +75,7 @@ function setupTest({ userIsDj = false } = {}) {
   (findRoom as jest.Mock).mockResolvedValueOnce({
     id: "authRoom",
     name: "authRoom",
+    creator: "roomCreator",
   });
 
   (getMessages as jest.Mock).mockResolvedValueOnce(stubbedMessages);
@@ -179,6 +180,7 @@ describe("authHandlers", () => {
             status: "participating",
             userId: "123",
             username: "Homer",
+            isAdmin: false,
           },
           messages: stubbedMessages,
           meta: stubbedMeta,
@@ -196,6 +198,54 @@ describe("authHandlers", () => {
               status: "participating",
               userId: "123",
               username: "Homer",
+            },
+          ],
+        },
+        type: "INIT",
+      });
+    });
+
+    test("sends isAdmin: true to room creator", async () => {
+      setupTest();
+      await login(
+        { socket, io },
+        { username: "Bart", userId: "roomCreator", roomId: "authRoom" }
+      );
+
+      expect(emit).toHaveBeenCalledWith("event", {
+        data: {
+          currentUser: {
+            isDeputyDj: false,
+            status: "participating",
+            userId: "roomCreator",
+            username: "Bart",
+            isAdmin: true,
+          },
+          messages: stubbedMessages,
+          meta: stubbedMeta,
+          playlist: [],
+          reactions: {
+            message: {},
+            track: {},
+          },
+          users: [
+            {
+              connectedAt: expect.any(String),
+              id: undefined,
+              isDeputyDj: false,
+              isDj: false,
+              status: "participating",
+              userId: "123",
+              username: "Homer",
+            },
+            {
+              username: "Bart",
+              userId: "roomCreator",
+              id: undefined,
+              isDj: false,
+              isDeputyDj: false,
+              status: "participating",
+              connectedAt: expect.any(String),
             },
           ],
         },
