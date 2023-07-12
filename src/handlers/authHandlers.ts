@@ -69,6 +69,9 @@ export async function login(
     roomId: string;
   }
 ) {
+  if (!roomId || !socket.id || !userId) {
+    return;
+  }
   const users = await getRoomUsers(roomId);
   socket.join(getRoomPath(roomId));
 

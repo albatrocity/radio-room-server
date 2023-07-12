@@ -9,6 +9,13 @@ import { Room } from "../types/Room";
 import { clearQueue, findRoom, getUser, persistRoom } from "../operations/data";
 import { Socket } from "socket.io";
 
+function removeSensitive(room: Room) {
+  return {
+    ...room,
+    password: undefined,
+  };
+}
+
 async function getAuthedRoom(socket: Socket) {
   const room = await findRoom(socket.data.roomId);
   const isAdmin = socket.data.userId === room?.creator;
@@ -36,9 +43,14 @@ export async function getRoomSettings({ io, socket }: HandlerConnections) {
     return;
   }
 
-  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+  socket.emit("event", {
     type: "SETTINGS",
     data: room,
+  });
+
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "ROOM_SETTINGS",
+    data: removeSensitive(room),
   });
 }
 
@@ -87,9 +99,14 @@ export async function setRoomSettings(
   };
 
   await persistRoom(newSettings as Room);
-  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+  socket.emit("event", {
     type: "SETTINGS",
     data: newSettings,
+  });
+
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "ROOM_SETTINGS",
+    data: { room: newSettings },
   });
 }
 
