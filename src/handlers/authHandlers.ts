@@ -104,7 +104,6 @@ export async function login(
   const meta = await getRoomCurrent(roomId);
   const allReactions = await getAllRoomReactions(roomId);
 
-  console.log(newUsers);
   socket.emit("event", {
     type: "INIT",
     data: {

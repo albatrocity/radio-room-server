@@ -1,6 +1,6 @@
 import { describe } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
-import { setPassword, kickUser, settings } from "./adminHandlers";
+import { setPassword, kickUser, setRoomSettings } from "./adminHandlers";
 
 import { findRoom, getUser, persistRoom } from "../operations/data";
 
@@ -22,7 +22,7 @@ describe("adminHandlers", () => {
       (findRoom as jest.Mock).mockResolvedValueOnce({
         artwork: undefined,
       });
-      await settings(
+      await setRoomSettings(
         { socket, io },
         {
           artwork: "google.com",
@@ -91,7 +91,7 @@ describe("adminHandlers", () => {
     });
   });
 
-  describe("settings", () => {
+  describe("setRoomSettings", () => {
     it("sets settings", async () => {
       (findRoom as jest.Mock).mockResolvedValueOnce({});
       const newSettings = {
@@ -101,7 +101,7 @@ describe("adminHandlers", () => {
         deputizeOnJoin: false,
         enableSpotifyLogin: false,
       };
-      await settings({ socket, io }, newSettings);
+      await setRoomSettings({ socket, io }, newSettings);
       expect(persistRoom).toHaveBeenCalledWith(newSettings);
     });
 
@@ -115,10 +115,37 @@ describe("adminHandlers", () => {
         deputizeOnJoin: false,
         enableSpotifyLogin: false,
       };
-      await settings({ socket, io }, newSettings);
+      await setRoomSettings({ socket, io }, newSettings);
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "SETTINGS",
         data: newSettings,
+      });
+    });
+
+    it("requires user to be room creator", async () => {
+      (findRoom as jest.Mock).mockResolvedValueOnce({
+        creator: "1",
+      });
+      socket.data.userId = "2";
+
+      await setRoomSettings(
+        { socket, io },
+        {
+          extraInfo: "Heyyyyyy",
+          fetchMeta: false,
+          password: null,
+          deputizeOnJoin: false,
+          enableSpotifyLogin: false,
+        }
+      );
+
+      expect(emit).toHaveBeenCalledWith("event", {
+        type: "ERROR",
+        data: {
+          status: 403,
+          error: "Forbidden",
+          message: "You are not the room creator.",
+        },
       });
     });
   });

@@ -7,9 +7,35 @@ import { User } from "../types/User";
 import getRoomPath from "../lib/getRoomPath";
 import { Room } from "../types/Room";
 import { clearQueue, findRoom, getUser, persistRoom } from "../operations/data";
+import { Socket } from "socket.io";
 
-export async function getSettings({ io, socket }: HandlerConnections) {
+async function getAuthedRoom(socket: Socket) {
   const room = await findRoom(socket.data.roomId);
+  const isAdmin = socket.data.userId === room?.creator;
+  if (!room) {
+    return { room: null };
+  }
+  if (!isAdmin) {
+    socket.emit("event", {
+      type: "ERROR",
+      data: {
+        status: 403,
+        error: "Forbidden",
+        message: "You are not the room creator.",
+      },
+    });
+    return { room: null };
+  }
+
+  return { room };
+}
+
+export async function getRoomSettings({ io, socket }: HandlerConnections) {
+  const { room } = await getAuthedRoom(socket);
+  if (!room) {
+    return;
+  }
+
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "SETTINGS",
     data: room,
@@ -46,17 +72,17 @@ export async function kickUser({ io, socket }: HandlerConnections, user: User) {
   }
 }
 
-export async function settings(
+export async function setRoomSettings(
   { socket, io }: HandlerConnections,
   values: Settings
 ) {
-  const roomId = socket.data.roomId;
-  const prevSettings = await findRoom(roomId);
-  if (!prevSettings) {
-    return {};
+  const { room } = await getAuthedRoom(socket);
+
+  if (!room) {
+    return;
   }
   const newSettings = {
-    ...prevSettings,
+    ...room,
     ...values,
   };
 
