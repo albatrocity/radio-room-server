@@ -7,7 +7,9 @@ export async function addTypingUser(roomId: string, userId: string) {
   return pubClient.sAdd(`room:${roomId}:typing_users`, userId);
 }
 export async function removeTypingUser(roomId: string, userId: string) {
-  return pubClient.sRem(`room:${roomId}:typing_users`, userId);
+  if (roomId && userId) {
+    return pubClient.sRem(`room:${roomId}:typing_users`, userId);
+  }
 }
 export async function getTypingUsers(roomId: string) {
   const users = await pubClient.sMembers(`room:${roomId}:typing_users`);

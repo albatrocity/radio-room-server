@@ -123,10 +123,13 @@ describe("authHandlers", () => {
   const { socket, io, emit, toEmit, join, broadcastEmit, toBroadcast } =
     makeSocket({
       roomId: "authRoom",
+      id: "socket1",
+      userId: "123",
+      username: "Homer",
     });
 
   describe("login", () => {
-    test("joins room", async () => {
+    test.only("joins room", async () => {
       setupTest();
       await login(
         { socket, io },

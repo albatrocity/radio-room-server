@@ -1,20 +1,13 @@
 import systemMessage from "../lib/systemMessage";
 
 import { HandlerConnections } from "../types/HandlerConnections";
-import { Settings } from "../types/Settings";
 import { User } from "../types/User";
 
 import getRoomPath from "../lib/getRoomPath";
 import { Room } from "../types/Room";
 import { clearQueue, findRoom, getUser, persistRoom } from "../operations/data";
 import { Socket } from "socket.io";
-
-function removeSensitive(room: Room) {
-  return {
-    ...room,
-    password: undefined,
-  };
-}
+import { omit } from "remeda";
 
 async function getAuthedRoom(socket: Socket) {
   const room = await findRoom(socket.data.roomId);
@@ -43,14 +36,11 @@ export async function getRoomSettings({ io, socket }: HandlerConnections) {
     return;
   }
 
-  socket.emit("event", {
-    type: "SETTINGS",
-    data: room,
-  });
-
-  io.to(getRoomPath(socket.data.roomId)).emit("event", {
+  io.to(socket.id).emit("event", {
     type: "ROOM_SETTINGS",
-    data: removeSensitive(room),
+    data: {
+      room: room,
+    },
   });
 }
 
@@ -86,7 +76,7 @@ export async function kickUser({ io, socket }: HandlerConnections, user: User) {
 
 export async function setRoomSettings(
   { socket, io }: HandlerConnections,
-  values: Settings
+  values: Partial<Room>
 ) {
   const { room } = await getAuthedRoom(socket);
 
@@ -94,23 +84,25 @@ export async function setRoomSettings(
     return;
   }
   const newSettings = {
-    ...room,
-    ...values,
+    ...omit(room, ["spotifyError"]),
+    ...omit(values, ["spotifyError"]),
   };
 
-  await persistRoom(newSettings as Room);
-  socket.emit("event", {
-    type: "SETTINGS",
-    data: newSettings,
-  });
+  await persistRoom(newSettings);
+  const updatedRoom = await findRoom(socket.data.roomId);
 
   io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "ROOM_SETTINGS",
-    data: { room: newSettings },
+    data: { room: updatedRoom },
   });
 }
 
 export async function clearPlaylist({ socket, io }: HandlerConnections) {
+  const { room } = await getAuthedRoom(socket);
+  if (!room) {
+    return;
+  }
+
   await clearPlaylist(socket.data.roomId);
   await clearQueue(socket.data.roomId);
 

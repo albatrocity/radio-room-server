@@ -5,6 +5,7 @@ import generateRandomString from "../lib/generateRandomString";
 import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
 import { makeSpotifyApi } from "../lib/spotifyApi";
+import { removeUserRoomsSpotifyError } from "../operations/data";
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
@@ -84,6 +85,8 @@ export async function callback(req: Request, res: Response) {
         userId: userId,
         challenge,
       });
+
+      await removeUserRoomsSpotifyError(userId);
 
       if (process.env.APP_URL) {
         const params = {

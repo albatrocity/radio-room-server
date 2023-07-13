@@ -2,9 +2,12 @@ import { Server, Socket } from "socket.io";
 
 type Options = {
   roomId?: string;
+  id?: string;
+  userId?: string;
+  username?: string;
 };
 
-export function makeSocket({ roomId = "room123" }: Options = {}) {
+export function makeSocket({ roomId = "room123", id, ...rest }: Options = {}) {
   const emit = jest.fn();
   const toEmit = jest.fn();
   const broadcastEmit = jest.fn();
@@ -16,8 +19,10 @@ export function makeSocket({ roomId = "room123" }: Options = {}) {
   }));
   const join = jest.fn();
   const makeSocket = jest.fn(() => ({
+    id,
     data: {
       roomId,
+      ...rest,
     },
     broadcast: {
       emit: broadcastEmit,

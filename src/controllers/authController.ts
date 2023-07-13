@@ -33,7 +33,6 @@ export default function authController(socket: Socket, io: Server) {
       password?: string;
       roomId: string;
     }) => {
-      console.log("LOG IN???????");
       login({ socket, io }, { username, userId, password, roomId });
     }
   );

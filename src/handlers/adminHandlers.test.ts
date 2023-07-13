@@ -105,7 +105,7 @@ describe("adminHandlers", () => {
       expect(persistRoom).toHaveBeenCalledWith(newSettings);
     });
 
-    it("emits SETTINGS event", async () => {
+    it("emits ROOM_SETTINGS event", async () => {
       (findRoom as jest.Mock).mockResolvedValueOnce({});
       (persistRoom as jest.Mock).mockResolvedValueOnce({});
       const newSettings = {
@@ -117,8 +117,8 @@ describe("adminHandlers", () => {
       };
       await setRoomSettings({ socket, io }, newSettings);
       expect(toEmit).toHaveBeenCalledWith("event", {
-        type: "SETTINGS",
-        data: newSettings,
+        type: "ROOM_SETTINGS",
+        data: { room: newSettings },
       });
     });
 

@@ -9,7 +9,10 @@ import { pubClient, subClient } from "./lib/redisClients";
 import { bindPubSubHandlers } from "./pubSub/handlers";
 import { events } from "./lib/eventEmitter";
 import { callback, login } from "./controllers/spotifyAuthController";
-import { create, findRoom } from "./controllers/roomsController";
+import roomsController, {
+  create,
+  findRoom,
+} from "./controllers/roomsController";
 
 import activityController, {
   lifecycleEvents as activityEvents,
@@ -67,6 +70,7 @@ io.on("connection", (socket) => {
   activityController(socket, io);
   djController(socket, io);
   adminController(socket, io);
+  roomsController(socket, io);
 });
 
 // lifecycle events

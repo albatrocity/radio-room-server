@@ -3,13 +3,14 @@ import { isEmpty } from "remeda";
 import { pubClient } from "../../lib/redisClients";
 import { Room, RoomMeta, StoredRoom } from "../../types/Room";
 import { SEVEN_DAYS } from "../../lib/constants";
-import { mapRoomBooleans, writeJsonToHset } from "./utils";
+import { writeJsonToHset } from "./utils";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { getQueue } from "./djs";
 
 export async function persistRoom(room: Room) {
   try {
     await pubClient.sAdd("rooms", room.id);
+    await pubClient.sAdd(`user:${room.creator}:rooms`, room.id);
     return writeJsonToHset(`room:${room.id}:details`, room, {
       PX: SEVEN_DAYS,
     });
@@ -27,7 +28,8 @@ export async function findRoom(roomId: string) {
     if (isEmpty(results)) {
       return null;
     } else {
-      return mapRoomBooleans(results as unknown as StoredRoom);
+      const parsed = parseRoom(results as unknown as StoredRoom);
+      return parsed;
     }
   } catch (e) {
     console.log("ERROR FROM data/rooms/findRoom", roomId);
@@ -37,7 +39,7 @@ export async function findRoom(roomId: string) {
 
 export async function setRoomFetching(roomId: string, value: boolean) {
   try {
-    return pubClient.set(`room:${roomId}:fetching`, value ? "1" : "0");
+    await pubClient.set(`room:${roomId}:fetching`, value ? "1" : "0");
   } catch (e) {
     console.log("ERROR FROM data/rooms/setRoomFetching", roomId, value);
     console.error(e);
@@ -58,11 +60,20 @@ export async function setRoomCurrent(roomId: string, meta: any) {
   const roomCurrentKey = `room:${roomId}:current`;
   const payload = await makeJukeboxCurrentPayload(roomId, meta);
   const parsedMeta = payload.data.meta;
-  await writeJsonToHset(roomCurrentKey, {
-    ...parsedMeta,
-    release: JSON.stringify(parsedMeta.release),
-  });
-  await pubClient.pExpire(roomCurrentKey, SEVEN_DAYS);
+  try {
+    await pubClient.hDel(roomCurrentKey, ["dj", "release", "artwork"]);
+
+    await writeJsonToHset(roomCurrentKey, {
+      ...parsedMeta,
+      lastUpdated: String(Date.now()),
+      release: JSON.stringify(parsedMeta.release),
+      dj: parsedMeta.dj ? JSON.stringify(parsedMeta.dj) : undefined,
+    });
+    await pubClient.pExpire(roomCurrentKey, SEVEN_DAYS);
+  } catch (e) {
+    console.error(e);
+    console.error("Error from data/rooms/setRoomCurrent", roomId, meta);
+  }
 }
 
 export async function getRoomCurrent(roomId: string) {
@@ -70,7 +81,21 @@ export async function getRoomCurrent(roomId: string) {
   const result = await pubClient.hGetAll(roomCurrentKey);
   return {
     ...result,
-    ...(result.release ? { release: JSON.parse(result.release) } : {}),
+    ...(result.release
+      ? {
+          release: JSON.parse(result.release),
+        }
+      : {}),
+    ...(result.dj
+      ? {
+          dj: result.dj && JSON.parse(result.dj),
+        }
+      : {}),
+    ...(result.spotifyError
+      ? {
+          dj: result.spotifyError && JSON.parse(result.spotifyError),
+        }
+      : {}),
   } as RoomMeta;
 }
 
@@ -99,5 +124,28 @@ export async function makeJukeboxCurrentPayload(
           : null,
       },
     },
+  };
+}
+
+export async function removeUserRoomsSpotifyError(userId: string) {
+  const userCreatedRooms = await pubClient.sMembers(`user:${userId}:rooms`);
+
+  await Promise.all(
+    userCreatedRooms.map((roomId) => {
+      return pubClient.hDel(`room:${roomId}:details`, "spotifyError");
+    })
+  );
+}
+
+function parseRoom(room: StoredRoom): Room {
+  return {
+    ...room,
+    fetchMeta: room.fetchMeta === "true",
+    enableSpotifyLogin: room.enableSpotifyLogin === "true",
+    deputizeOnJoin: room.deputizeOnJoin === "true",
+    ...(room.artwork === "undefined" ? {} : { artwork: room.artwork }),
+    ...(room.spotifyError
+      ? { spotifyError: JSON.parse(room.spotifyError) }
+      : {}),
   };
 }

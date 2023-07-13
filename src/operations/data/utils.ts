@@ -3,7 +3,13 @@ import { isNil } from "remeda";
 
 import { pubClient } from "../../lib/redisClients";
 import { Reaction } from "../../types/Reaction";
-import { Room, RoomMeta, StoredRoom, StoredRoomMeta } from "../../types/Room";
+import {
+  Room,
+  RoomError,
+  RoomMeta,
+  StoredRoom,
+  StoredRoomMeta,
+} from "../../types/Room";
 import { StoredUser, User } from "../../types/User";
 import { ChatMessage } from "../../types/ChatMessage";
 import { compact } from "remeda";
@@ -76,15 +82,5 @@ export function mapUserBooleans(user: StoredUser) {
     isDj: user.isDj === "true",
     isDeputyDj: user.isDeputyDj === "true",
     isAdmin: user.isAdmin === "true",
-  };
-}
-
-export function mapRoomBooleans(room: StoredRoom): Room {
-  return {
-    ...room,
-    fetchMeta: room.fetchMeta === "true",
-    enableSpotifyLogin: room.enableSpotifyLogin === "true",
-    deputizeOnJoin: room.deputizeOnJoin === "true",
-    ...(room.artwork === "undefined" ? {} : { artwork: room.artwork }),
   };
 }

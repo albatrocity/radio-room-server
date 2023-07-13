@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { createRoomId, withDefaults } from "../operations/createRoom";
 import { findRoom as findRoomData, persistRoom } from "../operations/data";
 import { checkUserChallenge } from "../operations/userChallenge";
+import { Server, Socket } from "socket.io";
+import { getRoomSettings } from "../handlers/roomHanders";
 
 export async function create(req: Request, res: Response) {
   const { title, type, challenge, userId } = req.body;
@@ -25,4 +27,10 @@ export async function findRoom(req: Request, res: Response) {
 
   const room = await findRoomData(id);
   return res.send({ room: room });
+}
+
+export default function socketHandlers(socket: Socket, io: Server) {
+  socket.on("get room settings", (url: string) =>
+    getRoomSettings({ socket, io })
+  );
 }

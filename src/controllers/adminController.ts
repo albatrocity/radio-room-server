@@ -2,7 +2,6 @@ import { Server, Socket } from "socket.io";
 
 import {
   clearPlaylist,
-  getRoomSettings,
   // getTriggerEvents,
   // setReactionTriggerEvents,
   kickUser,
@@ -11,18 +10,15 @@ import {
   // setMessageTriggerEvents,
 } from "../handlers/adminHandlers";
 
-import { Settings } from "../types/Settings";
 import { User } from "../types/User";
+import { Room } from "../types/Room";
 
 export default function adminController(socket: Socket, io: Server) {
-  socket.on("get room settings", (url: string) =>
-    getRoomSettings({ socket, io })
-  );
   socket.on("set password", (value: string) =>
     setPassword({ socket, io }, value)
   );
   socket.on("kick user", (user: User) => kickUser({ socket, io }, user));
-  socket.on("set room settings", (s: Settings) =>
+  socket.on("set room settings", (s: Partial<Room>) =>
     setRoomSettings({ socket, io }, s)
   );
   socket.on("clear playlist", () => clearPlaylist({ socket, io }));
