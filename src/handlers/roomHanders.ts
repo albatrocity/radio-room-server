@@ -1,14 +1,5 @@
-import { findRoom } from "../operations/data";
+import { findRoom, removeSensitiveRoomAttributes } from "../operations/data";
 import { HandlerConnections } from "../types/HandlerConnections";
-
-import { Room } from "../types/Room";
-
-function removeSensitive(room: Room) {
-  return {
-    ...room,
-    password: undefined,
-  };
-}
 
 export async function getRoomSettings({ io, socket }: HandlerConnections) {
   if (!socket.data.roomId) {
@@ -24,7 +15,7 @@ export async function getRoomSettings({ io, socket }: HandlerConnections) {
   io.to(socket.id).emit("event", {
     type: "ROOM_SETTINGS",
     data: {
-      room: isAdmin ? room : removeSensitive(room),
+      room: isAdmin ? room : removeSensitiveRoomAttributes(room),
     },
   });
 }

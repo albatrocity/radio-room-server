@@ -1,4 +1,4 @@
-import { isEmpty } from "remeda";
+import { isEmpty, isNil } from "remeda";
 
 import { pubClient } from "../../lib/redisClients";
 import { Room, RoomMeta, StoredRoom } from "../../types/Room";
@@ -143,9 +143,17 @@ function parseRoom(room: StoredRoom): Room {
     fetchMeta: room.fetchMeta === "true",
     enableSpotifyLogin: room.enableSpotifyLogin === "true",
     deputizeOnJoin: room.deputizeOnJoin === "true",
+    passwordRequired: !isNil(room.password),
     ...(room.artwork === "undefined" ? {} : { artwork: room.artwork }),
     ...(room.spotifyError
       ? { spotifyError: JSON.parse(room.spotifyError) }
       : {}),
+  };
+}
+
+export function removeSensitiveRoomAttributes(room: Room) {
+  return {
+    ...room,
+    password: undefined,
   };
 }

@@ -1,7 +1,11 @@
 import { Request, Response } from "express";
 
 import { createRoomId, withDefaults } from "../operations/createRoom";
-import { findRoom as findRoomData, persistRoom } from "../operations/data";
+import {
+  findRoom as findRoomData,
+  persistRoom,
+  removeSensitiveRoomAttributes,
+} from "../operations/data";
 import { checkUserChallenge } from "../operations/userChallenge";
 import { Server, Socket } from "socket.io";
 import { getRoomSettings } from "../handlers/roomHanders";
@@ -26,7 +30,10 @@ export async function findRoom(req: Request, res: Response) {
   const { id } = req.params;
 
   const room = await findRoomData(id);
-  return res.send({ room: room });
+  if (room) {
+    return res.send({ room: removeSensitiveRoomAttributes(room) });
+  }
+  return res.send({ room: null });
 }
 
 export default function socketHandlers(socket: Socket, io: Server) {

@@ -29,9 +29,10 @@ export async function checkPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
+  console.log("check password!");
   const room = await findRoom(socket.data.roomId);
 
-  socket.to(getRoomPath(socket.data.roomId)).emit("event", {
+  socket.emit("event", {
     type: "SET_PASSWORD_REQUIREMENT",
     data: {
       passwordRequired: !isNil(room?.password),
@@ -113,6 +114,7 @@ export async function login(
       users: newUsers,
       messages,
       meta,
+      passwordRequired: !isNil(room?.password),
       playlist: playlist,
       reactions: allReactions,
       currentUser: {
