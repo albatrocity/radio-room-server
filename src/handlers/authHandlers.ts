@@ -24,12 +24,23 @@ import {
   updateUserAttributes,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
+import { Room } from "../types/Room";
+
+function passwordMatched(
+  room: Room | null,
+  password?: string,
+  userId?: string
+) {
+  if (userId === room?.creator) {
+    return true;
+  }
+  return !room?.password || room?.password === password;
+}
 
 export async function checkPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
-  console.log("check password!");
   const room = await findRoom(socket.data.roomId);
 
   socket.emit("event", {
@@ -48,10 +59,25 @@ export async function submitPassword(
   submittedPassword: string
 ) {
   const room = await findRoom(socket.data.roomId);
-  socket.to(getRoomPath(socket.data.roomId)).emit("event", {
+  if (!room) {
+    socket.emit("event", {
+      type: "ERROR",
+      data: {
+        message: "Room not found",
+        status: 404,
+      },
+    });
+    return;
+  }
+
+  socket.emit("event", {
     type: "SET_PASSWORD_ACCEPTED",
     data: {
-      passwordAccepted: room?.password === submittedPassword,
+      passwordAccepted: passwordMatched(
+        room,
+        submittedPassword,
+        socket.data.userId
+      ),
     },
   });
 }
@@ -91,10 +117,33 @@ export async function login(
     status: "participating" as const,
     connectedAt: new Date().toISOString(),
   };
+  const room = await findRoom(roomId);
+
+  if (!room) {
+    socket.emit("event", {
+      type: "ERROR",
+      data: {
+        message: "Room not found",
+        status: 404,
+      },
+    });
+    return;
+  }
+
+  if (!passwordMatched(room, password, userId)) {
+    socket.emit("event", {
+      type: "UNAUTHORIZED",
+      data: {
+        message: "Password is incorrect",
+        status: 401,
+      },
+    });
+    return;
+  }
+
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
   await addOnlineUser(roomId, userId);
   await persistUser(userId, newUser);
-  const room = await findRoom(roomId);
 
   pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
 
