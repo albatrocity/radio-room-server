@@ -106,8 +106,6 @@ describe("adminHandlers", () => {
     });
 
     it("emits ROOM_SETTINGS event", async () => {
-      (findRoom as jest.Mock).mockResolvedValueOnce({});
-      (persistRoom as jest.Mock).mockResolvedValueOnce({});
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
@@ -115,6 +113,10 @@ describe("adminHandlers", () => {
         deputizeOnJoin: false,
         enableSpotifyLogin: false,
       };
+      (findRoom as jest.Mock)
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce(newSettings);
+      (persistRoom as jest.Mock).mockResolvedValueOnce({});
       await setRoomSettings({ socket, io }, newSettings);
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "ROOM_SETTINGS",
