@@ -7,10 +7,24 @@ import { writeJsonToHset } from "./utils";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { getQueue } from "./djs";
 
+async function addRoomToRoomList(roomId: Room["id"]) {
+  await pubClient.sAdd("rooms", roomId);
+}
+async function removeRoomFromRoomList(roomId: Room["id"]) {
+  await pubClient.sRem("rooms", roomId);
+}
+
+async function addRoomToUserRoomList(room: Room) {
+  await pubClient.sAdd(`user:${room.creator}:rooms`, room.id);
+}
+async function removeRoomFromUserRoomList(room: Room) {
+  await pubClient.sRem(`user:${room.creator}:rooms`, room.id);
+}
+
 export async function persistRoom(room: Room) {
   try {
-    await pubClient.sAdd("rooms", room.id);
-    await pubClient.sAdd(`user:${room.creator}:rooms`, room.id);
+    await addRoomToRoomList(room.id);
+    await addRoomToUserRoomList(room);
     return writeJsonToHset(`room:${room.id}:details`, room, {
       PX: SEVEN_DAYS,
     });
@@ -129,7 +143,8 @@ export async function getRoomCurrent(roomId: string) {
 
 export async function makeJukeboxCurrentPayload(
   roomId: string,
-  nowPlaying: SpotifyTrack
+  nowPlaying: SpotifyTrack,
+  meta: RoomMeta
 ) {
   const room = await findRoom(roomId);
   const artwork = room?.artwork ?? nowPlaying?.album?.images?.[0]?.url;
@@ -140,6 +155,7 @@ export async function makeJukeboxCurrentPayload(
     type: "META",
     data: {
       meta: {
+        ...meta,
         title: nowPlaying?.name,
         bitrate: 360,
         artist: nowPlaying?.artists?.map((x) => x.name).join(", "),
@@ -184,4 +200,19 @@ export function removeSensitiveRoomAttributes(room: Room) {
     ...room,
     password: undefined,
   };
+}
+
+export async function deleteRoom(roomId: string) {
+  const room = await findRoom(roomId);
+  if (!room) {
+    return;
+  }
+
+  for await (const key of pubClient.scanIterator({
+    MATCH: `room:${roomId}:*`,
+  })) {
+    await pubClient.del(key);
+  }
+  await removeRoomFromRoomList(room.id);
+  await removeRoomFromUserRoomList(room);
 }

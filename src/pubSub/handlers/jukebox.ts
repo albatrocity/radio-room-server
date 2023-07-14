@@ -9,6 +9,7 @@ import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { makeJukeboxCurrentPayload } from "../../operations/data";
 import { PlaylistTrack } from "../../types/PlaylistTrack";
 import { PubSubHandlerArgs } from "../../types/PubSub";
+import { RoomMeta } from "../../types/Room";
 
 export default async function bindHandlers(io: Server) {
   subClient.pSubscribe(PUBSUB_JUKEBOX_NOW_PLAYING_FETCHED, (message, channel) =>
@@ -20,9 +21,13 @@ export default async function bindHandlers(io: Server) {
 }
 
 async function handleNowPlaying({ io, message, channel }: PubSubHandlerArgs) {
-  const { roomId, nowPlaying }: { nowPlaying: SpotifyTrack; roomId: string } =
+  const {
+    roomId,
+    nowPlaying,
+    meta,
+  }: { nowPlaying: SpotifyTrack; roomId: string; meta: RoomMeta } =
     JSON.parse(message);
-  const payload = await makeJukeboxCurrentPayload(roomId, nowPlaying);
+  const payload = await makeJukeboxCurrentPayload(roomId, nowPlaying, meta);
   io.to(getRoomPath(roomId)).emit("event", payload);
 }
 

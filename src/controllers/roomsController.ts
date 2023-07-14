@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { createRoomId, withDefaults } from "../operations/createRoom";
 import {
   findRoom as findRoomData,
+  deleteRoom as deleteRoomData,
   persistRoom,
   parseRoom,
   removeSensitiveRoomAttributes,
@@ -60,6 +61,16 @@ export async function findRooms(req: Request, res: Response) {
   }
 
   res.send({ rooms: [] });
+}
+
+export async function deleteRoom(req: Request, res: Response) {
+  if (req.params.id) {
+    await deleteRoomData(req.params.id);
+  }
+  res.send({
+    success: true,
+    roomId: req.params.id,
+  });
 }
 
 export default function socketHandlers(socket: Socket, io: Server) {

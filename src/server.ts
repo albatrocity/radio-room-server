@@ -11,6 +11,7 @@ import { events } from "./lib/eventEmitter";
 import { callback, login } from "./controllers/spotifyAuthController";
 import roomsController, {
   create,
+  deleteRoom,
   findRoom,
   findRooms,
 } from "./controllers/roomsController";
@@ -36,6 +37,7 @@ const httpServer = express()
   .get("/rooms/", findRooms)
   .get("/rooms/:id", findRoom)
   .post("/rooms", create)
+  .delete("/rooms/:id", deleteRoom)
   .get("/login", login)
   .get("/callback", callback)
   .set("event", events)
