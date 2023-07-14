@@ -1,6 +1,4 @@
-import getAdminUserId from "../../lib/getAdminUserId";
 import { createClient } from "../../redisClient";
-import globalSpotifyApi from "../../lib/spotifyApi";
 
 import {
   FORTY_FIVE_MINS,
@@ -21,17 +19,8 @@ export default async function storeUserSpotifyTokens({
   userId: string;
   challenge?: string;
 }) {
-  const adminUserId = await getAdminUserId();
-  const isGlobalAccount = !userId || (!!userId && userId === adminUserId);
-  const userKey = isGlobalAccount ? "app" : userId;
-
-  if (isGlobalAccount) {
-    globalSpotifyApi.setAccessToken(access_token);
-    globalSpotifyApi.setRefreshToken(refresh_token);
-  }
-
-  const accessKey = `${SPOTIFY_ACCESS_TOKEN}:${userKey}`;
-  const refreshKey = `${SPOTIFY_REFRESH_TOKEN}:${userKey}`;
+  const accessKey = `${SPOTIFY_ACCESS_TOKEN}:${userId}`;
+  const refreshKey = `${SPOTIFY_REFRESH_TOKEN}:${userId}`;
 
   const client = await createClient();
   try {

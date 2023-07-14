@@ -1,4 +1,4 @@
-import spotifyApi from "../../lib/spotifyApi";
+import { getSpotifyApiForRoom } from "./getSpotifyApi";
 import axios from "axios";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { setQueue, getQueue } from "../data";
@@ -13,6 +13,7 @@ type QueueResponse = {
 
 export default async function syncQueue(roomId: string) {
   try {
+    const spotifyApi = await getSpotifyApiForRoom(roomId);
     const accessToken = spotifyApi.getAccessToken();
     const { data }: { data: QueueResponse } = await axios.get(ENDPOINT, {
       headers: {

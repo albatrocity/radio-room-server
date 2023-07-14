@@ -1,4 +1,3 @@
-import { client } from "./redis";
 import { getSpotifyApiForUser } from "../../operations/spotify/getSpotifyApi";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import {
@@ -6,6 +5,7 @@ import {
   PUBSUB_PLAYLIST_ADDED,
   PUBSUB_PLAYLIST_UPDATED,
   PUBSUB_SPOTIFY_AUTH_ERROR,
+  PUBSUB_SPOTIFY_RATE_LIMIT_ERROR,
 } from "../../lib/constants";
 import {
   addTrackToRoomPlaylist,
@@ -13,7 +13,6 @@ import {
   getRoomCurrent,
   removeFromQueue,
   setRoomCurrent,
-  updateRoom,
 } from "../../operations/data";
 import { pubClient } from "../../lib/redisClients";
 import { PlaylistTrack } from "../../types/PlaylistTrack";
@@ -72,6 +71,11 @@ export async function communicateNowPlaying(roomId: string) {
     if (e.body?.error?.status === 401) {
       pubSpotifyError({ userId: room.creator, roomId }, e.body.error);
     }
+    // Rate limited
+    if (e.body?.error?.status === 429) {
+      // let worker know we've been limited
+      pubRateLimitError({ userId: room.creator, roomId }, e.body.error);
+    }
     return;
   }
 }
@@ -83,26 +87,39 @@ async function fetchNowPlaying(userId: string) {
 }
 
 async function pubSubNowPlaying(roomId: string, nowPlaying: SpotifyTrack) {
-  client.publish(
+  pubClient.publish(
     PUBSUB_JUKEBOX_NOW_PLAYING_FETCHED,
     JSON.stringify({ roomId, nowPlaying })
   );
 }
 
 async function pubPlaylist(roomId: string, playlist: PlaylistTrack[]) {
-  client.publish(PUBSUB_PLAYLIST_UPDATED, JSON.stringify({ roomId, playlist }));
+  pubClient.publish(
+    PUBSUB_PLAYLIST_UPDATED,
+    JSON.stringify({ roomId, playlist })
+  );
 }
 
 async function pubPlaylistTrackAdded(roomId: string, track: PlaylistTrack) {
-  client.publish(PUBSUB_PLAYLIST_ADDED, JSON.stringify({ roomId, track }));
+  pubClient.publish(PUBSUB_PLAYLIST_ADDED, JSON.stringify({ roomId, track }));
 }
 
 async function pubSpotifyError(
   { userId, roomId }: { userId: string; roomId: string },
   error: SpotifyError
 ) {
-  client.publish(
+  pubClient.publish(
     PUBSUB_SPOTIFY_AUTH_ERROR,
+    JSON.stringify({ userId, roomId, error })
+  );
+}
+
+async function pubRateLimitError(
+  { userId, roomId }: { userId: string; roomId: string },
+  error: SpotifyError
+) {
+  pubClient.publish(
+    PUBSUB_SPOTIFY_RATE_LIMIT_ERROR,
     JSON.stringify({ userId, roomId, error })
   );
 }

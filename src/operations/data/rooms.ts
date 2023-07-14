@@ -20,15 +20,28 @@ export async function persistRoom(room: Room) {
   }
 }
 
-export async function updateRoom(room: Partial<Room> & { id: string }) {
+export async function updateRoom(roomId: string, room: Partial<Room>) {
   try {
-    await writeJsonToHset(`room:${room.id}:details`, room);
-    const updated = await findRoom(room.id);
+    await writeJsonToHset(`room:${roomId}:details`, room);
+    const updated = await findRoom(roomId);
     return updated;
   } catch (e) {
     console.log("ERROR FROM data/rooms/updateRoom", room);
     console.error(e);
     return null;
+  }
+}
+
+export async function delRoomKey(
+  roomId: string,
+  namespace: string,
+  key: keyof Room
+) {
+  try {
+    await pubClient.del(`room:${roomId}:${namespace}${key}`);
+  } catch (e) {
+    console.log("ERROR FROM data/rooms/delRoomKey", roomId, namespace, key);
+    console.error(e);
   }
 }
 

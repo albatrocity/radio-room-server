@@ -13,7 +13,10 @@ export function createRoomId({
 }
 
 export function withDefaults(
-  roomDetails: Pick<Room, "title" | "creator" | "type" | "id" | "createdAt">
+  roomDetails: Pick<
+    Room,
+    "title" | "creator" | "type" | "id" | "createdAt" | "lastRefreshedAt"
+  >
 ): Room {
   return {
     fetchMeta: true,

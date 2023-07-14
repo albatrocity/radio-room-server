@@ -12,12 +12,19 @@ import { getRoomSettings } from "../handlers/roomHanders";
 
 export async function create(req: Request, res: Response) {
   const { title, type, challenge, userId } = req.body;
-  const createdAt = new Date().toISOString();
+  const createdAt = Date.now().toString();
 
   try {
     await checkUserChallenge({ challenge, userId });
     const id = createRoomId({ creator: userId, type, createdAt });
-    const room = withDefaults({ title, creator: userId, type, id, createdAt });
+    const room = withDefaults({
+      title,
+      creator: userId,
+      type,
+      id,
+      createdAt,
+      lastRefreshedAt: createdAt,
+    });
     await persistRoom(room);
     res.send({ room });
   } catch (e) {

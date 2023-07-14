@@ -21,6 +21,7 @@ export type Room = {
   radioUrl?: string;
   createdAt: string;
   spotifyError?: RoomError;
+  lastRefreshedAt: string;
 };
 
 type Bool = "true" | "false";

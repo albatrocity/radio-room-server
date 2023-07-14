@@ -1,4 +1,4 @@
-import globalSpotifyApi, { makeSpotifyApi } from "../../lib/spotifyApi";
+import { makeSpotifyApi } from "../../lib/spotifyApi";
 import { findRoom } from "../data";
 import getStoredUserSpotifyTokens from "./getStoredUserSpotifyTokens";
 
@@ -7,13 +7,13 @@ export async function getSpotifyApiForUser(userId: string = "app") {
     userId
   );
 
-  const spotifyApi = accessToken
-    ? makeSpotifyApi({
-        accessToken,
-        refreshToken: refreshToken ?? undefined,
-      })
-    : globalSpotifyApi;
-
+  if (!accessToken) {
+    throw new Error(`No access token found for user ${userId}`);
+  }
+  const spotifyApi = makeSpotifyApi({
+    accessToken,
+    refreshToken: refreshToken ?? undefined,
+  });
   return spotifyApi;
 }
 
@@ -30,12 +30,14 @@ export async function getSpotifyApiForRoom(roomId: string) {
     room.creator
   );
 
-  const spotifyApi = accessToken
-    ? makeSpotifyApi({
-        accessToken,
-        refreshToken: refreshToken ?? undefined,
-      })
-    : globalSpotifyApi;
+  if (!accessToken) {
+    throw new Error(`No access token found for user ${room.creator}`);
+  }
+
+  const spotifyApi = makeSpotifyApi({
+    accessToken,
+    refreshToken: refreshToken ?? undefined,
+  });
 
   return spotifyApi;
 }
