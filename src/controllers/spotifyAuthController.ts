@@ -14,20 +14,21 @@ const stateKey = "spotify_auth_state";
 const userIdKey = "spotify_auth_user_id";
 const redirectKey = "after_spotify_auth_redirect";
 
-function getUserIdParam(query: Request["query"]) {
-  if (Array.isArray(query.userId)) {
-    return query.userId[0];
+function getParam(query: Request["query"], paramName: string) {
+  if (query?.[paramName] && Array.isArray(query[paramName])) {
+    return query[paramName][0];
   }
-  if (Array.isArray(query.userId)) {
-    return query.userId[0];
+  if (query?.[paramName] && Array.isArray(query[paramName])) {
+    return query[paramName][0];
   }
-  return query.userId;
+  return query[paramName];
 }
 
 export async function login(req: Request, res: Response) {
   const state = generateRandomString(16);
   // get userId from query params
-  const userId = getUserIdParam(req.query);
+  const userId = getParam(req.query, "userId");
+  const roomTitle = getParam(req.query, "roomTitle");
 
   res.cookie(stateKey, state);
   if (userId) {
@@ -46,7 +47,7 @@ export async function login(req: Request, res: Response) {
         scope: scope,
         redirect_uri: redirect_uri,
         state: state,
-        ...(userId ? { userId: userId } : {}),
+        roomTitle: roomTitle,
       })
   );
 }
@@ -71,7 +72,7 @@ export async function callback(req: Request, res: Response) {
     try {
       const { access_token, refresh_token } = await getSpotifyAuthTokens(code);
 
-      const spotify = await makeSpotifyApi({
+      const spotify = makeSpotifyApi({
         accessToken: access_token,
         refreshToken: refresh_token,
       });

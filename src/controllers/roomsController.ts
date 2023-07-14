@@ -4,11 +4,14 @@ import { createRoomId, withDefaults } from "../operations/createRoom";
 import {
   findRoom as findRoomData,
   persistRoom,
+  parseRoom,
   removeSensitiveRoomAttributes,
 } from "../operations/data";
 import { checkUserChallenge } from "../operations/userChallenge";
 import { Server, Socket } from "socket.io";
 import { getRoomSettings } from "../handlers/roomHanders";
+import { getHMembersFromSet } from "../operations/data/utils";
+import { StoredRoom } from "../types/Room";
 
 export async function create(req: Request, res: Response) {
   const { title, type, challenge, userId } = req.body;
@@ -41,6 +44,22 @@ export async function findRoom(req: Request, res: Response) {
     return res.send({ room: removeSensitiveRoomAttributes(room) });
   }
   return res.send({ room: null });
+}
+
+export async function findRooms(req: Request, res: Response) {
+  if (req.query.creator) {
+    const rooms = await getHMembersFromSet<StoredRoom>(
+      `user:${req.query.creator}:rooms`,
+      "room",
+      "details"
+    );
+
+    return res.send({
+      rooms: rooms.map(parseRoom).map(removeSensitiveRoomAttributes),
+    });
+  }
+
+  res.send({ rooms: [] });
 }
 
 export default function socketHandlers(socket: Socket, io: Server) {

@@ -49,15 +49,44 @@ export function hSetToObject(hset: HSet) {
 // Gets keys from Redis that are indexed in a set
 export async function getMembersFromSet<T>(
   setKey: string,
-  recordPrefix: string
+  recordPrefix: string,
+  recordSuffix?: string
 ) {
   const members = await pubClient.sMembers(setKey);
+
   const reads = members.map(async (key) => {
-    const track = await pubClient.get(`${recordPrefix}:${key}`);
-    if (!track) {
+    const memberKey = `${recordPrefix}:${key}${
+      recordSuffix ? `:${recordSuffix}` : ""
+    }`;
+
+    const member = await pubClient.get(memberKey);
+    if (!member) {
       return null;
     }
-    return JSON.parse(track) as T;
+    return JSON.parse(member) as T;
+  });
+  const results = await Promise.all(reads);
+  return compact(results);
+}
+
+// Gets keys from Redis that are indexed in a set
+export async function getHMembersFromSet<T>(
+  setKey: string,
+  recordPrefix: string,
+  recordSuffix?: string
+) {
+  const members = await pubClient.sMembers(setKey);
+
+  const reads = members.map(async (key) => {
+    const memberKey = `${recordPrefix}:${key}${
+      recordSuffix ? `:${recordSuffix}` : ""
+    }`;
+
+    const member = await pubClient.hGetAll(memberKey);
+    if (!member) {
+      return null;
+    }
+    return member as T;
   });
   const results = await Promise.all(reads);
   return compact(results);

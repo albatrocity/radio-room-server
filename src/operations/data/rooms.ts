@@ -165,7 +165,7 @@ export async function removeUserRoomsSpotifyError(userId: string) {
   );
 }
 
-function parseRoom(room: StoredRoom): Room {
+export function parseRoom(room: StoredRoom): Room {
   return {
     ...room,
     fetchMeta: room.fetchMeta === "true",

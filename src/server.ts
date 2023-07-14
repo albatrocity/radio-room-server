@@ -12,6 +12,7 @@ import { callback, login } from "./controllers/spotifyAuthController";
 import roomsController, {
   create,
   findRoom,
+  findRooms,
 } from "./controllers/roomsController";
 
 import activityController, {
@@ -32,6 +33,7 @@ const httpServer = express()
   .use(cors())
   .use(express.json())
   .use(cookieParser())
+  .get("/rooms/", findRooms)
   .get("/rooms/:id", findRoom)
   .post("/rooms", create)
   .get("/login", login)
