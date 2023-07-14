@@ -5,7 +5,7 @@ import { User } from "../types/User";
 
 import getRoomPath from "../lib/getRoomPath";
 import { Room } from "../types/Room";
-import { clearQueue, findRoom, getUser, persistRoom } from "../operations/data";
+import { clearQueue, findRoom, getUser, saveRoom } from "../operations/data";
 import { Socket } from "socket.io";
 import { omit } from "remeda";
 
@@ -50,7 +50,7 @@ export async function setPassword(
 ) {
   const room = await findRoom(connections.socket.data.roomId);
   if (room) {
-    await persistRoom({ ...room, password: value });
+    await saveRoom({ ...room, password: value });
   }
 }
 
@@ -88,7 +88,7 @@ export async function setRoomSettings(
     ...omit(values, ["spotifyError"]),
   };
 
-  await persistRoom(newSettings);
+  await saveRoom(newSettings);
   const updatedRoom = await findRoom(socket.data.roomId);
 
   io.to(getRoomPath(socket.data.roomId)).emit("event", {

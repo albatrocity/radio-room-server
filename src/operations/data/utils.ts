@@ -84,6 +84,7 @@ export async function getHMembersFromSet<T>(
 
     const member = await pubClient.hGetAll(memberKey);
     if (!member) {
+      await pubClient.sRem(setKey, memberKey);
       return null;
     }
     return member as T;
@@ -112,4 +113,8 @@ export function mapUserBooleans(user: StoredUser) {
     isDeputyDj: user.isDeputyDj === "true",
     isAdmin: user.isAdmin === "true",
   };
+}
+
+export function getTtl(key: string) {
+  return pubClient.ttl(key);
 }

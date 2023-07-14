@@ -1,4 +1,4 @@
-import { FORTY_FIVE_MINS } from "../lib/constants";
+import { FIVE_MINUTES, FORTY_FIVE_MINS } from "../lib/constants";
 import { pubClient } from "../lib/redisClients";
 
 export async function checkUserChallenge({
@@ -26,7 +26,7 @@ export async function storeUserChallenge({
   challenge: string;
 }) {
   await pubClient.set(`challenge:${userId}`, challenge, {
-    PX: FORTY_FIVE_MINS,
+    PX: FIVE_MINUTES,
   });
 }
 

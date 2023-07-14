@@ -3,14 +3,15 @@ import { isEmpty, isNil } from "remeda";
 import { pubClient } from "../../lib/redisClients";
 import { Room, RoomMeta, StoredRoom } from "../../types/Room";
 import { SEVEN_DAYS } from "../../lib/constants";
-import { writeJsonToHset } from "./utils";
+import { writeJsonToHset, getHMembersFromSet } from "./utils";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { getQueue } from "./djs";
+import { User } from "../../types/User";
 
 async function addRoomToRoomList(roomId: Room["id"]) {
   await pubClient.sAdd("rooms", roomId);
 }
-async function removeRoomFromRoomList(roomId: Room["id"]) {
+export async function removeRoomFromRoomList(roomId: Room["id"]) {
   await pubClient.sRem("rooms", roomId);
 }
 
@@ -21,13 +22,11 @@ async function removeRoomFromUserRoomList(room: Room) {
   await pubClient.sRem(`user:${room.creator}:rooms`, room.id);
 }
 
-export async function persistRoom(room: Room) {
+export async function saveRoom(room: Room) {
   try {
     await addRoomToRoomList(room.id);
     await addRoomToUserRoomList(room);
-    return writeJsonToHset(`room:${room.id}:details`, room, {
-      PX: SEVEN_DAYS,
-    });
+    return writeJsonToHset(`room:${room.id}:details`, room);
   } catch (e) {
     console.log("ERROR FROM data/rooms/persistRoom", room);
     console.error(e);
@@ -144,7 +143,7 @@ export async function getRoomCurrent(roomId: string) {
 export async function makeJukeboxCurrentPayload(
   roomId: string,
   nowPlaying: SpotifyTrack,
-  meta: RoomMeta
+  meta: RoomMeta = {}
 ) {
   const room = await findRoom(roomId);
   const artwork = room?.artwork ?? nowPlaying?.album?.images?.[0]?.url;
@@ -202,17 +201,56 @@ export function removeSensitiveRoomAttributes(room: Room) {
   };
 }
 
+async function getAllRoomDataKeys(roomId: string) {
+  let keys = [];
+  for await (const key of pubClient.scanIterator({
+    MATCH: `room:${roomId}:*`,
+  })) {
+    keys.push(key);
+  }
+  return keys;
+}
+
 export async function deleteRoom(roomId: string) {
   const room = await findRoom(roomId);
   if (!room) {
     return;
   }
-
-  for await (const key of pubClient.scanIterator({
-    MATCH: `room:${roomId}:*`,
-  })) {
-    await pubClient.del(key);
-  }
+  // Get all keys relating to room
+  const keys = await getAllRoomDataKeys(roomId);
+  // delete them
+  await Promise.all(keys.map((k) => pubClient.del(k)));
+  // remove room from room list and user's room list
   await removeRoomFromRoomList(room.id);
   await removeRoomFromUserRoomList(room);
+}
+
+export async function expireRoomIn(roomId: string, ms: number) {
+  const room = await findRoom(roomId);
+  if (!room) {
+    return;
+  }
+  const keys = await getAllRoomDataKeys(roomId);
+  await Promise.all(keys.map((k) => pubClient.pExpire(k, ms)));
+}
+
+export async function persistRoom(roomId: string) {
+  const room = await findRoom(roomId);
+  if (!room) {
+    return;
+  }
+  const keys = await getAllRoomDataKeys(roomId);
+  await Promise.all(keys.map((k) => pubClient.persist(k)));
+}
+
+export async function getRoomOnlineUserIds(roomId: string) {
+  const ids = pubClient.sMembers(`room:${roomId}:online_users`);
+  return ids;
+}
+export async function getRoomOnlineUsers(roomId: string) {
+  const users = await getHMembersFromSet<User>(
+    `room:${roomId}:online_users`,
+    "user"
+  );
+  return users;
 }

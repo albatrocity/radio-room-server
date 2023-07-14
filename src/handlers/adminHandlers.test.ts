@@ -2,7 +2,7 @@ import { describe } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
 import { setPassword, kickUser, setRoomSettings } from "./adminHandlers";
 
-import { findRoom, getUser, persistRoom } from "../operations/data";
+import { findRoom, getUser, saveRoom } from "../operations/data";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi");
@@ -33,7 +33,7 @@ describe("adminHandlers", () => {
           enableSpotifyLogin: false,
         }
       );
-      expect(persistRoom).toHaveBeenCalledWith({
+      expect(saveRoom).toHaveBeenCalledWith({
         artwork: "google.com",
         extraInfo: undefined,
         fetchMeta: true,
@@ -50,7 +50,7 @@ describe("adminHandlers", () => {
         password: undefined,
       });
       await setPassword({ socket, io }, "donut");
-      expect(persistRoom).toHaveBeenCalledWith({
+      expect(saveRoom).toHaveBeenCalledWith({
         password: "donut",
       });
     });
@@ -102,7 +102,7 @@ describe("adminHandlers", () => {
         enableSpotifyLogin: false,
       };
       await setRoomSettings({ socket, io }, newSettings);
-      expect(persistRoom).toHaveBeenCalledWith(newSettings);
+      expect(saveRoom).toHaveBeenCalledWith(newSettings);
     });
 
     it("emits ROOM_SETTINGS event", async () => {
@@ -116,7 +116,7 @@ describe("adminHandlers", () => {
       (findRoom as jest.Mock)
         .mockResolvedValueOnce({})
         .mockResolvedValueOnce(newSettings);
-      (persistRoom as jest.Mock).mockResolvedValueOnce({});
+      (saveRoom as jest.Mock).mockResolvedValueOnce({});
       await setRoomSettings({ socket, io }, newSettings);
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "ROOM_SETTINGS",

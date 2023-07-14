@@ -1,7 +1,7 @@
 import { create } from "../controllers/roomsController";
 import httpMocks from "node-mocks-http";
 import { checkUserChallenge } from "../operations/userChallenge";
-import { persistRoom } from "../operations/data";
+import { saveRoom } from "../operations/data";
 
 jest.mock("../operations/userChallenge", () => ({
   checkUserChallenge: jest.fn(),
@@ -70,7 +70,7 @@ describe("create", () => {
     (checkUserChallenge as jest.Mock).mockResolvedValue(1);
 
     await create(request, response);
-    expect(persistRoom).toHaveBeenCalledWith({
+    expect(saveRoom).toHaveBeenCalledWith({
       artwork: undefined,
       createdAt: expect.any(String),
       creator: "userId",

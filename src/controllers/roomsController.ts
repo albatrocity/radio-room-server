@@ -4,7 +4,7 @@ import { createRoomId, withDefaults } from "../operations/createRoom";
 import {
   findRoom as findRoomData,
   deleteRoom as deleteRoomData,
-  persistRoom,
+  saveRoom,
   parseRoom,
   removeSensitiveRoomAttributes,
 } from "../operations/data";
@@ -29,7 +29,7 @@ export async function create(req: Request, res: Response) {
       createdAt,
       lastRefreshedAt: createdAt,
     });
-    await persistRoom(room);
+    await saveRoom(room);
     res.send({ room });
   } catch (e) {
     res.statusCode = e === "Unauthorized" ? 401 : 400;

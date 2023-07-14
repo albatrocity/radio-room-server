@@ -22,6 +22,7 @@ import {
   getRoomPlaylist,
   getRoomCurrent,
   updateUserAttributes,
+  persistRoom,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
 import { Room } from "../types/Room";
@@ -130,6 +131,8 @@ export async function login(
     return;
   }
 
+  const isAdmin = room?.creator === socket.data.userId;
+
   if (!passwordMatched(room, password, userId)) {
     socket.emit("event", {
       type: "UNAUTHORIZED",
@@ -144,6 +147,11 @@ export async function login(
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
   await addOnlineUser(roomId, userId);
   await persistUser(userId, newUser);
+
+  // If the admin has logged in, remove expiration of room keys
+  if (isAdmin) {
+    await persistRoom(roomId);
+  }
 
   pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
 
@@ -171,7 +179,7 @@ export async function login(
         username: socket.data.username,
         status: "participating",
         isDeputyDj,
-        isAdmin: room?.creator === socket.data.userId,
+        isAdmin,
       },
     },
   });
