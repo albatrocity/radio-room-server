@@ -21,7 +21,6 @@ export type Room = {
   radioUrl?: string;
   createdAt: string;
   spotifyError?: RoomError;
-  lastUpdated?: string;
 };
 
 type Bool = "true" | "false";
@@ -44,6 +43,7 @@ export type RoomMeta = {
   title?: string;
   bitrate?: number;
   dj?: User;
+  lastUpdatedAt?: string;
 };
 export interface StoredRoomMeta extends Omit<RoomMeta, "release" | "dj"> {
   release?: string;

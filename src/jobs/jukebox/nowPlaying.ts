@@ -13,6 +13,7 @@ import {
   getRoomCurrent,
   removeFromQueue,
   setRoomCurrent,
+  updateRoom,
 } from "../../operations/data";
 import { pubClient } from "../../lib/redisClients";
 import { PlaylistTrack } from "../../types/PlaylistTrack";
@@ -37,8 +38,11 @@ export async function communicateNowPlaying(roomId: string) {
         return null;
       }
 
+      await setRoomCurrent(roomId, {
+        ...nowPlaying,
+        lastUpdatedAt: Date.now().toString(),
+      });
       await pubSubNowPlaying(roomId, nowPlaying);
-      await setRoomCurrent(roomId, nowPlaying);
 
       // Add the track to the room playlist
       const queue = await getQueue(roomId);

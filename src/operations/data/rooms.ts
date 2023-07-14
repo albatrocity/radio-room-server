@@ -20,6 +20,18 @@ export async function persistRoom(room: Room) {
   }
 }
 
+export async function updateRoom(room: Partial<Room> & { id: string }) {
+  try {
+    await writeJsonToHset(`room:${room.id}:details`, room);
+    const updated = await findRoom(room.id);
+    return updated;
+  } catch (e) {
+    console.log("ERROR FROM data/rooms/updateRoom", room);
+    console.error(e);
+    return null;
+  }
+}
+
 export async function findRoom(roomId: string) {
   const roomKey = `room:${roomId}:details`;
   try {
@@ -65,14 +77,17 @@ export async function setRoomCurrent(roomId: string, meta: any) {
 
     await writeJsonToHset(roomCurrentKey, {
       ...parsedMeta,
-      lastUpdated: String(Date.now()),
+      lastUpdatedAt: String(Date.now()),
       release: JSON.stringify(parsedMeta.release),
       dj: parsedMeta.dj ? JSON.stringify(parsedMeta.dj) : undefined,
     });
     await pubClient.pExpire(roomCurrentKey, SEVEN_DAYS);
+    const current = await getRoomCurrent(roomId);
+    return current;
   } catch (e) {
     console.error(e);
     console.error("Error from data/rooms/setRoomCurrent", roomId, meta);
+    return null;
   }
 }
 
