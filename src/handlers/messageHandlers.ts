@@ -53,6 +53,7 @@ export async function clearMessages({ socket, io }: HandlerConnections) {
 export async function startTyping({ socket }: HandlerConnections) {
   await addTypingUser(socket.data.roomId, socket.data.userId);
   const typing = await getTypingUsers(socket.data.roomId);
+  console.log(socket.request.session);
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
     data: { typing },

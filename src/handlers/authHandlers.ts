@@ -1,6 +1,5 @@
 import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
-
 import { find, isNil, uniqBy } from "remeda";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
@@ -23,6 +22,7 @@ import {
   getRoomCurrent,
   updateUserAttributes,
   persistRoom,
+  getUserRooms,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
 import { Room } from "../types/Room";
@@ -106,6 +106,11 @@ export async function login(
   socket.data.username = username;
   socket.data.userId = userId;
   socket.data.roomId = roomId;
+  socket.request.session.roomId = roomId;
+  socket.request.session.user = {
+    userId,
+    username,
+  };
 
   const isDeputyDj = await isDj(roomId, userId);
 
@@ -199,6 +204,8 @@ export async function changeUsername(
       socket.data.roomId
     );
 
+    socket.request.session.user = newUser;
+
     const content = `${oldUsername} transformed into ${username}`;
     pubUserJoined({ io }, socket.data.roomId, {
       users: newUsers,
@@ -216,10 +223,18 @@ export async function changeUsername(
 }
 
 export async function disconnect({ socket, io }: HandlerConnections) {
+  console.log("disconnect");
   await removeOnlineUser(socket.data.roomId, socket.data.userId);
-  await deleteUser(socket.data.userId);
+  socket.leave(getRoomPath(socket.data.roomId));
+
+  const userRooms = await getUserRooms(socket.data.userId);
+
+  if (userRooms.length === 0) {
+    await deleteUser(socket.data.userId);
+  }
 
   const users = await getRoomUsers(socket.data.roomId);
+  console.log("users", users);
 
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_LEFT",

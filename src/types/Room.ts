@@ -50,3 +50,9 @@ export interface StoredRoomMeta extends Omit<RoomMeta, "release" | "dj"> {
   release?: string;
   dj?: string;
 }
+
+export type RoomSnapshot = {
+  id: string;
+  lastMessageTime: number;
+  lastPlaylistItemTime: number;
+};

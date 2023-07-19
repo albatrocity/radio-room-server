@@ -78,6 +78,9 @@ export async function callback(req: Request, res: Response) {
       });
       const me = await spotify.getMe();
       const userId = me.body.id;
+      req.session.user = { userId };
+      req.session.save();
+
       const challenge = generateRandomString(16);
 
       await storeUserSpotifyTokens({

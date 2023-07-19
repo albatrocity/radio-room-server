@@ -7,12 +7,13 @@ import {
   saveRoom,
   parseRoom,
   removeSensitiveRoomAttributes,
+  getUserRooms,
 } from "../operations/data";
 import { checkUserChallenge } from "../operations/userChallenge";
 import { Server, Socket } from "socket.io";
-import { getRoomSettings } from "../handlers/roomHanders";
+import { getLatestRoomData, getRoomSettings } from "../handlers/roomHanders";
 import { getHMembersFromSet } from "../operations/data/utils";
-import { StoredRoom } from "../types/Room";
+import { RoomSnapshot, StoredRoom } from "../types/Room";
 
 export async function create(req: Request, res: Response) {
   const { title, type, challenge, userId } = req.body;
@@ -48,19 +49,18 @@ export async function findRoom(req: Request, res: Response) {
 }
 
 export async function findRooms(req: Request, res: Response) {
-  if (req.query.creator) {
-    const rooms = await getHMembersFromSet<StoredRoom>(
-      `user:${req.query.creator}:rooms`,
-      "room",
-      "details"
-    );
-
-    return res.send({
-      rooms: rooms.map(parseRoom).map(removeSensitiveRoomAttributes),
+  console.log("SESSION USER", req.session.user?.userId);
+  if (!req.session.user?.userId) {
+    return res.status(401).send({
+      error: "Unauthorized",
     });
   }
 
-  res.send({ rooms: [] });
+  const rooms = await getUserRooms(req.session.user?.userId || "s");
+
+  return res.status(200).send({
+    rooms: rooms.map(parseRoom).map(removeSensitiveRoomAttributes),
+  });
 }
 
 export async function deleteRoom(req: Request, res: Response) {
@@ -76,5 +76,8 @@ export async function deleteRoom(req: Request, res: Response) {
 export default function socketHandlers(socket: Socket, io: Server) {
   socket.on("get room settings", (url: string) =>
     getRoomSettings({ socket, io })
+  );
+  socket.on("get latest room data", (snapshot: RoomSnapshot) =>
+    getLatestRoomData({ socket, io }, snapshot)
   );
 }

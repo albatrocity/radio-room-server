@@ -21,6 +21,13 @@ async function addRoomToUserRoomList(room: Room) {
 async function removeRoomFromUserRoomList(room: Room) {
   await pubClient.sRem(`user:${room.creator}:rooms`, room.id);
 }
+export async function getUserRooms(userId: User["userId"]) {
+  return getHMembersFromSet<StoredRoom>(
+    `user:${userId}:rooms`,
+    "room",
+    "details"
+  );
+}
 
 export async function saveRoom(room: Room) {
   try {

@@ -57,4 +57,8 @@ export default function authController(socket: Socket, io: Server) {
   });
 
   socket.on("disconnect", () => disconnect({ socket, io }));
+  socket.on("user left", () => {
+    console.log("USER LEFT");
+    disconnect({ socket, io });
+  });
 }

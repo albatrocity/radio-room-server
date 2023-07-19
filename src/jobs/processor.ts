@@ -1,5 +1,3 @@
-const setTimeoutP = require("timers/promises").setTimeout;
-
 import jukebox from "./jukebox";
 import rooms from "./rooms";
 import { pubClient, subClient } from "../lib/redisClients";

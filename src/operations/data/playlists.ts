@@ -8,7 +8,7 @@ export async function addTrackToRoomPlaylist(
   try {
     const trackString = JSON.stringify(track);
     const key = `room:${roomId}:playlist`;
-    const score = Date.now();
+    const score = track.timestamp;
     return pubClient.zAdd(key, [{ score, value: trackString }]);
   } catch (e) {
     console.log(
@@ -41,6 +41,26 @@ export async function getRoomPlaylist(
       offset,
       count
     );
+    console.error(e);
+    return [];
+  }
+}
+
+export async function getRoomPlaylistSince(
+  roomId: string,
+  since: number = Date.now()
+) {
+  try {
+    const roomKey = `room:${roomId}:playlist`;
+    const roomExists = await pubClient.exists(roomKey);
+    if (!roomExists) {
+      return [];
+    } else {
+      const results = await pubClient.zRangeByScore(roomKey, since, "+inf");
+      return results.map((m) => JSON.parse(m) as PlaylistTrack) || [];
+    }
+  } catch (e) {
+    console.log("ERROR FROM data/playlists/getRoomPlaylist", roomId, since);
     console.error(e);
     return [];
   }

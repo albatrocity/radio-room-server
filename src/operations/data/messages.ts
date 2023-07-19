@@ -34,6 +34,26 @@ export async function getMessages(
   }
 }
 
+export async function getMessagesSince(
+  roomId: string,
+  since: number = Date.now()
+) {
+  try {
+    const roomKey = `room:${roomId}:messages`;
+    const roomExists = await pubClient.exists(roomKey);
+    if (!roomExists) {
+      return [];
+    } else {
+      const results = await pubClient.zRangeByScore(roomKey, since, "+inf");
+      return results.map((m) => JSON.parse(m) as ChatMessage) || [];
+    }
+  } catch (e) {
+    console.log("ERROR FROM data/messages/getMessagesSince", roomId, since);
+    console.error(e);
+    return [];
+  }
+}
+
 export async function clearMessages(roomId: string) {
   try {
     console.log("CLEARING MESSAGES", roomId);
