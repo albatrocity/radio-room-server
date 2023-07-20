@@ -10,6 +10,8 @@ import { makeJukeboxCurrentPayload } from "../../operations/data";
 import { PlaylistTrack } from "../../types/PlaylistTrack";
 import { PubSubHandlerArgs } from "../../types/PubSub";
 import { RoomMeta } from "../../types/Room";
+import systemMessage from "../../lib/systemMessage";
+import sendMessage from "../../lib/sendMessage";
 
 export default async function bindHandlers(io: Server) {
   subClient.pSubscribe(PUBSUB_JUKEBOX_NOW_PLAYING_FETCHED, (message, channel) =>
@@ -27,6 +29,11 @@ async function handleNowPlaying({ io, message, channel }: PubSubHandlerArgs) {
     meta,
   }: { nowPlaying: SpotifyTrack; roomId: string; meta: RoomMeta } =
     JSON.parse(message);
+  const msg = systemMessage(
+    `Now playing: ${nowPlaying.name} by ${nowPlaying.artists[0].name}`,
+    "success"
+  );
+  sendMessage(io, roomId, msg);
   const payload = await makeJukeboxCurrentPayload(roomId, nowPlaying, meta);
   io.to(getRoomPath(roomId)).emit("event", payload);
 }
