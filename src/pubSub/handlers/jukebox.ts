@@ -29,6 +29,9 @@ async function handleNowPlaying({ io, message, channel }: PubSubHandlerArgs) {
     meta,
   }: { nowPlaying: SpotifyTrack; roomId: string; meta: RoomMeta } =
     JSON.parse(message);
+  if (!nowPlaying) {
+    return;
+  }
   const msg = systemMessage(
     `Now playing: ${nowPlaying.name} by ${nowPlaying.artists[0].name}`,
     "success"

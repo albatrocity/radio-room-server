@@ -37,7 +37,7 @@ export async function login(req: Request, res: Response) {
   res.cookie(redirectKey, req.query.redirect);
 
   const scope =
-    "user-read-private user-read-email playlist-read-collaborative playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-modify";
+    "user-read-private user-read-email playlist-read-collaborative playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-read user-library-modify";
 
   res.redirect(
     "https://accounts.spotify.com/authorize?" +

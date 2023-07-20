@@ -1,3 +1,5 @@
+import { PUBSUB_USER_SPOTIFY_ACCESS_TOKEN_REFRESHED } from "../../lib/constants";
+import { pubClient } from "../../lib/redisClients";
 import { delRoomKey, findRoom, updateRoom } from "../../operations/data";
 import getStoredUserSpotifyTokens from "../../operations/spotify/getStoredUserSpotifyTokens";
 import refreshToken from "../../operations/spotify/refreshSpotifyToken";
@@ -22,7 +24,11 @@ export async function refreshSpotifyTokens(roomId: string) {
     now - lastRefresh > 45 * 60 * 1000
   ) {
     // refresh tokens
-    await refreshToken(room.creator);
+    const accessToken = await refreshToken(room.creator);
+    await pubClient.publish(
+      PUBSUB_USER_SPOTIFY_ACCESS_TOKEN_REFRESHED,
+      JSON.stringify({ roomId, userId: room.creator, accessToken })
+    );
     // update room.lastRefreshedAt
     await updateRoom(roomId, { lastRefreshedAt: Date.now().toString() });
     await delRoomKey(roomId, "details", "spotifyError");

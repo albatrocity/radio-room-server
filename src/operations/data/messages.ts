@@ -39,12 +39,17 @@ export async function getMessagesSince(
   since: number = Date.now()
 ) {
   try {
+    const sinceDate = new Date(since).getTime();
     const roomKey = `room:${roomId}:messages`;
     const roomExists = await pubClient.exists(roomKey);
     if (!roomExists) {
       return [];
     } else {
-      const results = await pubClient.zRangeByScore(roomKey, since, "+inf");
+      const results = await pubClient.zRangeByScore(
+        roomKey,
+        sinceDate,
+        Date.now()
+      );
       return results.map((m) => JSON.parse(m) as ChatMessage) || [];
     }
   } catch (e) {

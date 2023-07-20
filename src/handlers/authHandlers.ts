@@ -169,6 +169,7 @@ export async function login(
   const playlist = await getRoomPlaylist(roomId);
   const meta = await getRoomCurrent(roomId);
   const allReactions = await getAllRoomReactions(roomId);
+  const { accessToken } = await getStoredUserSpotifyTokens(userId);
 
   socket.emit("event", {
     type: "INIT",
@@ -186,6 +187,7 @@ export async function login(
         isDeputyDj,
         isAdmin,
       },
+      accessToken,
     },
   });
 }
@@ -223,7 +225,6 @@ export async function changeUsername(
 }
 
 export async function disconnect({ socket, io }: HandlerConnections) {
-  console.log("disconnect");
   await removeOnlineUser(socket.data.roomId, socket.data.userId);
   socket.leave(getRoomPath(socket.data.roomId));
 
@@ -234,8 +235,6 @@ export async function disconnect({ socket, io }: HandlerConnections) {
   }
 
   const users = await getRoomUsers(socket.data.roomId);
-  console.log("users", users);
-
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_LEFT",
     data: {
@@ -257,6 +256,7 @@ export async function getUserSpotifyAuth(
     type: "SPOTIFY_AUTHENTICATION_STATUS",
     data: {
       isAuthenticated: !!accessToken,
+      accessToken,
     },
   });
 }
