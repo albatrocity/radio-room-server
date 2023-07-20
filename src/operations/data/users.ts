@@ -68,6 +68,7 @@ export async function decrementRoomUsers(roomId: string) {
 export async function getRoomUsers(roomId: string) {
   try {
     const users = await pubClient.sMembers(`room:${roomId}:online_users`);
+    console.log("USERS", users);
     const reads = users.map(async (userId) => {
       const userData = await getUser(userId);
       if (!userData) {

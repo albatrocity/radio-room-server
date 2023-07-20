@@ -49,7 +49,6 @@ export async function findRoom(req: Request, res: Response) {
 }
 
 export async function findRooms(req: Request, res: Response) {
-  console.log("SESSION USER", req.session.user?.userId);
   if (!req.session.user?.userId) {
     return res.status(401).send({
       error: "Unauthorized",

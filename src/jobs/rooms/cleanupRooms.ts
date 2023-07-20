@@ -19,6 +19,8 @@ export async function cleanupRoom(roomId: string) {
   }
 
   const onlineIds = await getRoomOnlineUserIds(roomId);
+
+  // If the room creator is not online, and the room has no ttl, set one
   if (!onlineIds.includes(room.creator)) {
     const ttl = await getTtl(`room:${roomId}:details`);
     if (ttl === -1) {

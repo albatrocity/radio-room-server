@@ -261,3 +261,6 @@ export async function getRoomOnlineUsers(roomId: string) {
   );
   return users;
 }
+export async function clearRoomOnlineUsers(roomId: string) {
+  await pubClient.del(`room:${roomId}:online_users`);
+}

@@ -28,6 +28,7 @@ import djController, {
   lifecycleEvents as djEvents,
 } from "./controllers/djController";
 import messageController from "./controllers/messageController";
+import { clearRoomOnlineUsers } from "./operations/data";
 
 declare module "express-session" {
   interface Session {
@@ -52,13 +53,6 @@ const sessionMiddleware = session({
   },
   secret: process.env.SESSION_SECRET ?? "secret",
 });
-
-const auth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session.user) {
-    return res.sendStatus(403);
-  }
-  next();
-};
 
 const httpServer = express()
   .use(express.static(__dirname + "/public"))
@@ -99,12 +93,7 @@ io.use((socket, next) => {
   // connections, as 'socket.request.res' will be undefined in that case
 });
 
-let offline = true;
-let oAuthInterval: NodeJS.Timer | null;
-
 io.on("connection", (socket) => {
-  // @ts-ignore
-  const req = socket.request;
   authController(socket, io);
   messageController(socket, io);
   activityController(socket, io);
@@ -126,5 +115,15 @@ async function startJobs() {
     console.error(e);
   }
 }
+async function boot() {
+  const roomIds = await pubClient.sMembers("rooms");
+  await Promise.all(
+    roomIds.map(async (id) => {
+      return clearRoomOnlineUsers(id);
+    })
+  );
+}
 
 startJobs();
+
+boot();
