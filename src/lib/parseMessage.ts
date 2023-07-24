@@ -2,6 +2,7 @@ import mustache from "mustache";
 import getMessageVariables from "./getMessageVariables";
 
 export default function parseMessage(
+  roomId: string,
   message = "",
   variables?: Record<string, any>
 ) {
@@ -12,7 +13,7 @@ export default function parseMessage(
     (x.match(idRegex) ?? "")?.[0].replace(/(\()/gm, "").replace(/(\))/gm, "")
   );
   const content = message.replace(mentionRegex, "@$2");
-  const view = { ...getMessageVariables(), ...variables };
+  const view = { ...getMessageVariables(roomId), ...variables };
 
   const parsedContent = mustache.render(content, view);
 

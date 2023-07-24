@@ -1,10 +1,5 @@
-import { reject, map, uniqBy } from "remeda";
-
-import { getters, setters } from "../lib/dataStore";
 import sendMessage from "../lib/sendMessage";
-import globalSpotifyApi from "../lib/spotifyApi";
 import systemMessage from "../lib/systemMessage";
-import updateUserAttributes from "../lib/updateUserAttributes";
 import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
 import syncQueue from "../operations/spotify/syncQueue";
 
@@ -12,83 +7,51 @@ import { HandlerConnections } from "../types/HandlerConnections";
 import { SearchOptions } from "../types/SpotifyApi";
 import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
-import { Server } from "socket.io";
-import getSpotifyApiForUser from "../operations/spotify/getSpotifyApiForUser";
+import { getSpotifyApiForRoom } from "../operations/spotify/getSpotifyApi";
 import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 
-export function setDj(
+import {
+  addDj,
+  addToQueue,
+  findRoom,
+  getDjs,
+  getQueue,
+  getRoomUsers,
+  getUser,
+  isDj,
+  removeDj,
+  updateUserAttributes,
+} from "../operations/data";
+import { pubUserJoined } from "../operations/sockets/users";
+
+export async function djDeputizeUser(
   { io, socket }: HandlerConnections,
-  userId?: User["userId"]
+  userId: User["userId"]
 ) {
-  const users = getters.getUsers();
-  const user = users.find((u) => u.userId === userId);
-  if (user && user.isDj) {
-    return;
-  }
+  const storedUser = await getUser(userId);
+  const socketId = storedUser?.id;
 
-  if (userId && user) {
-    const newUser = { ...user, isDj: true };
-    const newUsers = uniqBy(
-      [
-        ...reject(
-          map(users, (x) => ({ ...x, isDj: false })),
-          (u) => u.userId === userId
-        ),
-        newUser,
-      ],
-      (u) => u.userId
-    );
-    setters.setUsers(newUsers);
-    const content = `${user.username} is now the DJ`;
-    const newMessage = systemMessage(content, {
-      userId,
-    });
-    sendMessage(io, newMessage);
-    io.emit("event", {
-      type: "USER_JOINED",
-      data: {
-        user: newUser,
-        users: newUsers,
-      },
-    });
-  } else {
-    const newUsers = uniqBy(
-      map(users, (x) => ({ ...x, isDj: false })),
-      (u) => u.userId
-    );
-    setters.setUsers(newUsers);
-    const content = `There's currently no DJ.`;
-    const newMessage = systemMessage(content, {
-      userId,
-    });
-    sendMessage(io, newMessage);
-    io.emit("event", {
-      type: "USER_JOINED",
-      data: {
-        users: newUsers,
-      },
-    });
-  }
-}
+  let eventType, message, isDeputyDj;
 
-export function djDeputizeUser({ io }: { io: Server }, userId: User["userId"]) {
-  const deputyDjs = getters.getDeputyDjs();
-  const socketId = getters.getUsers().find((u) => u.userId === userId)?.id;
-  var eventType, message, isDeputyDj;
+  const userIsDj = await isDj(socket.data.roomId, userId);
 
-  if (deputyDjs.includes(userId)) {
+  if (userIsDj) {
     eventType = "END_DEPUTY_DJ_SESSION";
     message = `You are no longer a deputy DJ`;
     isDeputyDj = false;
-    setters.setDeputyDjs(deputyDjs.filter((x) => x !== userId));
+    await removeDj(socket.data.roomId, userId);
   } else {
     eventType = "START_DEPUTY_DJ_SESSION";
     message = `You've been promoted to a deputy DJ. You may now add songs to the DJ's queue.`;
     isDeputyDj = true;
-    setters.setDeputyDjs([...deputyDjs, userId]);
+    await addDj(socket.data.roomId, userId);
   }
 
-  const { user, users } = updateUserAttributes(userId, { isDeputyDj });
+  const { user, users } = await updateUserAttributes(
+    userId,
+    { isDeputyDj },
+    socket.data.roomId
+  );
 
   if (socketId) {
     io.to(socketId).emit(
@@ -103,13 +66,7 @@ export function djDeputizeUser({ io }: { io: Server }, userId: User["userId"]) {
     io.to(socketId).emit("event", { type: eventType });
   }
 
-  io.emit("event", {
-    type: "USER_JOINED",
-    data: {
-      user,
-      users,
-    },
-  });
+  pubUserJoined({ io }, socket.data.roomId, { user, users });
 }
 
 export async function queueSong(
@@ -117,16 +74,16 @@ export async function queueSong(
   uri: SpotifyEntity["uri"]
 ) {
   try {
-    const currentUser = getters
-      .getUsers()
-      .find(({ userId }) => userId === socket.data.userId);
-    await syncQueue();
-    const inQueue = getters.getQueue().find((x) => x.uri === uri);
+    const currentUser = await getUser(socket.data.userId);
+    await syncQueue(socket.data.roomId);
+
+    const queue = await getQueue(socket.data.roomId);
+
+    const inQueue = queue.find((x) => x.uri === uri);
 
     if (inQueue) {
-      const djUsername =
-        getters.getUsers().find(({ userId }) => userId === inQueue.userId)
-          ?.username || "Someone";
+      const djUsername = (await getUser(inQueue.userId))?.username ?? "Someone";
+
       socket.emit("event", {
         type: "SONG_QUEUE_FAILURE",
         data: {
@@ -138,12 +95,14 @@ export async function queueSong(
       });
       return;
     }
-    const data = await globalSpotifyApi.addToQueue(uri);
+    const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
+    const data = await spotifyApi.addToQueue(uri);
+    await addToQueue(socket.data.roomId, {
+      uri,
+      userId: socket.data.userId,
+      username: currentUser?.username,
+    });
 
-    setters.setQueue([
-      ...getters.getQueue(),
-      { uri, userId: socket.data.userId, username: currentUser?.username },
-    ]);
     socket.emit("event", {
       type: "SONG_QUEUED",
       data,
@@ -153,7 +112,7 @@ export async function queueSong(
         currentUser ? currentUser.username : "Someone"
       } added a song to the queue`
     );
-    sendMessage(io, queueMessage);
+    sendMessage(io, socket.data.roomId, queueMessage);
   } catch (e) {
     socket.emit("event", {
       type: "SONG_QUEUE_FAILURE",
@@ -169,7 +128,7 @@ export async function searchSpotifyTrack(
   { socket }: HandlerConnections,
   { query, options }: { query: string; options: SearchOptions }
 ) {
-  const spotifyApi = await getSpotifyApiForUser(socket.data.userId);
+  const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
 
   try {
     const data = await spotifyApi.searchTracks(query, options);
@@ -210,7 +169,7 @@ export async function savePlaylist(
 }
 
 export async function getSavedTracks({ socket }: HandlerConnections) {
-  const spotifyApi = await getSpotifyApiForUser(socket.data.userId);
+  const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
   try {
     const data = await spotifyApi.getMySavedTracks();
     socket.emit("event", { type: "SAVED_TRACKS_RESULTS", data: data.body });
@@ -221,14 +180,12 @@ export async function getSavedTracks({ socket }: HandlerConnections) {
 }
 
 export async function handleUserJoined(
-  { io }: { io: Server },
+  { io, socket }: HandlerConnections,
   { user }: { user: User; users: User[] }
 ) {
-  const deputyDjs = getters.getDeputyDjs();
-  if (
-    getters.getSettings().deputizeOnJoin &&
-    !deputyDjs.includes(user.userId)
-  ) {
-    djDeputizeUser({ io }, user.userId);
+  const room = await findRoom(socket.data.roomId);
+  const deputyDjs = await getDjs(socket.data.roomId);
+  if (room?.deputizeOnJoin && !deputyDjs.includes(user.userId)) {
+    djDeputizeUser({ io, socket }, user.userId);
   }
 }

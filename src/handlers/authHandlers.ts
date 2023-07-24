@@ -1,59 +1,171 @@
 import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
-
 import { isNil, uniqBy } from "remeda";
-import { reject } from "remeda";
-import { getters, setters } from "../lib/dataStore";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
-import { events } from "../lib/eventEmitter";
 import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpotifyTokens";
-import removeStoredUserSpotifyTokens from "../operations/spotify/removeStoredUserSpotifyTokens";
+import getRoomPath from "../lib/getRoomPath";
+import {
+  addOnlineUser,
+  findRoom,
+  getAllRoomReactions,
+  getMessages,
+  getRoomUsers,
+  getUser,
+  isDj,
+  saveUser,
+  removeOnlineUser,
+  getRoomPlaylist,
+  getRoomCurrent,
+  updateUserAttributes,
+  persistRoom,
+  addDj,
+  disconnectFromSpotify,
+} from "../operations/data";
+import { pubUserJoined } from "../operations/sockets/users";
+import { Room } from "../types/Room";
+import generateId from "../lib/generateId";
+import generateAnonName from "../lib/generateAnonName";
 
-export function checkPassword(
+function passwordMatched(
+  room: Room | null,
+  password?: string,
+  userId?: string
+) {
+  if (userId === room?.creator) {
+    return true;
+  }
+  return !room?.password || room?.password === password;
+}
+
+export async function checkPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
-  const settings = getters.getSettings();
+  const room = await findRoom(socket.data.roomId);
+
   socket.emit("event", {
     type: "SET_PASSWORD_REQUIREMENT",
     data: {
-      passwordRequired: !isNil(settings.password),
-      passwordAccepted: settings.password
-        ? submittedPassword === settings.password
+      passwordRequired: !isNil(room?.password),
+      passwordAccepted: room?.password
+        ? submittedPassword === room?.password
         : true,
     },
   });
 }
 
-export function submitPassword(
+export async function submitPassword(
   { socket, io }: HandlerConnections,
   submittedPassword: string
 ) {
-  const settings = getters.getSettings();
+  const room = await findRoom(socket.data.roomId);
+  if (!room) {
+    socket.emit("event", {
+      type: "ERROR",
+      data: {
+        message: "Room not found",
+        status: 404,
+      },
+    });
+    return;
+  }
+
   socket.emit("event", {
     type: "SET_PASSWORD_ACCEPTED",
     data: {
-      passwordAccepted: settings.password === submittedPassword,
+      passwordAccepted: passwordMatched(
+        room,
+        submittedPassword,
+        socket.data.userId
+      ),
     },
   });
 }
 
-export function login(
+export async function login(
   { socket, io }: HandlerConnections,
   {
-    username,
-    userId,
+    userId: incomingUserId,
+    username: incomingUsername,
     password,
-  }: { username: User["username"]; userId: User["userId"]; password?: string }
+    roomId,
+  }: {
+    userId?: string;
+    username?: string;
+    password?: string;
+    roomId: string;
+  }
 ) {
-  const users = getters.getUsers();
+  let assignedUserId: string | undefined = incomingUserId;
+  const session = socket.request.session;
+  const room = await findRoom(roomId);
 
+  // Throw an error if the room doesn't exist
+  if (!room) {
+    socket.emit("event", {
+      type: "ERROR",
+      data: {
+        message: "Room not found",
+        status: 404,
+      },
+    });
+    return;
+  }
+
+  // prevent spoofing of userId by checking against matching user's socket id
+  if (incomingUserId) {
+    const incomingUser = await getUser(incomingUserId);
+    if (incomingUser?.id && incomingUser?.id !== socket.id) {
+      assignedUserId = undefined;
+    }
+  }
+
+  // Retrieve or setup new user
+  const existingUserId = assignedUserId ?? session?.user?.userId;
+  const isNew = !assignedUserId && !existingUserId && !session?.user?.username;
+  const userId = existingUserId ?? generateId();
+  const existingUser = await getUser(userId);
+  const username =
+    existingUser?.username ??
+    session.user?.username ??
+    incomingUsername ??
+    generateAnonName();
+
+  // Stuff some important data into the socket
   socket.data.username = username;
   socket.data.userId = userId;
+  socket.data.roomId = roomId;
 
-  const isDeputyDj = getters.getDeputyDjs().includes(userId);
+  // Save some user details to the session
+  socket.request.session.user = {
+    userId,
+    username,
+    id: socket.id,
+  };
+  socket.request.session.save();
 
+  // Join the room
+  socket.join(getRoomPath(roomId));
+
+  // Throw an error if the room is password protected and the password is incorrect
+  if (!passwordMatched(room, password, userId)) {
+    socket.emit("event", {
+      type: "UNAUTHORIZED",
+      data: {
+        message: "Password is incorrect",
+        status: 401,
+      },
+    });
+    return;
+  }
+
+  // Get room-specific user properties
+  const users = await getRoomUsers(roomId);
+  const isDeputyDj = room?.deputizeOnJoin ?? (await isDj(roomId, userId));
+  const isAdmin = room?.creator === socket.data.userId;
+
+  // Create a new user object
   const newUser = {
     username,
     userId,
@@ -63,96 +175,101 @@ export function login(
     status: "participating" as const,
     connectedAt: new Date().toISOString(),
   };
+
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
-  setters.setUsers(newUsers);
 
-  socket.broadcast.emit("event", {
-    type: "USER_JOINED",
-    data: {
-      user: newUser,
-      users: newUsers,
-    },
-  });
+  // save data to redis
+  await addOnlineUser(roomId, userId);
+  await saveUser(userId, newUser);
+  if (room.deputizeOnJoin) {
+    await addDj(roomId, userId);
+  }
 
-  events.emit("USER_JOINED", {
-    user: newUser,
-    users: newUsers,
-  });
+  // If the admin has logged in, remove expiration of room keys
+  if (isAdmin) {
+    await persistRoom(roomId);
+  }
+
+  // Emit events
+  pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
+
+  // Get initial data payload for user
+  const messages = await getMessages(roomId, 0, 100);
+  const playlist = await getRoomPlaylist(roomId);
+  const meta = await getRoomCurrent(roomId);
+  const allReactions = await getAllRoomReactions(roomId);
+  const { accessToken } = await getStoredUserSpotifyTokens(userId);
 
   socket.emit("event", {
     type: "INIT",
     data: {
       users: newUsers,
-      messages: getters.getMessages(),
-      meta: getters.getSettings().artwork
-        ? { ...getters.getMeta(), artwork: getters.getSettings().artwork }
-        : getters.getMeta(),
-      playlist: getters.getPlaylist(),
-      reactions: getters.getReactions(),
-      currentUser: {
+      messages,
+      meta,
+      passwordRequired: !isNil(room?.password),
+      playlist: playlist,
+      reactions: allReactions,
+      user: {
         userId: socket.data.userId,
         username: socket.data.username,
         status: "participating",
         isDeputyDj,
+        isAdmin,
       },
+      accessToken,
+      isNewUser: isNew,
     },
   });
 }
 
-export function changeUsername(
+export async function changeUsername(
   { socket, io }: HandlerConnections,
   { userId, username }: { userId: User["userId"]; username: User["username"] }
 ) {
-  const users = getters.getUsers();
-  const user = users.find((u) => u.userId === userId);
+  const user = await getUser(userId);
   const oldUsername = user?.username;
+
   if (user) {
-    const newUser: User = { ...user, username };
-    const newUsers = uniqBy(
-      [newUser, ...reject(users, (u) => u.userId === userId)],
-      (u) => u.userId
+    const { users: newUsers, user: newUser } = await updateUserAttributes(
+      userId,
+      { username },
+      socket.data.roomId
     );
 
-    setters.setUsers(newUsers);
+    socket.request.session.user = newUser;
+    await socket.request.session.save();
 
     const content = `${oldUsername} transformed into ${username}`;
-    const newMessage = systemMessage(content, {
-      oldUsername,
-      userId,
+    pubUserJoined({ io }, socket.data.roomId, {
+      users: newUsers,
+      user: newUser,
     });
-    io.emit("event", {
-      type: "USER_JOINED",
-      data: {
-        user: newUser,
-        users: newUsers,
-      },
-    });
-    sendMessage(io, newMessage);
+    sendMessage(
+      io,
+      socket.data.roomId,
+      systemMessage(content, {
+        oldUsername,
+        userId,
+      })
+    );
   }
 }
 
-export function disconnect({ socket, io }: HandlerConnections) {
-  const users = getters.getUsers();
-  const user = users.find((u) => u.userId === socket.data.userId);
-  if (user && user.isDj) {
-    const newSettings = { ...getters.getDefaultSettings() };
-    setters.setSettings(newSettings);
-    io.emit("event", { type: "SETTINGS", data: newSettings });
-  }
+export async function disconnect({ socket, io }: HandlerConnections) {
+  await removeOnlineUser(socket.data.roomId, socket.data.userId);
+  socket.leave(getRoomPath(socket.data.roomId));
 
-  const newUsers = reject(users, (u) => u.userId === socket.data.userId);
-  setters.setUsers(newUsers);
-
-  socket.broadcast.emit("event", {
+  const users = await getRoomUsers(socket.data.roomId);
+  socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_LEFT",
     data: {
       user: { username: socket.data.username },
-      users: newUsers,
+      users,
     },
   });
 }
 
-export async function getUserShopifyAuth(
+export async function getUserSpotifyAuth(
   { socket, io }: HandlerConnections,
   { userId }: { userId?: string }
 ) {
@@ -164,6 +281,7 @@ export async function getUserShopifyAuth(
     type: "SPOTIFY_AUTHENTICATION_STATUS",
     data: {
       isAuthenticated: !!accessToken,
+      accessToken,
     },
   });
 }
@@ -172,14 +290,5 @@ export async function logoutSpotifyAuth(
   { socket, io }: HandlerConnections,
   { userId }: { userId?: string } = {}
 ) {
-  // removes user's spotify access token from redis
-  const { error } = await removeStoredUserSpotifyTokens(
-    userId ?? socket.data.userId
-  );
-  io.to(socket.id).emit("event", {
-    type: "SPOTIFY_AUTHENTICATION_STATUS",
-    data: {
-      isAuthenticated: error ? true : false,
-    },
-  });
+  disconnectFromSpotify(userId ?? socket.data.userId);
 }

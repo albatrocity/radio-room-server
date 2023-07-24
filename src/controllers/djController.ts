@@ -4,22 +4,15 @@ import {
   djDeputizeUser,
   queueSong,
   searchSpotifyTrack,
-  setDj,
   savePlaylist,
-  handleUserJoined,
   getSavedTracks,
 } from "../handlers/djHandlers";
-import { events } from "../lib/eventEmitter";
 import { SpotifyEntity } from "../types/SpotifyEntity";
 import { User } from "../types/User";
 
 export default function djController(socket: Socket, io: Server) {
-  socket.on("set DJ", (userId: User["userId"]) =>
-    setDj({ socket, io }, userId)
-  );
-
   socket.on("dj deputize user", (userId: User["userId"]) =>
-    djDeputizeUser({ io }, userId)
+    djDeputizeUser({ socket, io }, userId)
   );
 
   socket.on("queue song", (uri: SpotifyEntity["uri"]) =>
@@ -40,10 +33,4 @@ export default function djController(socket: Socket, io: Server) {
     ({ name, uris }: { name: string; uris: SpotifyEntity["uri"][] }) =>
       savePlaylist({ socket, io }, { name, uris })
   );
-}
-
-export function lifecycleEvents(io: Server) {
-  events.on("USER_JOINED", (data: { user: User; users: User[] }) => {
-    handleUserJoined({ io }, { user: data.user, users: data.users });
-  });
 }

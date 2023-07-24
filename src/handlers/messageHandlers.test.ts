@@ -6,83 +6,70 @@ import {
   startTyping,
   stopTyping,
 } from "./messageHandlers";
-import { setters, resetDataStores } from "../lib/dataStore";
+import getMessageVariables from "../lib/getMessageVariables";
 import sendMessage from "../lib/sendMessage";
 
+import {
+  clearMessages as clearMessagesData,
+  getUser,
+  getTypingUsers,
+  removeTypingUser,
+  addTypingUser,
+} from "../operations/data";
+
+jest.mock("../lib/getMessageVariables");
 jest.mock("../lib/sendMessage");
+jest.mock("../operations/data");
 jest.mock("../operations/processTriggerAction");
 
-afterEach(() => {
-  jest.restoreAllMocks();
-  resetDataStores();
+beforeEach(() => {
+  jest.clearAllMocks();
 });
 
 describe("messageHandlers", () => {
-  const { socket, io, broadcastEmit, emit } = makeSocket();
-
+  const { socket, io, broadcastEmit, emit, toEmit, toBroadcast } = makeSocket({
+    roomId: "room1",
+  });
   describe("clearMessages", () => {
-    test("clears messages", () => {
-      const spy = jest.spyOn(setters, "setMessages");
-
-      clearMessages({ socket, io });
-      expect(spy).toHaveBeenCalledWith([]);
+    test("clears messages", async () => {
+      await clearMessages({ socket, io });
+      expect(clearMessagesData).toHaveBeenCalledWith("room1");
     });
 
-    test("emits SET_MESSAGES event", () => {
-      clearMessages({ socket, io });
-      expect(emit).toHaveBeenCalledWith("event", {
+    test("emits SET_MESSAGES event", async () => {
+      await clearMessages({ socket, io });
+      expect(toEmit).toHaveBeenCalledWith("event", {
         type: "SET_MESSAGES",
         data: {
           messages: [],
         },
       });
     });
-
-    test("removes message trigger instances from history", () => {
-      setters.setTriggerEventHistory([
-        {
-          on: "reaction",
-          subject: { id: "latest", type: "track" },
-          target: { type: "track", id: "spotify:track:3d1bBXr6nU2TxD9wfMUJEc" },
-          action: "sendMessage",
-          meta: { messageTemplate: "hey" },
-          timestamp:
-            "Thu May 18 2023 11:49:22 GMT-0500 (Central Daylight Time)",
-        },
-        {
-          on: "message",
-          subject: { id: "latest", type: "track" },
-          target: { type: "message", id: "2023-05-18T16:49:22.372Z" },
-          action: "sendMessage",
-          meta: { messageTemplate: "React" },
-          timestamp:
-            "Thu May 18 2023 11:49:25 GMT-0500 (Central Daylight Time)",
-        },
-      ]);
-      const spy = jest.spyOn(setters, "setTriggerEventHistory");
-      clearMessages({ socket, io });
-      expect(spy).toHaveBeenCalledWith([
-        {
-          on: "reaction",
-          subject: { id: "latest", type: "track" },
-          target: { type: "track", id: "spotify:track:3d1bBXr6nU2TxD9wfMUJEc" },
-          action: "sendMessage",
-          meta: { messageTemplate: "hey" },
-          timestamp:
-            "Thu May 18 2023 11:49:22 GMT-0500 (Central Daylight Time)",
-        },
-      ]);
-    });
   });
 
   describe("newMessage", () => {
-    test("sends message", () => {
+    test("sends message", async () => {
       socket.data.userId = "1";
       socket.data.username = "Homer";
 
-      newMessage({ socket, io }, "D'oh");
+      (getMessageVariables as jest.Mock).mockReturnValueOnce({
+        currentTrack: undefined,
+        nowPlaying: undefined,
+        listenerCount: 1,
+        participantCount: 2,
+        userCount: 3,
+        playlistCount: 4,
+        queueCount: 5,
+      });
 
-      expect(sendMessage).toHaveBeenCalledWith(io, {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+
+      await newMessage({ socket, io }, "D'oh");
+
+      expect(sendMessage).toHaveBeenCalledWith(io, "room1", {
         content: "D'oh",
         mentions: [],
         timestamp: expect.any(String),
@@ -90,13 +77,34 @@ describe("messageHandlers", () => {
       });
     });
 
-    test("emits TYPING event to clear message user", () => {
-      setters.setTyping([{ userId: "1", username: "Homer" }]);
+    test("removes message's user from typing list", async () => {
       socket.data.userId = "1";
 
-      newMessage({ socket, io }, "");
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (removeTypingUser as jest.Mock).mockResolvedValueOnce(null);
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([]);
 
-      expect(emit).toHaveBeenCalledWith("event", {
+      await newMessage({ socket, io }, "");
+
+      expect(removeTypingUser).toHaveBeenCalledWith("room1", "1");
+    });
+
+    test("emits TYPING event to clear message user", async () => {
+      socket.data.userId = "1";
+
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (removeTypingUser as jest.Mock).mockResolvedValueOnce(null);
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([]);
+
+      await newMessage({ socket, io }, "");
+
+      expect(toEmit).toHaveBeenCalledWith("event", {
         type: "TYPING",
         data: {
           typing: [],
@@ -106,23 +114,34 @@ describe("messageHandlers", () => {
   });
 
   describe("startTyping", () => {
-    test("sets typing", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
+    test("adds user to typing list", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([]);
       socket.data.userId = "1";
       socket.data.username = "Homer";
 
-      const spy = jest.spyOn(setters, "setTyping");
-
-      startTyping({ socket, io });
-      expect(spy).toHaveBeenCalledWith([{ userId: "1", username: "Homer" }]);
+      await startTyping({ socket, io });
+      expect(addTypingUser).toHaveBeenCalledWith("room1", "1");
     });
 
-    test("broadcasts TYPING event", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
+    test("broadcasts TYPING event", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([
+        {
+          userId: "1",
+          username: "Homer",
+        },
+      ]);
       socket.data.userId = "1";
       socket.data.username = "Homer";
 
-      startTyping({ socket, io });
+      await startTyping({ socket, io });
 
       expect(broadcastEmit).toHaveBeenCalledWith("event", {
         type: "TYPING",
@@ -131,28 +150,51 @@ describe("messageHandlers", () => {
         },
       });
     });
+
+    test("broadcasts to room channel", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([]);
+      socket.data.userId = "1";
+      socket.data.username = "Homer";
+
+      await startTyping({ socket, io });
+
+      expect(toBroadcast).toHaveBeenCalledWith("/rooms/room1");
+    });
   });
 
   describe("stopTyping", () => {
-    test("sets typing", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      setters.setTyping([{ userId: "1", username: "Homer" }]);
+    test("removes user from typing user", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([
+        {
+          userId: "1",
+          username: "Homer",
+        },
+      ]);
       socket.data.userId = "1";
       socket.data.username = "Homer";
 
-      const spy = jest.spyOn(setters, "setTyping");
-
-      stopTyping({ socket, io });
-      expect(spy).toHaveBeenCalledWith([]);
+      await stopTyping({ socket, io });
+      expect(removeTypingUser).toHaveBeenCalledWith("room1", "1");
     });
 
-    test("broadcasts TYPING event", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      setters.setTyping([{ userId: "1", username: "Homer" }]);
+    test("broadcasts TYPING event", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([]);
       socket.data.userId = "1";
       socket.data.username = "Homer";
 
-      stopTyping({ socket, io });
+      await stopTyping({ socket, io });
 
       expect(broadcastEmit).toHaveBeenCalledWith("event", {
         type: "TYPING",
@@ -160,6 +202,20 @@ describe("messageHandlers", () => {
           typing: [],
         },
       });
+    });
+
+    test("broadcasts to room channel", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+      });
+      (getTypingUsers as jest.Mock).mockResolvedValueOnce([]);
+      socket.data.userId = "1";
+      socket.data.username = "Homer";
+
+      await stopTyping({ socket, io });
+
+      expect(toBroadcast).toHaveBeenCalledWith("/rooms/room1");
     });
   });
 });

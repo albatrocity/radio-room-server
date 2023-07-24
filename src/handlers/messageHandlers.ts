@@ -1,77 +1,69 @@
-import { compact, uniq, reject } from "remeda";
-import { getters, setters } from "../lib/dataStore";
 import parseMessage from "../lib/parseMessage";
 import sendMessage from "../lib/sendMessage";
-import { processTriggerAction } from "../operations/processTriggerAction";
+import {
+  clearMessages as clearMessagesData,
+  getUser,
+} from "../operations/data";
 
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
-import { ChatMessage } from "../types/ChatMessage";
+import getRoomPath from "../lib/getRoomPath";
+import {
+  addTypingUser,
+  getTypingUsers,
+  removeTypingUser,
+} from "../operations/data";
 
-export function newMessage(
+export async function newMessage(
   { socket, io }: HandlerConnections,
   message: string
 ) {
-  const users = getters.getUsers();
-  const typing = getters.getTyping();
-  const { content, mentions } = parseMessage(message);
+  const user = await getUser(socket.data.userId);
+  const { content, mentions } = parseMessage(socket.data.roomId, message);
   const fallbackUser: User = {
     username: socket.data.username,
     userId: socket.data.userId,
   };
   const payload = {
-    user:
-      users.find(({ userId }) => userId === socket.data.userId) || fallbackUser,
+    user: user ?? fallbackUser,
     content,
     mentions,
     timestamp: new Date().toISOString(),
   };
-  const newTyping = compact(
-    uniq(reject(typing, (u) => u.userId === socket.data.userId))
-  );
-  setters.setTyping(newTyping);
-  io.emit("event", { type: "TYPING", data: { typing: newTyping } });
-  sendMessage(io, payload);
-  processTriggerAction<ChatMessage>(
-    {
-      type: "message",
-      data: payload,
-    },
-    io
-  );
-}
 
-export function clearMessages({ socket, io }: HandlerConnections) {
-  setters.setMessages([]);
-  setters.setTriggerEventHistory(
-    getters.getTriggerEventHistory().filter((x) => x.target?.type !== "message")
-  );
-  io.emit("event", { type: "SET_MESSAGES", data: { messages: [] } });
-}
+  await removeTypingUser(socket.data.roomId, socket.data.userId);
+  const typing = await getTypingUsers(socket.data.roomId);
 
-export function startTyping({ socket, io }: HandlerConnections) {
-  const newTyping = compact(
-    uniq([
-      ...getters.getTyping(),
-      getters.getUsers().find((u) => u.userId === socket.data.userId),
-    ])
-  );
-  setters.setTyping(newTyping);
-  socket.broadcast.emit("event", {
+  io.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
-    data: { typing: newTyping },
+    data: { typing },
+  });
+  await sendMessage(io, socket.data.roomId, payload);
+}
+
+export async function clearMessages({ socket, io }: HandlerConnections) {
+  const roomId = socket?.data?.roomId;
+  await clearMessagesData(roomId);
+  io.to(getRoomPath(roomId)).emit("event", {
+    type: "SET_MESSAGES",
+    data: { messages: [] },
   });
 }
 
-export function stopTyping({ socket, io }: HandlerConnections) {
-  const newTyping = compact(
-    uniq(
-      reject(getters.getTyping(), (user) => user.userId === socket.data.userId)
-    )
-  );
-  setters.setTyping(newTyping);
-  socket.broadcast.emit("event", {
+export async function startTyping({ socket }: HandlerConnections) {
+  await addTypingUser(socket.data.roomId, socket.data.userId);
+  const typing = await getTypingUsers(socket.data.roomId);
+  socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "TYPING",
-    data: { typing: newTyping },
+    data: { typing },
+  });
+}
+
+export async function stopTyping({ socket }: HandlerConnections) {
+  await removeTypingUser(socket.data.roomId, socket.data.userId);
+  const typing = await getTypingUsers(socket.data.roomId);
+  socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
+    type: "TYPING",
+    data: { typing },
   });
 }

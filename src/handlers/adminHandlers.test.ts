@@ -1,36 +1,28 @@
-import { describe, test } from "@jest/globals";
+import { describe } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
-import {
-  getSettings,
-  setPassword,
-  kickUser,
-  settings,
-  clearPlaylist,
-  getTriggerEvents,
-} from "./adminHandlers";
+import { setPassword, kickUser, setRoomSettings } from "./adminHandlers";
 
-import { getters, setters, resetDataStores } from "../lib/dataStore";
-import fetchAndSetMeta from "../operations/fetchAndSetMeta";
-import getStation from "../operations/getStation";
+import { findRoom, getUser, saveRoom } from "../operations/data";
 
 jest.mock("../lib/sendMessage");
 jest.mock("../lib/spotifyApi");
-jest.mock("../operations/fetchAndSetMeta");
 jest.mock("../operations/spotify/createAndPopulateSpotifyPlaylist");
 jest.mock("../operations/getStation");
+jest.mock("../operations/data");
 
 afterEach(() => {
-  jest.restoreAllMocks();
-  resetDataStores();
+  jest.clearAllMocks();
 });
 
 describe("adminHandlers", () => {
   const { socket, io, emit, toEmit } = makeSocket();
 
   describe("changing artwork", () => {
-    it("sets meta", () => {
-      const spy = jest.spyOn(setters, "setMeta");
-      settings(
+    it("updates settings", async () => {
+      (findRoom as jest.Mock).mockResolvedValueOnce({
+        artwork: undefined,
+      });
+      await setRoomSettings(
         { socket, io },
         {
           artwork: "google.com",
@@ -41,22 +33,7 @@ describe("adminHandlers", () => {
           enableSpotifyLogin: false,
         }
       );
-      expect(spy).toHaveBeenCalledWith({ artwork: "google.com" });
-    });
-    it("updates settings", () => {
-      const spy = jest.spyOn(setters, "setSettings");
-      settings(
-        { socket, io },
-        {
-          artwork: "google.com",
-          fetchMeta: true,
-          extraInfo: undefined,
-          password: null,
-          deputizeOnJoin: false,
-          enableSpotifyLogin: false,
-        }
-      );
-      expect(spy).toHaveBeenCalledWith({
+      expect(saveRoom).toHaveBeenCalledWith({
         artwork: "google.com",
         extraInfo: undefined,
         fetchMeta: true,
@@ -67,47 +44,38 @@ describe("adminHandlers", () => {
     });
   });
 
-  describe("getArtwork", () => {
-    it("gets settings", () => {
-      const spy = jest.spyOn(getters, "getSettings");
-      getSettings({ socket, io });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it("emits SETTINGS event", () => {
-      getSettings({ socket, io });
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "SETTINGS",
-        data: {
-          extraInfo: undefined,
-          fetchMeta: true,
-          password: null,
-          deputizeOnJoin: false,
-          enableSpotifyLogin: false,
-        },
-      });
-    });
-  });
-
   describe("setPassword", () => {
-    it("sets password", () => {
-      const spy = jest.spyOn(setters, "setPassword");
-      setPassword({ socket, io }, "donut");
-      expect(spy).toHaveBeenCalled();
+    it("sets password", async () => {
+      (findRoom as jest.Mock).mockResolvedValueOnce({
+        password: undefined,
+      });
+      await setPassword({ socket, io }, "donut");
+      expect(saveRoom).toHaveBeenCalledWith({
+        password: "donut",
+      });
     });
   });
 
   describe("kickUser", () => {
-    it("sends kicked event to kicked user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-5678" }]);
-      kickUser({ socket, io }, { userId: "1", username: "Homer" });
+    it("sends kicked event to kicked user", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+        id: "1234-5678",
+      });
+
+      await kickUser({ socket, io }, { userId: "1", username: "Homer" });
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "KICKED",
       });
     });
-    it("sends system message to kicked user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-5678" }]);
-      kickUser(
+    it("sends system message to kicked user", async () => {
+      (getUser as jest.Mock).mockResolvedValueOnce({
+        userId: "1",
+        username: "Homer",
+        id: "1234-5678",
+      });
+      await kickUser(
         { socket, io },
         { userId: "1", username: "Homer", id: "1234-5678" }
       );
@@ -123,9 +91,9 @@ describe("adminHandlers", () => {
     });
   });
 
-  describe("settings", () => {
+  describe("setRoomSettings", () => {
     it("sets settings", async () => {
-      const spy = jest.spyOn(setters, "setSettings");
+      (findRoom as jest.Mock).mockResolvedValueOnce({});
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
@@ -133,11 +101,11 @@ describe("adminHandlers", () => {
         deputizeOnJoin: false,
         enableSpotifyLogin: false,
       };
-      settings({ socket, io }, newSettings);
-      expect(spy).toHaveBeenCalledWith(newSettings);
+      await setRoomSettings({ socket, io }, newSettings);
+      expect(saveRoom).toHaveBeenCalledWith(newSettings);
     });
 
-    it("emits SETTINGS event", async () => {
+    it("emits ROOM_SETTINGS event", async () => {
       const newSettings = {
         extraInfo: "Heyyyyyy",
         fetchMeta: false,
@@ -145,115 +113,41 @@ describe("adminHandlers", () => {
         deputizeOnJoin: false,
         enableSpotifyLogin: false,
       };
-      settings({ socket, io }, newSettings);
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "SETTINGS",
-        data: newSettings,
+      (findRoom as jest.Mock)
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce(newSettings);
+      (saveRoom as jest.Mock).mockResolvedValueOnce({});
+      await setRoomSettings({ socket, io }, newSettings);
+      expect(toEmit).toHaveBeenCalledWith("event", {
+        type: "ROOM_SETTINGS",
+        data: { room: newSettings },
       });
     });
 
-    it("calls fetchAndSetMeta if fetchMeta is being turned on or off", async () => {
-      (getStation as jest.Mock).mockResolvedValueOnce({
-        bitrate: 1,
+    it("requires user to be room creator", async () => {
+      (findRoom as jest.Mock).mockResolvedValueOnce({
+        creator: "1",
       });
-      setters.setSettings({
-        fetchMeta: false,
-        extraInfo: undefined,
-        password: null,
-        deputizeOnJoin: false,
-        enableSpotifyLogin: false,
-      });
-      const newSettings = {
-        extraInfo: "Heyyyyyy",
-        fetchMeta: true,
-        password: null,
-        deputizeOnJoin: false,
-        enableSpotifyLogin: false,
-      };
-      await settings({ socket, io }, newSettings);
-      expect(fetchAndSetMeta).toHaveBeenCalledWith(
-        { io },
+      socket.data.userId = "2";
+
+      await setRoomSettings(
+        { socket, io },
         {
-          bitrate: 1,
-        },
-        undefined,
-        { silent: true }
+          extraInfo: "Heyyyyyy",
+          fetchMeta: false,
+          password: null,
+          deputizeOnJoin: false,
+          enableSpotifyLogin: false,
+        }
       );
-    });
-  });
 
-  describe("clearPlaylist", () => {
-    test("sets playlist to empty array", () => {
-      setters.setPlaylist([
-        {
-          text: "Track",
-          album: "Good Album",
-          artist: "Good Artist",
-          track: "Good track",
-          spotifyData: {
-            artists: [],
-          },
-          timestamp: 1,
-        },
-      ]);
-      const spy = jest.spyOn(setters, "setPlaylist");
-      clearPlaylist({ socket, io });
-      expect(spy).toHaveBeenCalledWith([]);
-    });
-    test("removes instances of track trigger actions from history", () => {
-      setters.setTriggerEventHistory([
-        {
-          on: "reaction",
-          subject: { id: "latest", type: "track" },
-          target: { type: "track", id: "spotify:track:3d1bBXr6nU2TxD9wfMUJEc" },
-          action: "sendMessage",
-          meta: { messageTemplate: "hey" },
-          timestamp:
-            "Thu May 18 2023 11:49:22 GMT-0500 (Central Daylight Time)",
-        },
-        {
-          on: "message",
-          subject: { id: "latest", type: "track" },
-          target: { type: "message", id: "2023-05-18T16:49:22.372Z" },
-          action: "sendMessage",
-          meta: { messageTemplate: "React" },
-          timestamp:
-            "Thu May 18 2023 11:49:25 GMT-0500 (Central Daylight Time)",
-        },
-      ]);
-      const spy = jest.spyOn(setters, "setTriggerEventHistory");
-      clearPlaylist({ socket, io });
-      expect(spy).toHaveBeenCalledWith([
-        {
-          on: "message",
-          subject: { id: "latest", type: "track" },
-          target: { type: "message", id: "2023-05-18T16:49:22.372Z" },
-          action: "sendMessage",
-          meta: { messageTemplate: "React" },
-          timestamp:
-            "Thu May 18 2023 11:49:25 GMT-0500 (Central Daylight Time)",
-        },
-      ]);
-    });
-  });
-
-  describe("get trigger events", () => {
-    test("gets trigger events from data store ", () => {
-      const reactionSpy = jest.spyOn(getters, "getReactionTriggerEvents");
-      const messageSpy = jest.spyOn(getters, "getMessageTriggerEvents");
-      getTriggerEvents({ socket, io });
-      expect(reactionSpy).toHaveBeenCalled();
-      expect(messageSpy).toHaveBeenCalled();
-    });
-
-    test("emits TRIGGER_EVENTS with current events", () => {
-      getTriggerEvents({ socket, io });
       expect(emit).toHaveBeenCalledWith("event", {
+        type: "ERROR",
         data: {
-          reactions: [],
-          messages: [],
+          status: 403,
+          error: "Forbidden",
+          message: "You are not the room creator.",
         },
-        type: "TRIGGER_EVENTS",
       });
     });
   });

@@ -1,124 +1,130 @@
 import { describe, test } from "@jest/globals";
 import { makeSocket } from "../lib/testHelpers";
 import {
-  setDj,
   djDeputizeUser,
   queueSong,
   searchSpotifyTrack,
   savePlaylist,
 } from "./djHandlers";
-import { setters, resetDataStores } from "../lib/dataStore";
+import {
+  addToQueue,
+  getQueue,
+  getUser,
+  isDj,
+  updateUserAttributes,
+} from "../operations/data";
 import sendMessage from "../lib/sendMessage";
-import spotifyApi from "../lib/spotifyApi";
 import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
 import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
+import { pubUserJoined } from "../operations/sockets/users";
+
+const spotifyAddToQueue = jest.fn();
+const searchTracks = jest.fn(() => ({
+  data: {
+    body: {
+      tracks: [],
+    },
+  },
+}));
+const setRefreshToken = jest.fn();
 
 jest.mock("../lib/sendMessage");
-jest.mock("../lib/spotifyApi", () => ({
-  addToQueue: jest.fn(),
-  searchTracks: jest.fn(() => ({
-    data: {
-      body: {
-        tracks: [],
-      },
-    },
-  })),
-  setRefreshToken: jest.fn(),
-}));
 jest.mock("../operations/spotify/refreshSpotifyToken");
 jest.mock("../operations/spotify/syncQueue");
 jest.mock("../operations/spotify/createAndPopulateSpotifyPlaylist");
+jest.mock("../operations/data");
+jest.mock("../operations/sockets/users");
+jest.mock("../operations/spotify/getSpotifyApi", () => ({
+  getSpotifyApiForRoom: jest.fn(async () => ({
+    addToQueue: spotifyAddToQueue,
+    searchTracks,
+    setRefreshToken,
+  })),
+}));
 
 afterEach(() => {
-  jest.restoreAllMocks();
-  resetDataStores();
+  jest.clearAllMocks();
+  // resetDataStores();
 });
 
+function setupDjTest({ isAlreadyDj = false }: { isAlreadyDj?: boolean } = {}) {
+  const user = {
+    id: "socketId",
+    userId: "1",
+    username: "Homer",
+    isDeputyDj: isAlreadyDj,
+  };
+  (getUser as jest.Mock).mockResolvedValueOnce(user);
+  (isDj as jest.Mock).mockResolvedValueOnce(isAlreadyDj);
+
+  (updateUserAttributes as jest.Mock).mockResolvedValueOnce({
+    user: {
+      ...user,
+      isDeputyDj: !isAlreadyDj,
+    },
+    users: [{ ...user, isDeputyDj: !isAlreadyDj }],
+  });
+
+  return {
+    user: { ...user, isDeputyDj: !isAlreadyDj },
+    users: [{ ...user, isDeputyDj: !isAlreadyDj }],
+  };
+}
+
+function setupQueueTest() {
+  const user = {
+    id: "socketId",
+    userId: "1",
+    username: "Homer",
+  };
+  (getUser as jest.Mock).mockResolvedValue(user);
+  (getQueue as jest.Mock).mockResolvedValueOnce([
+    {
+      uri: "uri",
+      userId: "1",
+      username: "Homer",
+    },
+  ]);
+  return { user };
+}
+
 describe("djHandlers", () => {
-  const { socket, io, broadcastEmit, emit, toEmit } = makeSocket();
-
-  describe("setDj", () => {
-    test("sets isDj to true on user", async () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      const spy = jest.spyOn(setters, "setUsers");
-      setDj({ socket, io }, "1");
-      expect(spy).toHaveBeenCalledWith([
-        { userId: "1", username: "Homer", isDj: true },
-      ]);
-    });
-
-    test("emits USER_JOINED event when new DJ", async () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      setDj({ socket, io }, "1");
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "USER_JOINED",
-        data: {
-          user: { userId: "1", username: "Homer", isDj: true },
-          users: [{ userId: "1", username: "Homer", isDj: true }],
-        },
-      });
-    });
-
-    test("sends system message on new DJ", async () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      setDj({ socket, io }, "1");
-      expect(sendMessage).toHaveBeenCalledWith(io, {
-        content: "Homer is now the DJ",
-        meta: {
-          userId: "1",
-        },
-        timestamp: expect.any(String),
-        user: {
-          id: "system",
-          userId: "system",
-          username: "system",
-        },
-      });
-    });
-
-    test("does not emit USER_JOINED event when user is already DJ", async () => {
-      setters.setUsers([{ userId: "1", username: "Homer", isDj: true }]);
-      setDj({ socket, io }, "1");
-      expect(emit).not.toHaveBeenCalled();
-    });
-
-    test("unsets DJ", async () => {
-      setters.setUsers([{ userId: "1", username: "Homer", isDj: true }]);
-      setDj({ socket, io }, "1");
-      expect(emit).not.toHaveBeenCalled();
-    });
-
-    test("unsets when no ID is passed", async () => {
-      setters.setUsers([{ userId: "1", username: "Homer", isDj: true }]);
-      setDj({ socket, io });
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "USER_JOINED",
-        data: {
-          users: [{ userId: "1", username: "Homer", isDj: false }],
-        },
-      });
-    });
+  const { socket, io, broadcastEmit, emit, toEmit, to } = makeSocket({
+    roomId: "djRoom",
   });
 
   describe("djDeputizeUser", () => {
-    test("sets deputyDjs", () => {
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      const spy = jest.spyOn(setters, "setDeputyDjs");
-      djDeputizeUser({ io }, "1");
-      expect(spy).toHaveBeenCalledWith(["1"]);
+    test("marks as deputy DJ if not already", async () => {
+      const { user } = setupDjTest();
+
+      await djDeputizeUser({ io, socket }, user.userId);
+      expect(updateUserAttributes).toHaveBeenCalledWith(
+        "1",
+        {
+          isDeputyDj: true,
+        },
+        "djRoom"
+      );
     });
 
-    test("removes from deputyDjs list if already in there", () => {
-      setters.setUsers([{ userId: "1", username: "Homer", isDeputyDj: true }]);
-      setters.setDeputyDjs(["1"]);
-      const spy = jest.spyOn(setters, "setDeputyDjs");
-      djDeputizeUser({ io }, "1");
-      expect(spy).toHaveBeenCalledWith([]);
+    test("unmarks user as deputy dj if already deputy dj", async () => {
+      setupDjTest({ isAlreadyDj: true });
+
+      await djDeputizeUser({ io, socket }, "1");
+      expect(updateUserAttributes).toHaveBeenCalledWith(
+        "1",
+        {
+          isDeputyDj: false,
+        },
+        "djRoom"
+      );
     });
 
-    test("emits NEW_MESSAGE event to user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-4567" }]);
-      djDeputizeUser({ io }, "1");
+    test("emits NEW_MESSAGE event to user", async () => {
+      const { user } = setupDjTest();
+
+      await djDeputizeUser({ io, socket }, user.userId);
+
       expect(toEmit).toHaveBeenCalledWith(
         "event",
         {
@@ -142,48 +148,38 @@ describe("djHandlers", () => {
       );
     });
 
-    test("emits START_DEPUTY_DJ_SESSION event to user", () => {
-      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-4567" }]);
-      djDeputizeUser({ io }, "1");
+    test("emits START_DEPUTY_DJ_SESSION event to user", async () => {
+      const { user } = setupDjTest();
+
+      await djDeputizeUser({ io, socket }, user.userId);
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "START_DEPUTY_DJ_SESSION",
       });
     });
 
-    test("emits END_DEPUTY_DJ_SESSION event to user if ending", () => {
-      setters.setUsers([{ userId: "1", username: "Homer", id: "1234-4567" }]);
-      setters.setDeputyDjs(["1"]);
-      djDeputizeUser({ io }, "1");
+    test("emits END_DEPUTY_DJ_SESSION event to user if ending", async () => {
+      const { user } = setupDjTest({ isAlreadyDj: true });
+      await djDeputizeUser({ io, socket }, user.userId);
       expect(toEmit).toHaveBeenCalledWith("event", {
         type: "END_DEPUTY_DJ_SESSION",
       });
+      expect(to).toHaveBeenCalledWith(user.id);
     });
 
-    test("emits USER_JOINED event", () => {
-      setters.setUsers([{ userId: "1", username: "Homer", isDeputyDj: false }]);
-      setters.setDeputyDjs([]);
-      djDeputizeUser({ io }, "1");
-      expect(emit).toHaveBeenCalledWith("event", {
-        type: "USER_JOINED",
-        data: {
-          user: { userId: "1", username: "Homer", isDeputyDj: true },
-          users: [{ userId: "1", username: "Homer", isDeputyDj: true }],
-        },
+    test("calls pubSubUserJoined", async () => {
+      const { user, users } = setupDjTest();
+      await djDeputizeUser({ io, socket }, user.userId);
+      expect(pubUserJoined).toHaveBeenCalledWith({ io }, "djRoom", {
+        user,
+        users,
       });
     });
   });
 
   describe("queueSong", () => {
     test("emits SONG_QUEUE_FAILURE event if current user already added it", async () => {
-      socket.data.userId = "1";
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      setters.setQueue([
-        {
-          uri: "uri",
-          userId: "1",
-          username: "Homer",
-        },
-      ]);
+      const { user } = setupQueueTest();
+      socket.data.userId = user.userId;
 
       await queueSong({ socket, io }, "uri");
 
@@ -197,14 +193,7 @@ describe("djHandlers", () => {
 
     test("emits SONG_QUEUE_FAILURE event if other user already queued song", async () => {
       socket.data.userId = "2";
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      setters.setQueue([
-        {
-          uri: "uri",
-          userId: "1",
-          username: "Homer",
-        },
-      ]);
+      setupQueueTest();
 
       await queueSong({ socket, io }, "uri");
 
@@ -217,79 +206,83 @@ describe("djHandlers", () => {
       });
     });
 
-    test("calls addToQueue", async () => {
-      socket.data.userId = "1";
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      await queueSong({ socket, io }, "uri");
-      expect(spotifyApi.addToQueue).toHaveBeenCalledWith("uri");
+    test("calls addToQueue on Spotify API", async () => {
+      const { user } = setupQueueTest();
+      socket.data.userId = user.userId;
+      await queueSong({ socket, io }, "other_uri");
+      expect(spotifyAddToQueue).toHaveBeenCalledWith("other_uri");
     });
 
-    test("adds with setQueue", async () => {
-      socket.data.userId = "1";
-      const spy = jest.spyOn(setters, "setQueue");
+    test("adds queued track to redis", async () => {
+      const { user } = setupQueueTest();
+      socket.data.userId = user.userId;
 
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-
-      (spotifyApi.addToQueue as jest.Mock).mockResolvedValueOnce({
-        uri: "uri",
+      (spotifyAddToQueue as jest.Mock).mockResolvedValueOnce({
+        uri: "other_uri",
       });
-      await queueSong({ socket, io }, "uri");
-      expect(spy).toHaveBeenCalledWith([
-        { uri: "uri", userId: "1", username: "Homer" },
-      ]);
+      await queueSong({ socket, io }, "other_uri");
+      expect(addToQueue).toHaveBeenCalledWith("djRoom", {
+        uri: "other_uri",
+        userId: "1",
+        username: "Homer",
+      });
     });
 
     test("emits SONG_QUEUED event", async () => {
-      socket.data.userId = "1";
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      (spotifyApi.addToQueue as jest.Mock).mockResolvedValueOnce({
-        uri: "uri",
+      const { user } = setupQueueTest();
+      socket.data.userId = user.userId;
+
+      (spotifyAddToQueue as jest.Mock).mockResolvedValueOnce({
+        uri: "other_uri",
       });
 
-      await queueSong({ socket, io }, "uri");
+      await queueSong({ socket, io }, "other_uri");
 
       expect(emit).toHaveBeenCalledWith("event", {
         type: "SONG_QUEUED",
         data: {
-          uri: "uri",
+          uri: "other_uri",
         },
       });
     });
 
     test("emits SONG_QUEUE_FAILURE event on error", async () => {
-      socket.data.userId = "1";
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      (spotifyApi.addToQueue as jest.Mock).mockRejectedValueOnce({
-        uri: "uri",
+      const { user } = setupQueueTest();
+      socket.data.userId = user.userId;
+      (spotifyAddToQueue as jest.Mock).mockRejectedValueOnce({
+        uri: "other_uri",
       });
 
-      await queueSong({ socket, io }, "uri");
+      await queueSong({ socket, io }, "other_uri");
 
       expect(emit).toHaveBeenCalledWith("event", {
         type: "SONG_QUEUE_FAILURE",
         data: {
-          error: { uri: "uri" },
+          error: { uri: "other_uri" },
           message: "Song could not be queued",
         },
       });
     });
 
     test("calls sendMessage", async () => {
-      socket.data.userId = "1";
-      setters.setUsers([{ userId: "1", username: "Homer" }]);
-      (spotifyApi.addToQueue as jest.Mock).mockResolvedValueOnce({
-        uri: "uri",
+      const { user } = setupQueueTest();
+      socket.data.userId = user.userId;
+
+      (spotifyAddToQueue as jest.Mock).mockResolvedValueOnce({
+        uri: "other_uri",
       });
 
-      await queueSong({ socket, io }, "uri");
+      await queueSong({ socket, io }, "other_uri");
 
-      expect(sendMessage).toHaveBeenCalledWith(io, {
+      expect(sendMessage).toHaveBeenCalledWith(io, "djRoom", {
         content: "Homer added a song to the queue",
         timestamp: expect.any(String),
         user: {
           id: "system",
           userId: "system",
           username: "system",
+          mentions: undefined,
+          meta: undefined,
         },
       });
     });
@@ -297,7 +290,8 @@ describe("djHandlers", () => {
 
   describe("searchSpotifyTrack", () => {
     test("calls searchTracks", async () => {
-      (spotifyApi.searchTracks as jest.Mock).mockResolvedValueOnce({
+      setupQueueTest();
+      (searchTracks as jest.Mock).mockResolvedValueOnce({
         body: {
           tracks: [
             {
@@ -311,11 +305,12 @@ describe("djHandlers", () => {
         { socket, io },
         { query: "cottoneye joe", options: {} }
       );
-      expect(spotifyApi.searchTracks).toHaveBeenCalledWith("cottoneye joe", {});
+      expect(searchTracks).toHaveBeenCalledWith("cottoneye joe", {});
     });
 
     test("emits TRACK_SEARCH_RESULTS event", async () => {
-      (spotifyApi.searchTracks as jest.Mock).mockResolvedValueOnce({
+      setupQueueTest();
+      (searchTracks as jest.Mock).mockResolvedValueOnce({
         body: {
           tracks: [
             {
@@ -341,7 +336,8 @@ describe("djHandlers", () => {
     });
 
     test("emits TRACK_SEARCH_RESULTS_FAILURE event on error", async () => {
-      (spotifyApi.searchTracks as jest.Mock).mockRejectedValueOnce({});
+      setupQueueTest();
+      (searchTracks as jest.Mock).mockRejectedValueOnce({});
       await searchSpotifyTrack(
         { socket, io },
         { query: "cottoneye joe", options: {} }
@@ -357,7 +353,8 @@ describe("djHandlers", () => {
     });
 
     test("refreshes token on error", async () => {
-      (spotifyApi.searchTracks as jest.Mock).mockRejectedValueOnce({});
+      setupQueueTest();
+      (searchTracks as jest.Mock).mockRejectedValueOnce({});
       await searchSpotifyTrack(
         { socket, io },
         { query: "cottoneye joe", options: {} }
@@ -368,6 +365,8 @@ describe("djHandlers", () => {
 
   describe("savePlaylist", () => {
     it("calls createAndPopulateSpotifyPlaylist", async () => {
+      setupQueueTest();
+      socket.data.userId = "1";
       await savePlaylist(
         { socket, io },
         { name: "Hot Jams", uris: ["track1", "track2", "track3"] }
@@ -380,6 +379,9 @@ describe("djHandlers", () => {
     });
 
     it("emits PLAYLIST_SAVED event on success", async () => {
+      setupQueueTest();
+      socket.data.userId = "1";
+
       (createAndPopulateSpotifyPlaylist as jest.Mock).mockResolvedValueOnce({
         info: "Stuff from Spotify",
       });
@@ -396,6 +398,7 @@ describe("djHandlers", () => {
     });
 
     it("emits SAVE_PLAYLIST_FAILED event on error", async () => {
+      setupQueueTest();
       (createAndPopulateSpotifyPlaylist as jest.Mock).mockRejectedValueOnce({
         error: "Boo",
       });

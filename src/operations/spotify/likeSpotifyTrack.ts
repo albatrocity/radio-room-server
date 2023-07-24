@@ -1,10 +1,11 @@
 import { SpotifyEntity } from "../../types/SpotifyEntity";
-import spotifyApi from "../../lib/spotifyApi";
+import { getSpotifyApiForUser } from "./getSpotifyApi";
 
-async function likeSpotifyTrack(uri: SpotifyEntity["id"]) {
+async function likeSpotifyTrack(uri: SpotifyEntity["id"], userId: string) {
   try {
+    const spotify = await getSpotifyApiForUser(userId);
     const parsedUri = uri.replace("spotify:track:", "");
-    const { body } = await spotifyApi.addToMySavedTracks([parsedUri]);
+    const { body } = await spotify.addToMySavedTracks([parsedUri]);
     return body;
   } catch (e) {
     console.error(e);

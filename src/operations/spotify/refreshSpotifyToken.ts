@@ -1,16 +1,15 @@
 import { makeSpotifyApi } from "../../lib/spotifyApi";
 import { createClient } from "../../redisClient";
-import globalSpotifyApi from "../../lib/spotifyApi";
 
 import {
   SPOTIFY_REFRESH_TOKEN,
   SPOTIFY_ACCESS_TOKEN,
 } from "../../lib/constants";
 
-async function refreshSpotifyToken(userId: string = "app") {
+export default async function refreshSpotifyToken(userId: string = "app") {
   console.log(`refresh OAuth token for ${userId}`);
   const redisClient = await createClient();
-  const spotifyApi = userId === "app" ? globalSpotifyApi : makeSpotifyApi();
+  const spotifyApi = makeSpotifyApi();
 
   try {
     const refreshToken = await redisClient.get(
@@ -35,5 +34,3 @@ async function refreshSpotifyToken(userId: string = "app") {
   }
   return null;
 }
-
-export default refreshSpotifyToken;

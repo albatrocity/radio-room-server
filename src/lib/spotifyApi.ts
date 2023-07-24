@@ -34,20 +34,9 @@ export function makeSpotifyApi(options: SpotifyTokenCredentials = {}) {
   });
 }
 
-export async function setApiToken(
-  userId: string = "app",
-  spotifyApi: SpotifyWebApi
-) {
+export async function setApiToken(userId: string, spotifyApi: SpotifyWebApi) {
   const token = await getSpotifyToken(userId);
-  console.log(`set token ${token}`);
   if (token) {
     spotifyApi.setAccessToken(token);
   }
 }
-
-const globalSpotifyApi = makeSpotifyApi();
-if (process.env.NODE_ENV !== "test") {
-  setApiToken("app", globalSpotifyApi);
-}
-
-export default globalSpotifyApi;
