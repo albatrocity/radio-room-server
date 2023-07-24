@@ -15,7 +15,7 @@ import { getLatestRoomData, getRoomSettings } from "../handlers/roomHanders";
 import { RoomSnapshot } from "../types/Room";
 
 export async function create(req: Request, res: Response) {
-  const { title, type, radioUrl, challenge, userId } = req.body;
+  const { title, type, radioUrl, challenge, userId, radioProtocol } = req.body;
   const createdAt = Date.now().toString();
 
   try {
@@ -26,6 +26,7 @@ export async function create(req: Request, res: Response) {
       creator: userId,
       type,
       radioUrl,
+      radioProtocol,
       id,
       createdAt,
       lastRefreshedAt: createdAt,

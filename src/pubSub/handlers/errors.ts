@@ -8,6 +8,7 @@ import { findRoom, getUser } from "../../operations/data";
 import { PubSubHandlerArgs } from "../../types/PubSub";
 import { SpotifyError } from "../../types/SpotifyApi";
 import getRoomPath from "../../lib/getRoomPath";
+import { pubRoomSettingsUpdated } from "../../operations/room/handleRoomNowPlayingData";
 
 export default async function bindHandlers(io: Server) {
   subClient.pSubscribe(PUBSUB_SPOTIFY_AUTH_ERROR, (message, channel) =>
@@ -71,7 +72,7 @@ async function handleRadioError({ io, message, channel }: PubSubHandlerArgs) {
       data: {
         status: 500,
         message:
-          "Fetching the radio station failed. Please check the radio station URL.",
+          "Fetching the radio station failed. Please check the radio station URL and protocol in the room settings.",
         duration: null,
         id: "radio-error",
       },
@@ -80,7 +81,9 @@ async function handleRadioError({ io, message, channel }: PubSubHandlerArgs) {
     await pubClient.hSet(
       `room:${roomId}:details`,
       "radioError",
-      JSON.stringify({ message: error.message, status: 500 })
+      JSON.stringify({ message: String(error.message), status: 500 })
     );
+
+    await pubRoomSettingsUpdated(roomId);
   }
 }

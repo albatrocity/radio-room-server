@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import {
-  PUBSUB_JUKEBOX_NOW_PLAYING_FETCHED,
+  PUBSUB_ROOM_NOW_PLAYING_FETCHED,
   PUBSUB_PLAYLIST_ADDED,
 } from "../../lib/constants";
 import { pubClient, subClient } from "../../lib/redisClients";
@@ -14,7 +14,7 @@ import systemMessage from "../../lib/systemMessage";
 import sendMessage from "../../lib/sendMessage";
 
 export default async function bindHandlers(io: Server) {
-  subClient.pSubscribe(PUBSUB_JUKEBOX_NOW_PLAYING_FETCHED, (message, channel) =>
+  subClient.pSubscribe(PUBSUB_ROOM_NOW_PLAYING_FETCHED, (message, channel) =>
     handleNowPlaying({ io, message, channel })
   );
   subClient.pSubscribe(PUBSUB_PLAYLIST_ADDED, (message, channel) =>
@@ -41,11 +41,7 @@ async function handleNowPlaying({ io, message, channel }: PubSubHandlerArgs) {
   io.to(getRoomPath(roomId)).emit("event", payload);
 }
 
-async function handlePlaylistAdded({
-  io,
-  message,
-  channel,
-}: PubSubHandlerArgs) {
+async function handlePlaylistAdded({ io, message }: PubSubHandlerArgs) {
   const { roomId, track }: { track: PlaylistTrack; roomId: string } =
     JSON.parse(message);
   io.to(getRoomPath(roomId)).emit("event", {

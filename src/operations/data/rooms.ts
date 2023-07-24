@@ -1,7 +1,7 @@
 import { isEmpty, isNil } from "remeda";
 
 import { pubClient } from "../../lib/redisClients";
-import { Room, RoomMeta, StoredRoom } from "../../types/Room";
+import { Room, RoomMeta, StoredRoom, StoredRoomMeta } from "../../types/Room";
 import { writeJsonToHset, getHMembersFromSet } from "./utils";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { getQueue } from "./djs";
@@ -143,6 +143,9 @@ export async function getRoomCurrent(roomId: string) {
           dj: result.spotifyError && JSON.parse(result.spotifyError),
         }
       : {}),
+    ...(result.stationMeta
+      ? { stationMeta: JSON.parse(result.stationMeta) }
+      : {}),
   } as RoomMeta;
 }
 
@@ -197,6 +200,7 @@ export function parseRoom(room: StoredRoom): Room {
     ...(room.spotifyError
       ? { spotifyError: JSON.parse(room.spotifyError) }
       : {}),
+    ...(room.radioError ? { radioError: JSON.parse(room.radioError) } : {}),
   };
 }
 

@@ -17,11 +17,11 @@ export async function refreshSpotifyTokens(roomId: string) {
   // Are we missing an access token, but have a refresh token to use?
   const canRefreshExpired = !accessToken && storedRefreshToken;
 
-  // if lastRefresh is more than 45 minutes ago, refresh the tokens
+  // if lastRefresh is more than 30 minutes ago, refresh the tokens
   if (
     canRefreshExpired ||
     !room.lastRefreshedAt ||
-    now - lastRefresh > 45 * 60 * 1000
+    now - lastRefresh > 30 * 60 * 1000
   ) {
     // refresh tokens
     const accessToken = await refreshToken(room.creator);

@@ -22,6 +22,7 @@ export function withDefaults(
     | "createdAt"
     | "lastRefreshedAt"
     | "radioUrl"
+    | "radioProtocol"
   >
 ): Room {
   return {

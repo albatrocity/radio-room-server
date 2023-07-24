@@ -36,7 +36,6 @@ export function makeSpotifyApi(options: SpotifyTokenCredentials = {}) {
 
 export async function setApiToken(userId: string, spotifyApi: SpotifyWebApi) {
   const token = await getSpotifyToken(userId);
-  console.log(`set token ${token}`);
   if (token) {
     spotifyApi.setAccessToken(token);
   }

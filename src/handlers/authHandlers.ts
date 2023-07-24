@@ -7,7 +7,6 @@ import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpoti
 import getRoomPath from "../lib/getRoomPath";
 import {
   addOnlineUser,
-  deleteUser,
   findRoom,
   getAllRoomReactions,
   getMessages,
@@ -20,7 +19,6 @@ import {
   getRoomCurrent,
   updateUserAttributes,
   persistRoom,
-  getUserRooms,
   addDj,
   disconnectFromSpotify,
 } from "../operations/data";
@@ -260,15 +258,6 @@ export async function changeUsername(
 export async function disconnect({ socket, io }: HandlerConnections) {
   await removeOnlineUser(socket.data.roomId, socket.data.userId);
   socket.leave(getRoomPath(socket.data.roomId));
-
-  const userRooms = await getUserRooms(socket.data.userId);
-
-  if (userRooms.length === 0) {
-    await deleteUser(socket.data.userId);
-    socket.request.session.destroy(() => {
-      console.log("Session destroyed");
-    });
-  }
 
   const users = await getRoomUsers(socket.data.roomId);
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {

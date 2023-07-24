@@ -70,7 +70,6 @@ export async function decrementRoomUsers(roomId: string) {
 export async function getRoomUsers(roomId: string) {
   try {
     const users = await pubClient.sMembers(`room:${roomId}:online_users`);
-    console.log("USERS", users);
     const reads = users.map(async (userId) => {
       const userData = await getUser(userId);
       if (!userData) {
@@ -117,17 +116,6 @@ export async function getUser(userId: string) {
     return mapUserBooleans(userAttributes as unknown as StoredUser);
   } catch (e) {
     console.log("ERROR FROM data/users/getUser", userId);
-    console.error(e);
-    return null;
-  }
-}
-
-export async function getRoomDj(roomId: string) {
-  try {
-    const users = await getRoomUsers(roomId);
-    return users.find((u) => u.isDj);
-  } catch (e) {
-    console.log("ERROR FROM data/users/getRoomDj", roomId);
     console.error(e);
     return null;
   }

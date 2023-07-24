@@ -84,8 +84,8 @@ export async function setRoomSettings(
     return;
   }
   const newSettings = {
-    ...omit(room, ["spotifyError"]),
-    ...omit(values, ["spotifyError"]),
+    ...omit(room, ["spotifyError", "radioError"]),
+    ...omit(values, ["spotifyError", "radioError"]),
   };
 
   await saveRoom(newSettings);

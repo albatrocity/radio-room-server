@@ -24,6 +24,7 @@ import authController, { me, logout } from "./controllers/authController";
 import djController from "./controllers/djController";
 import messageController from "./controllers/messageController";
 import { clearRoomOnlineUsers } from "./operations/data";
+import getStation from "./operations/getStation";
 
 declare module "express-session" {
   interface Session {

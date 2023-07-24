@@ -3,13 +3,7 @@ import { isNil } from "remeda";
 
 import { pubClient } from "../../lib/redisClients";
 import { Reaction } from "../../types/Reaction";
-import {
-  Room,
-  RoomError,
-  RoomMeta,
-  StoredRoom,
-  StoredRoomMeta,
-} from "../../types/Room";
+import { Room, StoredRoomMeta } from "../../types/Room";
 import { StoredUser, User } from "../../types/User";
 import { ChatMessage } from "../../types/ChatMessage";
 import { compact } from "remeda";
