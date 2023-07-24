@@ -41,9 +41,10 @@ const sessionMiddleware = session({
   store: redisStore,
   resave: true, // required: force lightweight session keep alive (touch)
   saveUninitialized: false, // recommended: only save session when data exists
+  proxy: true,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
-    sameSite: "lax",
+    sameSite: "none",
     secure: process.env.NODE_ENV === "production",
     httpOnly: false,
   },
