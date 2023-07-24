@@ -43,7 +43,7 @@ const sessionMiddleware = session({
   saveUninitialized: false, // recommended: only save session when data exists
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
-    sameSite: "none",
+    sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     httpOnly: false,
   },
@@ -51,6 +51,7 @@ const sessionMiddleware = session({
 });
 
 const httpServer = express()
+  .set("trust proxy", 1)
   .use(express.static(__dirname + "/public"))
   .use(
     cors({
