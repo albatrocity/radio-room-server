@@ -43,7 +43,7 @@ const sessionMiddleware = session({
   saveUninitialized: false, // recommended: only save session when data exists
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
-    sameSite: "lax",
+    sameSite: "none",
     secure: process.env.NODE_ENV === "production",
     httpOnly: false,
   },

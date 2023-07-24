@@ -88,6 +88,6 @@ export async function me(req: Request, res: Response) {
       isNewUser: !user.userId,
     });
   } else {
-    res.status(401).send("Not logged in");
+    res.status(401).send({ message: "Not logged in" });
   }
 }
