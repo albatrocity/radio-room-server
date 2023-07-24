@@ -43,7 +43,7 @@ const sessionMiddleware = session({
   saveUninitialized: false, // recommended: only save session when data exists
   proxy: true,
   cookie: {
-    domain: process.env.NODE_ENV === "production" ? ".listen.show" : undefined,
+    domain: process.env.NODE_ENV === "production" ? "listen.show" : undefined,
     maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
     sameSite: "none",
     secure: process.env.NODE_ENV === "production",
