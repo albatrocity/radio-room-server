@@ -5,9 +5,11 @@ import {
   FIVE_MINUTES,
   JUKEBOX_FETCH_INTERVAL,
   PUBSUB_SPOTIFY_RATE_LIMIT_ERROR,
+  RADIO_FETCH_INTERVAL,
   THREE_MINUTES,
   THROTTLED_JUKEBOX_FETCH_INTERVAL,
 } from "../lib/constants";
+import radio from "./radio";
 
 let wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -35,6 +37,11 @@ function setup() {
   createLimitedTimeout(JUKEBOX_FETCH_INTERVAL, () => {
     console.log("jukebox jobs");
     jukebox();
+  });
+
+  createLimitedTimeout(RADIO_FETCH_INTERVAL, () => {
+    console.log("radio jobs");
+    radio();
   });
 
   setInterval(() => {

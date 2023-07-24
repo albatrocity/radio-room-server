@@ -12,11 +12,10 @@ import {
 import { checkUserChallenge } from "../operations/userChallenge";
 import { Server, Socket } from "socket.io";
 import { getLatestRoomData, getRoomSettings } from "../handlers/roomHanders";
-import { getHMembersFromSet } from "../operations/data/utils";
-import { RoomSnapshot, StoredRoom } from "../types/Room";
+import { RoomSnapshot } from "../types/Room";
 
 export async function create(req: Request, res: Response) {
-  const { title, type, challenge, userId } = req.body;
+  const { title, type, radioUrl, challenge, userId } = req.body;
   const createdAt = Date.now().toString();
 
   try {
@@ -26,6 +25,7 @@ export async function create(req: Request, res: Response) {
       title,
       creator: userId,
       type,
+      radioUrl,
       id,
       createdAt,
       lastRefreshedAt: createdAt,

@@ -15,7 +15,13 @@ export function createRoomId({
 export function withDefaults(
   roomDetails: Pick<
     Room,
-    "title" | "creator" | "type" | "id" | "createdAt" | "lastRefreshedAt"
+    | "title"
+    | "creator"
+    | "type"
+    | "id"
+    | "createdAt"
+    | "lastRefreshedAt"
+    | "radioUrl"
   >
 ): Room {
   return {

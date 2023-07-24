@@ -1,13 +1,20 @@
 import { Server } from "socket.io";
-import { PUBSUB_SPOTIFY_AUTH_ERROR } from "../../lib/constants";
+import {
+  PUBSUB_SPOTIFY_AUTH_ERROR,
+  PUBSUB_RADIO_ERROR,
+} from "../../lib/constants";
 import { pubClient, subClient } from "../../lib/redisClients";
-import { getUser } from "../../operations/data";
+import { findRoom, getUser } from "../../operations/data";
 import { PubSubHandlerArgs } from "../../types/PubSub";
 import { SpotifyError } from "../../types/SpotifyApi";
+import getRoomPath from "../../lib/getRoomPath";
 
 export default async function bindHandlers(io: Server) {
   subClient.pSubscribe(PUBSUB_SPOTIFY_AUTH_ERROR, (message, channel) =>
     handleSpotifyError({ io, message, channel })
+  );
+  subClient.pSubscribe(PUBSUB_RADIO_ERROR, (message, channel) =>
+    handleRadioError({ io, message, channel })
   );
 }
 
@@ -51,6 +58,29 @@ async function handleSpotifyError({ io, message, channel }: PubSubHandlerArgs) {
       `room:${roomId}:details`,
       "spotifyError",
       JSON.stringify(error)
+    );
+  }
+}
+
+async function handleRadioError({ io, message, channel }: PubSubHandlerArgs) {
+  const { roomId, error }: { userId: string; roomId?: string; error: Error } =
+    JSON.parse(message);
+  if (roomId) {
+    io.to(getRoomPath(roomId)).emit("event", {
+      type: "ERROR",
+      data: {
+        status: 500,
+        message:
+          "Fetching the radio station failed. Please check the radio station URL.",
+        duration: null,
+        id: "radio-error",
+      },
+    });
+
+    await pubClient.hSet(
+      `room:${roomId}:details`,
+      "radioError",
+      JSON.stringify({ message: error.message, status: 500 })
     );
   }
 }

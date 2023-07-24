@@ -1,9 +1,11 @@
 import { getSpotifyApiForUser } from "../../operations/spotify/getSpotifyApi";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import {
+  ERROR_STATION_FETCH_FAILED,
   PUBSUB_JUKEBOX_NOW_PLAYING_FETCHED,
   PUBSUB_PLAYLIST_ADDED,
   PUBSUB_PLAYLIST_UPDATED,
+  PUBSUB_RADIO_ERROR,
   PUBSUB_SPOTIFY_AUTH_ERROR,
   PUBSUB_SPOTIFY_RATE_LIMIT_ERROR,
 } from "../../lib/constants";
@@ -18,6 +20,7 @@ import { pubClient } from "../../lib/redisClients";
 import { PlaylistTrack } from "../../types/PlaylistTrack";
 import { SpotifyError } from "../../types/SpotifyApi";
 import { RoomMeta } from "../../types/Room";
+import getStation from "../../operations/getStation";
 
 export async function communicateNowPlaying(roomId: string) {
   const room = await pubClient.hGetAll(`room:${roomId}:details`);
@@ -25,56 +28,66 @@ export async function communicateNowPlaying(roomId: string) {
     if (
       room.fetchMeta === "false" ||
       room.spotifyError ||
-      room.type !== "jukebox"
+      room.type !== "radio" ||
+      !room.radioUrl
     ) {
       return;
     }
     if (room.creator) {
-      const nowPlaying = (await fetchNowPlaying(room.creator)) as SpotifyTrack;
-      // Check currently playing track in the room
-      const current = await getRoomCurrent(roomId);
-      await setRoomCurrent(roomId, {
-        ...nowPlaying,
-        lastUpdatedAt: Date.now().toString(),
-      });
-      const updatedCurrent = await getRoomCurrent(roomId);
+      console.log("RADIO CREATOR", room.creator);
+      // Fetch station meta
+      const stationMeta = await getStation(room.radioUrl);
+      console.log("stationMeta", stationMeta);
 
-      // If there is no currently playing track, or the currently playing track is different from the one we just fetched, publish the new track data
-      if (!nowPlaying?.uri) {
-        await pubSubNowPlaying(roomId, nowPlaying, updatedCurrent);
-        return;
-      }
-      if (current?.release?.uri === nowPlaying?.uri) {
-        return null;
-      }
+      // const nowPlaying = (await fetchNowPlaying(room.creator)) as SpotifyTrack;
+      // // Check currently playing track in the room
+      // const current = await getRoomCurrent(roomId);
+      // await setRoomCurrent(roomId, {
+      //   ...nowPlaying,
+      //   lastUpdatedAt: Date.now().toString(),
+      // });
+      // const updatedCurrent = await getRoomCurrent(roomId);
 
-      await pubSubNowPlaying(roomId, nowPlaying, updatedCurrent);
+      // // If there is no currently playing track, or the currently playing track is different from the one we just fetched, publish the new track data
+      // if (!nowPlaying?.uri) {
+      //   await pubSubNowPlaying(roomId, nowPlaying, updatedCurrent);
+      //   return;
+      // }
+      // if (current?.release?.uri === nowPlaying?.uri) {
+      //   return null;
+      // }
 
-      // Add the track to the room playlist
-      const queue = await getQueue(roomId);
-      const inQueue = (queue ?? []).find(
-        (track) => track.uri === nowPlaying.uri
-      );
+      // await pubSubNowPlaying(roomId, nowPlaying, updatedCurrent);
 
-      const playlistTrack: PlaylistTrack = {
-        text: nowPlaying.name,
-        spotifyData: nowPlaying,
-        timestamp: Date.now(),
-        artist: nowPlaying.artists[0].name,
-        album: nowPlaying.album.name,
-        track: nowPlaying.name,
-        dj: inQueue && { userId: inQueue?.userId, username: inQueue?.username },
-      };
+      // // Add the track to the room playlist
+      // const queue = await getQueue(roomId);
+      // const inQueue = (queue ?? []).find(
+      //   (track) => track.uri === nowPlaying.uri
+      // );
 
-      await addTrackToRoomPlaylist(roomId, playlistTrack);
-      await pubPlaylistTrackAdded(roomId, playlistTrack);
-      if (inQueue) {
-        await removeFromQueue(roomId, inQueue.uri);
-      }
+      // const playlistTrack: PlaylistTrack = {
+      //   text: nowPlaying.name,
+      //   spotifyData: nowPlaying,
+      //   timestamp: Date.now(),
+      //   artist: nowPlaying.artists[0].name,
+      //   album: nowPlaying.album.name,
+      //   track: nowPlaying.name,
+      //   dj: inQueue && { userId: inQueue?.userId, username: inQueue?.username },
+      // };
+
+      // await addTrackToRoomPlaylist(roomId, playlistTrack);
+      // await pubPlaylistTrackAdded(roomId, playlistTrack);
+      // if (inQueue) {
+      //   await removeFromQueue(roomId, inQueue.uri);
+      // }
     }
     return;
   } catch (e: any) {
+    console.log("CATCH", e);
     console.error(e);
+    if (e.message === ERROR_STATION_FETCH_FAILED) {
+      pubRadioError({ userId: room.creator, roomId }, e);
+    }
     if (e.body?.error?.status === 401) {
       pubSpotifyError({ userId: room.creator, roomId }, e.body.error);
     }
@@ -89,6 +102,7 @@ export async function communicateNowPlaying(roomId: string) {
 
 async function fetchNowPlaying(userId: string) {
   const api = await getSpotifyApiForUser(userId);
+  const searchResults = await api.searchTracks("");
   const nowPlaying = await api.getMyCurrentPlayingTrack();
   return nowPlaying.body.item;
 }
@@ -113,6 +127,16 @@ async function pubPlaylist(roomId: string, playlist: PlaylistTrack[]) {
 
 async function pubPlaylistTrackAdded(roomId: string, track: PlaylistTrack) {
   pubClient.publish(PUBSUB_PLAYLIST_ADDED, JSON.stringify({ roomId, track }));
+}
+
+async function pubRadioError(
+  { userId, roomId }: { userId: string; roomId: string },
+  error: Error
+) {
+  pubClient.publish(
+    PUBSUB_RADIO_ERROR,
+    JSON.stringify({ userId, roomId, error })
+  );
 }
 
 async function pubSpotifyError(
