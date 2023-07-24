@@ -10,6 +10,8 @@ import {
   submitPassword,
   logoutSpotifyAuth,
 } from "../handlers/authHandlers";
+import { Request, Response } from "express";
+import { disconnectFromSpotify, getUser } from "../operations/data";
 
 export default function authController(socket: Socket, io: Server) {
   socket.on("check password", (submittedPassword: string) =>
@@ -60,4 +62,32 @@ export default function authController(socket: Socket, io: Server) {
   socket.on("user left", () => {
     disconnect({ socket, io });
   });
+}
+
+export async function logout(req: Request, res: Response) {
+  if (req.session.user?.userId) {
+    await disconnectFromSpotify(req.session.user.userId);
+    req.session.destroy((err) => {
+      if (err) {
+        console.log("ERROR FROM authController/logout", err);
+        res.status(500).send("Error logging out");
+      } else {
+        res.clearCookie("connect.sid");
+        res.status(200).send("Logged out");
+      }
+    });
+  }
+}
+
+export async function me(req: Request, res: Response) {
+  const { user } = req.session;
+  if (user) {
+    const u = await getUser(user.userId);
+    res.status(200).send({
+      user: u,
+      isNewUser: !user.userId,
+    });
+  } else {
+    res.status(401).send("Not logged in");
+  }
 }

@@ -5,7 +5,7 @@ import generateRandomString from "../lib/generateRandomString";
 import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
 import { makeSpotifyApi } from "../lib/spotifyApi";
-import { removeUserRoomsSpotifyError } from "../operations/data";
+import { persistUser, removeUserRoomsSpotifyError } from "../operations/data";
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
@@ -78,10 +78,20 @@ export async function callback(req: Request, res: Response) {
       });
       const me = await spotify.getMe();
       const userId = me.body.id;
-      req.session.user = { userId };
+      const username = me.body.display_name;
+      req.session.user = { userId, username };
       req.session.save();
 
       const challenge = generateRandomString(16);
+
+      const userAttributes = {
+        userId,
+        username,
+        isAdmin: true,
+      };
+
+      // save user to Redis
+      await persistUser(userId, userAttributes);
 
       await storeUserSpotifyTokens({
         access_token,

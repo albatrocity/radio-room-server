@@ -24,9 +24,12 @@ import {
   persistRoom,
   getUserRooms,
   addDj,
+  disconnectFromSpotify,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
 import { Room } from "../types/Room";
+import generateId from "../lib/generateId";
+import generateAnonName from "../lib/generateAnonName";
 
 function passwordMatched(
   room: Room | null,
@@ -87,31 +90,35 @@ export async function submitPassword(
 export async function login(
   { socket, io }: HandlerConnections,
   {
-    username,
-    userId,
+    userId: incomingUserId,
+    username: incomingUsername,
     password,
     roomId,
   }: {
-    username: User["username"];
-    userId: User["userId"];
+    userId?: string;
+    username?: string;
     password?: string;
     roomId: string;
   }
 ) {
-  if (!roomId || !socket.id || !userId) {
-    return;
-  }
+  const session = socket.request.session;
+  const existingUserId = incomingUserId ?? session?.user?.userId;
+  const isNew = !incomingUserId && !existingUserId && !session?.user?.username;
+
   const users = await getRoomUsers(roomId);
   socket.join(getRoomPath(roomId));
+
+  const userId = existingUserId ?? generateId();
+  const existingUser = await getUser(userId);
+  const username =
+    existingUser?.username ??
+    session.user?.username ??
+    incomingUsername ??
+    generateAnonName();
 
   socket.data.username = username;
   socket.data.userId = userId;
   socket.data.roomId = roomId;
-  socket.request.session.roomId = roomId;
-  socket.request.session.user = {
-    userId,
-    username,
-  };
 
   const room = await findRoom(roomId);
 
@@ -127,6 +134,9 @@ export async function login(
     status: "participating" as const,
     connectedAt: new Date().toISOString(),
   };
+
+  socket.request.session.user = newUser;
+  socket.request.session.save();
 
   if (!room) {
     socket.emit("event", {
@@ -184,7 +194,7 @@ export async function login(
       passwordRequired: !isNil(room?.password),
       playlist: playlist,
       reactions: allReactions,
-      currentUser: {
+      user: {
         userId: socket.data.userId,
         username: socket.data.username,
         status: "participating",
@@ -192,6 +202,7 @@ export async function login(
         isAdmin,
       },
       accessToken,
+      isNewUser: isNew,
     },
   });
 }
@@ -211,6 +222,7 @@ export async function changeUsername(
     );
 
     socket.request.session.user = newUser;
+    await socket.request.session.save();
 
     const content = `${oldUsername} transformed into ${username}`;
     pubUserJoined({ io }, socket.data.roomId, {
@@ -236,6 +248,9 @@ export async function disconnect({ socket, io }: HandlerConnections) {
 
   if (userRooms.length === 0) {
     await deleteUser(socket.data.userId);
+    socket.request.session.destroy(() => {
+      console.log("Session destroyed");
+    });
   }
 
   const users = await getRoomUsers(socket.data.roomId);
@@ -269,14 +284,5 @@ export async function logoutSpotifyAuth(
   { socket, io }: HandlerConnections,
   { userId }: { userId?: string } = {}
 ) {
-  // removes user's spotify access token from redis
-  const { error } = await removeStoredUserSpotifyTokens(
-    userId ?? socket.data.userId
-  );
-  io.to(socket.id).emit("event", {
-    type: "SPOTIFY_AUTHENTICATION_STATUS",
-    data: {
-      isAuthenticated: error ? true : false,
-    },
-  });
+  disconnectFromSpotify(userId ?? socket.data.userId);
 }

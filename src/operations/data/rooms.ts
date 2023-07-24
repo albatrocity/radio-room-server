@@ -2,11 +2,11 @@ import { isEmpty, isNil } from "remeda";
 
 import { pubClient } from "../../lib/redisClients";
 import { Room, RoomMeta, StoredRoom } from "../../types/Room";
-import { SEVEN_DAYS } from "../../lib/constants";
 import { writeJsonToHset, getHMembersFromSet } from "./utils";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { getQueue } from "./djs";
 import { User } from "../../types/User";
+import { PUBSUB_ROOM_DELETED } from "../../lib/constants";
 
 async function addRoomToRoomList(roomId: Room["id"]) {
   await pubClient.sAdd("rooms", roomId);
@@ -114,7 +114,6 @@ export async function setRoomCurrent(roomId: string, meta: any) {
       release: JSON.stringify(parsedMeta.release),
       dj: parsedMeta.dj ? JSON.stringify(parsedMeta.dj) : undefined,
     });
-    await pubClient.pExpire(roomCurrentKey, SEVEN_DAYS);
     const current = await getRoomCurrent(roomId);
     return current;
   } catch (e) {
@@ -230,6 +229,7 @@ export async function deleteRoom(roomId: string) {
   // remove room from room list and user's room list
   await removeRoomFromRoomList(room.id);
   await removeRoomFromUserRoomList(room);
+  await pubClient.publish(PUBSUB_ROOM_DELETED, roomId);
 }
 
 export async function expireRoomIn(roomId: string, ms: number) {

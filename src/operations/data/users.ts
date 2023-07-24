@@ -2,6 +2,8 @@ import { compact } from "remeda";
 import { pubClient } from "../../lib/redisClients";
 import { StoredUser, User } from "../../types/User";
 import { mapUserBooleans, writeJsonToHset } from "./utils";
+import removeStoredUserSpotifyTokens from "../spotify/removeStoredUserSpotifyTokens";
+import { PUBSUB_USER_SPOTIFY_AUTHENTICATION_STATUS } from "../../lib/constants";
 
 export async function addTypingUser(roomId: string, userId: string) {
   return pubClient.sAdd(`room:${roomId}:typing_users`, userId);
@@ -150,4 +152,13 @@ export async function updateUserAttributes(
   const users = roomId ? await getRoomUsers(roomId) : [];
   const user = users.find((u) => u?.userId === userId);
   return { user, users };
+}
+
+export async function disconnectFromSpotify(userId: string) {
+  // removes user's spotify access token from redis
+  const { error } = await removeStoredUserSpotifyTokens(userId);
+  await pubClient.publish(
+    PUBSUB_USER_SPOTIFY_AUTHENTICATION_STATUS,
+    JSON.stringify({ userId, isAuthenticated: error ? true : false })
+  );
 }

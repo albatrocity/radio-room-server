@@ -83,7 +83,9 @@ export async function getHMembersFromSet<T>(
     }`;
 
     const member = await pubClient.hGetAll(memberKey);
-    if (!member) {
+    const memberExists = await pubClient.exists(memberKey);
+
+    if (!member || memberExists === 0) {
       await pubClient.sRem(setKey, memberKey);
       return null;
     }

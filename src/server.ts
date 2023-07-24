@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import RedisStore from "connect-redis";
 import cors from "cors";
-import express, { NextFunction, Request, Response } from "express";
+import express from "express";
 import { Server } from "socket.io";
 import { User } from "./types/User";
 
@@ -23,7 +23,7 @@ import activityController, {
   lifecycleEvents as activityEvents,
 } from "./controllers/activityController";
 import adminController from "./controllers/adminController";
-import authController from "./controllers/authController";
+import authController, { me, logout } from "./controllers/authController";
 import djController, {
   lifecycleEvents as djEvents,
 } from "./controllers/djController";
@@ -66,11 +66,13 @@ const httpServer = express()
   .use(express.json())
   .use(cookieParser())
   .use(sessionMiddleware)
+  .get("/me", me)
   .get("/rooms/", findRooms)
   .get("/rooms/:id", findRoom)
   .post("/rooms", create)
   .delete("/rooms/:id", deleteRoom)
   .get("/login", login)
+  .post("/logout", logout)
   .get("/callback", callback)
   .set("event", events)
   .listen(PORT, "0.0.0.0", () => console.log(`Listening on ${PORT}`));

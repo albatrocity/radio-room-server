@@ -42,9 +42,10 @@ export async function findRoom(req: Request, res: Response) {
   const { id } = req.params;
 
   const room = await findRoomData(id);
-  if (room) {
+  if (room?.id) {
     return res.send({ room: removeSensitiveRoomAttributes(room) });
   }
+  res.statusCode = 404;
   return res.send({ room: null });
 }
 
