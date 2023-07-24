@@ -2,6 +2,7 @@ import { callback, login } from "./spotifyAuthController";
 import * as httpMocks from "node-mocks-http";
 import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
+import { Request } from "express";
 
 jest.mock("../operations/spotify/getSpotifyAuthTokens");
 jest.mock("../operations/data");
@@ -12,6 +13,7 @@ jest.mock("../lib/spotifyApi", () => ({
     getMe: jest.fn(() => ({
       body: {
         id: "1234",
+        display_name: "Homer Simpson",
       },
     })),
   })),
@@ -31,11 +33,27 @@ afterAll(() => {
   process.env = OLD_ENV; // Restore old environment
 });
 
+type TestRequest = Request<
+  any,
+  any,
+  any,
+  any,
+  {
+    session: {
+      save: () => Promise<void>;
+      user: {};
+    };
+  }
+>;
+
 describe("login", () => {
   it("redirects to spotify login", async () => {
-    const request = httpMocks.createRequest({
+    const request = httpMocks.createRequest<TestRequest>({
       method: "GET",
       url: "/login",
+      session: {
+        user: {},
+      },
     });
 
     const response = httpMocks.createResponse();
@@ -43,14 +61,14 @@ describe("login", () => {
     await login(request, response);
 
     expect(response._getRedirectUrl()).toBe(
-      `https://accounts.spotify.com/authorize?response_type=code&client_id=&scope=user-read-private%20user-read-email%20playlist-read-collaborative%20playlist-modify-private%20playlist-modify-public%20user-read-playback-state%20user-modify-playback-state%20user-read-currently-playing%20user-library-modify&redirect_uri=&state=RANDOM_STRING`
+      `https://accounts.spotify.com/authorize?response_type=code&client_id=&scope=user-read-private%20user-read-email%20playlist-read-collaborative%20playlist-modify-private%20playlist-modify-public%20user-read-playback-state%20user-modify-playback-state%20user-read-currently-playing%20user-library-read%20user-library-modify&redirect_uri=&state=RANDOM_STRING&roomTitle=`
     );
   });
 });
 
 describe("callback", () => {
   it("redirects on state mismatch", async () => {
-    const request = httpMocks.createRequest({
+    const request = httpMocks.createRequest<TestRequest>({
       method: "GET",
       url: "/callback",
       query: {
@@ -60,6 +78,9 @@ describe("callback", () => {
       cookies: {
         spotify_auth_state: "OLD_STATE",
       },
+      session: {
+        user: {},
+      },
     });
     const response = httpMocks.createResponse();
 
@@ -68,7 +89,7 @@ describe("callback", () => {
   });
 
   it("gets token from Spotify", async () => {
-    const request = httpMocks.createRequest({
+    const request = httpMocks.createRequest<TestRequest>({
       method: "GET",
       url: "/callback",
       query: {
@@ -78,6 +99,9 @@ describe("callback", () => {
       },
       cookies: {
         spotify_auth_state: "STATE",
+      },
+      session: {
+        user: {},
       },
     });
     const response = httpMocks.createResponse();
@@ -88,7 +112,7 @@ describe("callback", () => {
   });
 
   it("updates Redis with tokens for guests", async () => {
-    const request = httpMocks.createRequest({
+    const request = httpMocks.createRequest<TestRequest>({
       method: "GET",
       url: "/callback",
       query: {
@@ -98,6 +122,9 @@ describe("callback", () => {
       },
       cookies: {
         spotify_auth_state: "STATE",
+      },
+      session: {
+        user: {},
       },
     });
     const response = httpMocks.createResponse();
@@ -120,7 +147,7 @@ describe("callback", () => {
   it("redirects to APP_URL after auth", async () => {
     process.env.APP_URL = "https://www.listen.show";
 
-    const request = httpMocks.createRequest({
+    const request = httpMocks.createRequest<TestRequest>({
       method: "GET",
       url: "/callback",
       query: {
@@ -130,6 +157,9 @@ describe("callback", () => {
       },
       cookies: {
         spotify_auth_state: "RANDOM_STRING",
+      },
+      session: {
+        user: {},
       },
     });
     const response = httpMocks.createResponse();
@@ -143,5 +173,37 @@ describe("callback", () => {
     expect(response._getRedirectUrl()).toBe(
       "https://www.listen.show?toast=Spotify%20authentication%20successful&userId=1234&challenge=RANDOM_STRING"
     );
+  });
+
+  it("sets session user", async () => {
+    process.env.APP_URL = "https://www.listen.show";
+
+    const request = httpMocks.createRequest<TestRequest>({
+      method: "GET",
+      url: "/callback",
+      query: {
+        userId: 1234,
+        state: "RANDOM_STRING",
+        code: "SECRET_CODE",
+      },
+      cookies: {
+        spotify_auth_state: "RANDOM_STRING",
+      },
+      session: {
+        user: {},
+      },
+    });
+    const response = httpMocks.createResponse();
+
+    (getSpotifyAuthTokens as jest.Mock).mockResolvedValueOnce({
+      access_token: "access_token",
+      refresh_token: "refresh_token",
+    });
+
+    await callback(request, response);
+    expect(request.session.user).toEqual({
+      userId: "1234",
+      username: "Homer Simpson",
+    });
   });
 });

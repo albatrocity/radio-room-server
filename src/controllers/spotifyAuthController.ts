@@ -6,6 +6,7 @@ import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
 import { makeSpotifyApi } from "../lib/spotifyApi";
 import { saveUser, removeUserRoomsSpotifyError } from "../operations/data";
+import { first } from "remeda";
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
@@ -14,21 +15,20 @@ const stateKey = "spotify_auth_state";
 const userIdKey = "spotify_auth_user_id";
 const redirectKey = "after_spotify_auth_redirect";
 
-function getParam(query: Request["query"], paramName: string) {
-  if (query?.[paramName] && Array.isArray(query[paramName])) {
-    return query[paramName][0];
-  }
-  if (query?.[paramName] && Array.isArray(query[paramName])) {
-    return query[paramName][0];
-  }
-  return query[paramName];
-}
+type ReqQuery = {
+  userId?: string;
+  roomTitle?: string;
+  redirect?: string;
+};
 
-export async function login(req: Request, res: Response) {
+export async function login(
+  req: Request<any, any, any, ReqQuery>,
+  res: Response
+) {
   const state = generateRandomString(16);
   // get userId from query params
-  const userId = getParam(req.query, "userId");
-  const roomTitle = getParam(req.query, "roomTitle");
+  const userId = req.query.userId;
+  const roomTitle = req.query.roomTitle;
 
   res.cookie(stateKey, state);
   if (userId) {
@@ -79,8 +79,8 @@ export async function callback(req: Request, res: Response) {
       const me = await spotify.getMe();
       const userId = me.body.id;
       const username = me.body.display_name;
+
       req.session.user = { userId, username };
-      req.session.save();
 
       const challenge = generateRandomString(16);
 
@@ -92,7 +92,6 @@ export async function callback(req: Request, res: Response) {
 
       // save user to Redis
       await saveUser(userId, userAttributes);
-
       await storeUserSpotifyTokens({
         access_token,
         refresh_token,

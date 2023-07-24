@@ -1,8 +1,9 @@
-import spotifyApi from "../../lib/spotifyApi";
+import { getSpotifyApiForRoom } from "./getSpotifyApi";
 
-async function skipSpotifyTrack() {
+async function skipSpotifyTrack(roomId: string) {
   try {
-    const { body } = await spotifyApi.skipToNext();
+    const spotify = await getSpotifyApiForRoom(roomId);
+    const { body } = await spotify.skipToNext();
     return body;
   } catch (e) {
     console.error(e);

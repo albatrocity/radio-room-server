@@ -17,11 +17,13 @@ import {
   getRoomCurrent,
   getRoomPlaylist,
   getRoomUsers,
+  getUserRooms,
   getUser,
   isDj,
   saveUser,
   removeOnlineUser,
   updateUserAttributes,
+  persistRoom,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
 
@@ -81,7 +83,10 @@ function setupTest({ userIsDj = false } = {}) {
   (getMessages as jest.Mock).mockResolvedValueOnce(stubbedMessages);
   (getRoomPlaylist as jest.Mock).mockResolvedValueOnce([]);
   (getRoomCurrent as jest.Mock).mockResolvedValueOnce(stubbedMeta);
-
+  (getStoredUserSpotifyTokens as jest.Mock).mockResolvedValueOnce({
+    accessToken: "accessToken",
+    refreshToken: "refreshToken",
+  });
   (getAllRoomReactions as jest.Mock).mockResolvedValueOnce({
     message: {},
     track: {},
@@ -113,10 +118,24 @@ function setupUsernameTest({ newUsername = "Bart" } = {}) {
   });
 }
 
-function setupDisconnectTest() {
+function setupDisconnectTest(
+  { hasRooms }: { hasRooms?: boolean } = { hasRooms: false }
+) {
   (removeOnlineUser as jest.Mock).mockResolvedValueOnce(null);
   (deleteUser as jest.Mock).mockResolvedValueOnce(null);
   (getRoomUsers as jest.Mock).mockResolvedValueOnce([]);
+  (getUserRooms as jest.Mock).mockResolvedValueOnce(
+    hasRooms
+      ? [
+          {
+            id: "room123",
+            name: "room123",
+            creator: "1",
+            type: "jukebox",
+          },
+        ]
+      : []
+  );
 }
 
 describe("authHandlers", () => {
@@ -128,8 +147,12 @@ describe("authHandlers", () => {
       username: "Homer",
     });
 
+  afterEach(() => {
+    socket.request.session.user = undefined;
+  });
+
   describe("login", () => {
-    test.only("joins room", async () => {
+    test("joins room", async () => {
       setupTest();
       await login(
         { socket, io },
@@ -148,7 +171,7 @@ describe("authHandlers", () => {
       expect(pubUserJoined).toHaveBeenCalledWith({ io }, "authRoom", {
         user: {
           connectedAt: expect.any(String),
-          id: undefined,
+          id: "socket1",
           isDeputyDj: false,
           isDj: false,
           status: "participating",
@@ -178,12 +201,15 @@ describe("authHandlers", () => {
 
       expect(emit).toHaveBeenCalledWith("event", {
         data: {
-          currentUser: {
+          accessToken: "accessToken",
+          isNewUser: false,
+          passwordRequired: false,
+          user: {
+            isAdmin: false,
             isDeputyDj: false,
             status: "participating",
             userId: "123",
             username: "Homer",
-            isAdmin: false,
           },
           messages: stubbedMessages,
           meta: stubbedMeta,
@@ -217,19 +243,22 @@ describe("authHandlers", () => {
 
       expect(emit).toHaveBeenCalledWith("event", {
         data: {
-          currentUser: {
+          accessToken: "accessToken",
+          isNewUser: false,
+          messages: stubbedMessages,
+          meta: stubbedMeta,
+          passwordRequired: false,
+          playlist: [],
+          reactions: {
+            message: {},
+            track: {},
+          },
+          user: {
             isDeputyDj: false,
             status: "participating",
             userId: "roomCreator",
             username: "Bart",
             isAdmin: true,
-          },
-          messages: stubbedMessages,
-          meta: stubbedMeta,
-          playlist: [],
-          reactions: {
-            message: {},
-            track: {},
           },
           users: [
             {
@@ -244,7 +273,7 @@ describe("authHandlers", () => {
             {
               username: "Bart",
               userId: "roomCreator",
-              id: undefined,
+              id: "socket1",
               isDj: false,
               isDeputyDj: false,
               status: "participating",
@@ -267,7 +296,7 @@ describe("authHandlers", () => {
       expect(addOnlineUser).toHaveBeenCalledWith("authRoom", "123");
     });
 
-    test("calls persistUser", async () => {
+    test("calls saveUser", async () => {
       setupTest();
 
       await login(
@@ -277,7 +306,7 @@ describe("authHandlers", () => {
 
       expect(saveUser).toHaveBeenCalledWith("123", {
         connectedAt: expect.any(String),
-        id: undefined,
+        id: "socket1",
         isDeputyDj: false,
         isDj: false,
         status: "participating",
@@ -295,6 +324,57 @@ describe("authHandlers", () => {
 
       expect(socket.data.userId).toEqual("123");
       expect(socket.data.username).toEqual("Homer");
+    });
+
+    test("sends error if password required and does not match", async () => {
+      (findRoom as jest.Mock).mockResolvedValueOnce({
+        id: "authRoom",
+        name: "authRoom",
+        creator: "roomCreator",
+        password: "SECRET",
+      });
+
+      await login(
+        { socket, io },
+        {
+          username: "Homer",
+          userId: "123",
+          roomId: "authRoom",
+          password: "sekret",
+        }
+      );
+
+      expect(emit).toHaveBeenCalledWith("event", {
+        type: "UNAUTHORIZED",
+        data: {
+          message: "Password is incorrect",
+          status: 401,
+        },
+      });
+      expect(getRoomUsers).not.toHaveBeenCalled();
+    });
+
+    test("persists room keys if admin is logging in", async () => {
+      (findRoom as jest.Mock).mockResolvedValueOnce({
+        id: "authRoom",
+        name: "authRoom",
+        creator: "123",
+      });
+      (getRoomUsers as jest.Mock).mockResolvedValueOnce([]);
+      (getStoredUserSpotifyTokens as jest.Mock).mockResolvedValueOnce({
+        accessToken: "accessToken",
+      });
+
+      await login(
+        { socket, io },
+        {
+          username: "Homer",
+          userId: "123",
+          roomId: "authRoom",
+          password: "sekret",
+        }
+      );
+      expect(persistRoom).toHaveBeenCalledWith("authRoom");
     });
   });
 
@@ -337,6 +417,18 @@ describe("authHandlers", () => {
         users: [{ id: "1", userId: "123", username: "Homer" }],
       });
     });
+
+    test("saves new username to session", async () => {
+      setupUsernameTest({ newUsername: "Homer" });
+      await changeUsername({ socket, io }, { userId: "1", username: "Homer" });
+
+      expect(socket.request.session.user).toEqual({
+        id: "1",
+        userId: "123",
+        username: "Homer",
+      });
+      expect(socket.request.session.save).toHaveBeenCalled();
+    });
   });
 
   describe("disconnect", () => {
@@ -349,13 +441,22 @@ describe("authHandlers", () => {
       expect(removeOnlineUser).toHaveBeenCalledWith("authRoom", "1");
     });
 
-    it("deletes user from redis", async () => {
+    it("deletes user from redis if they don't have any remaining rooms", async () => {
       setupDisconnectTest();
       socket.data.userId = "1";
       socket.data.username = "Homer";
 
       await disconnect({ socket, io });
       expect(deleteUser).toHaveBeenCalledWith("1");
+    });
+
+    it("does not delete user from redis if they have remaining rooms", async () => {
+      setupDisconnectTest({ hasRooms: true });
+      socket.data.userId = "1";
+      socket.data.username = "Homer";
+
+      await disconnect({ socket, io });
+      expect(deleteUser).not.toHaveBeenCalledWith("1");
     });
 
     it("broadcasts new users list", async () => {
@@ -403,6 +504,7 @@ describe("authHandlers", () => {
       expect(toEmit).toHaveBeenCalledWith("event", {
         data: {
           isAuthenticated: true,
+          accessToken: "1234",
         },
         type: "SPOTIFY_AUTHENTICATION_STATUS",
       });
@@ -421,6 +523,7 @@ describe("authHandlers", () => {
       expect(toEmit).toHaveBeenCalledWith("event", {
         data: {
           isAuthenticated: false,
+          accessToken: null,
         },
         type: "SPOTIFY_AUTHENTICATION_STATUS",
       });

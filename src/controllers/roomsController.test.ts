@@ -73,6 +73,7 @@ describe("create", () => {
     expect(saveRoom).toHaveBeenCalledWith({
       artwork: undefined,
       createdAt: expect.any(String),
+      lastRefreshedAt: expect.any(String),
       creator: "userId",
       deputizeOnJoin: false,
       enableSpotifyLogin: false,

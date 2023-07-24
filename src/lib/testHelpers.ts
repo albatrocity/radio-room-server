@@ -8,6 +8,8 @@ type Options = {
 };
 
 export function makeSocket({ roomId = "room123", id, ...rest }: Options = {}) {
+  const saveSession = jest.fn();
+  const destroySession = jest.fn();
   const emit = jest.fn();
   const toEmit = jest.fn();
   const broadcastEmit = jest.fn();
@@ -18,6 +20,7 @@ export function makeSocket({ roomId = "room123", id, ...rest }: Options = {}) {
     emit: toEmit,
   }));
   const join = jest.fn();
+  const leave = jest.fn();
   const makeSocket = jest.fn(() => ({
     id,
     data: {
@@ -30,6 +33,13 @@ export function makeSocket({ roomId = "room123", id, ...rest }: Options = {}) {
     },
     emit,
     join,
+    leave,
+    request: {
+      session: {
+        save: saveSession,
+        destroy: destroySession,
+      },
+    },
   }));
 
   const makeIo = jest.fn(() => ({
@@ -49,5 +59,17 @@ export function makeSocket({ roomId = "room123", id, ...rest }: Options = {}) {
   }));
   const socket = makeSocket() as unknown as Socket;
   const io = makeIo() as unknown as Server;
-  return { emit, broadcastEmit, socket, io, toEmit, toBroadcast, to, join };
+  return {
+    emit,
+    broadcastEmit,
+    socket,
+    io,
+    toEmit,
+    toBroadcast,
+    to,
+    join,
+    leave,
+    saveSession,
+    destroySession,
+  };
 }

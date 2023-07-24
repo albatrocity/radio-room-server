@@ -42,13 +42,13 @@ export default function performTriggerAction<Incoming, Source>(
 ) {
   switch (trigger.action) {
     case "skipTrack":
-      skipSpotifyTrack();
+      skipSpotifyTrack("FIX_ME");
       sendMetaMessage<Incoming, Source>(data, trigger, io);
       break;
     case "likeTrack":
       let targetTrackUri = (data.meta.target as PlaylistTrack)?.spotifyData
         ?.uri;
-      targetTrackUri ? likeSpotifyTrack(targetTrackUri) : undefined;
+      targetTrackUri ? likeSpotifyTrack(targetTrackUri, "FIX_ME") : undefined;
       sendMetaMessage<Incoming, Source>(data, trigger, io);
       break;
     case "sendMessage":
@@ -57,11 +57,11 @@ export default function performTriggerAction<Incoming, Source>(
       }
       break;
     case "pause":
-      pauseSpotify();
+      // pauseSpotify();
       sendMetaMessage<Incoming, Source>(data, trigger, io);
       break;
     case "resume":
-      resumeSpotify();
+      // resumeSpotify();
       sendMetaMessage<Incoming, Source>(data, trigger, io);
       break;
   }

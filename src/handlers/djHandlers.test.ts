@@ -14,30 +14,33 @@ import {
   updateUserAttributes,
 } from "../operations/data";
 import sendMessage from "../lib/sendMessage";
-import spotifyApi from "../lib/spotifyApi";
 import refreshSpotifyToken from "../operations/spotify/refreshSpotifyToken";
 import createAndPopulateSpotifyPlaylist from "../operations/spotify/createAndPopulateSpotifyPlaylist";
 import { pubUserJoined } from "../operations/sockets/users";
-import { getSpotifyApiForRoom } from "../operations/spotify/getSpotifyApi";
+
+const spotifyAddToQueue = jest.fn();
+const searchTracks = jest.fn(() => ({
+  data: {
+    body: {
+      tracks: [],
+    },
+  },
+}));
+const setRefreshToken = jest.fn();
 
 jest.mock("../lib/sendMessage");
-jest.mock("../lib/spotifyApi", () => ({
-  addToQueue: jest.fn(),
-  searchTracks: jest.fn(() => ({
-    data: {
-      body: {
-        tracks: [],
-      },
-    },
-  })),
-  setRefreshToken: jest.fn(),
-}));
 jest.mock("../operations/spotify/refreshSpotifyToken");
 jest.mock("../operations/spotify/syncQueue");
 jest.mock("../operations/spotify/createAndPopulateSpotifyPlaylist");
 jest.mock("../operations/data");
 jest.mock("../operations/sockets/users");
-jest.mock("../operations/spotify/getSpotifyApi");
+jest.mock("../operations/spotify/getSpotifyApi", () => ({
+  getSpotifyApiForRoom: jest.fn(async () => ({
+    addToQueue: spotifyAddToQueue,
+    searchTracks,
+    setRefreshToken,
+  })),
+}));
 
 afterEach(() => {
   jest.clearAllMocks();
@@ -82,7 +85,6 @@ function setupQueueTest() {
       username: "Homer",
     },
   ]);
-  (getSpotifyApiForRoom as jest.Mock).mockResolvedValueOnce(spotifyApi);
   return { user };
 }
 
@@ -208,14 +210,14 @@ describe("djHandlers", () => {
       const { user } = setupQueueTest();
       socket.data.userId = user.userId;
       await queueSong({ socket, io }, "other_uri");
-      expect(spotifyApi.addToQueue).toHaveBeenCalledWith("other_uri");
+      expect(spotifyAddToQueue).toHaveBeenCalledWith("other_uri");
     });
 
     test("adds queued track to redis", async () => {
       const { user } = setupQueueTest();
       socket.data.userId = user.userId;
 
-      (spotifyApi.addToQueue as jest.Mock).mockResolvedValueOnce({
+      (spotifyAddToQueue as jest.Mock).mockResolvedValueOnce({
         uri: "other_uri",
       });
       await queueSong({ socket, io }, "other_uri");
@@ -230,7 +232,7 @@ describe("djHandlers", () => {
       const { user } = setupQueueTest();
       socket.data.userId = user.userId;
 
-      (spotifyApi.addToQueue as jest.Mock).mockResolvedValueOnce({
+      (spotifyAddToQueue as jest.Mock).mockResolvedValueOnce({
         uri: "other_uri",
       });
 
@@ -247,7 +249,7 @@ describe("djHandlers", () => {
     test("emits SONG_QUEUE_FAILURE event on error", async () => {
       const { user } = setupQueueTest();
       socket.data.userId = user.userId;
-      (spotifyApi.addToQueue as jest.Mock).mockRejectedValueOnce({
+      (spotifyAddToQueue as jest.Mock).mockRejectedValueOnce({
         uri: "other_uri",
       });
 
@@ -266,7 +268,7 @@ describe("djHandlers", () => {
       const { user } = setupQueueTest();
       socket.data.userId = user.userId;
 
-      (spotifyApi.addToQueue as jest.Mock).mockResolvedValueOnce({
+      (spotifyAddToQueue as jest.Mock).mockResolvedValueOnce({
         uri: "other_uri",
       });
 
@@ -289,7 +291,7 @@ describe("djHandlers", () => {
   describe("searchSpotifyTrack", () => {
     test("calls searchTracks", async () => {
       setupQueueTest();
-      (spotifyApi.searchTracks as jest.Mock).mockResolvedValueOnce({
+      (searchTracks as jest.Mock).mockResolvedValueOnce({
         body: {
           tracks: [
             {
@@ -303,12 +305,12 @@ describe("djHandlers", () => {
         { socket, io },
         { query: "cottoneye joe", options: {} }
       );
-      expect(spotifyApi.searchTracks).toHaveBeenCalledWith("cottoneye joe", {});
+      expect(searchTracks).toHaveBeenCalledWith("cottoneye joe", {});
     });
 
     test("emits TRACK_SEARCH_RESULTS event", async () => {
       setupQueueTest();
-      (spotifyApi.searchTracks as jest.Mock).mockResolvedValueOnce({
+      (searchTracks as jest.Mock).mockResolvedValueOnce({
         body: {
           tracks: [
             {
@@ -335,7 +337,7 @@ describe("djHandlers", () => {
 
     test("emits TRACK_SEARCH_RESULTS_FAILURE event on error", async () => {
       setupQueueTest();
-      (spotifyApi.searchTracks as jest.Mock).mockRejectedValueOnce({});
+      (searchTracks as jest.Mock).mockRejectedValueOnce({});
       await searchSpotifyTrack(
         { socket, io },
         { query: "cottoneye joe", options: {} }
@@ -352,7 +354,7 @@ describe("djHandlers", () => {
 
     test("refreshes token on error", async () => {
       setupQueueTest();
-      (spotifyApi.searchTracks as jest.Mock).mockRejectedValueOnce({});
+      (searchTracks as jest.Mock).mockRejectedValueOnce({});
       await searchSpotifyTrack(
         { socket, io },
         { query: "cottoneye joe", options: {} }
