@@ -45,7 +45,7 @@ const sessionMiddleware = session({
   cookie: {
     domain: process.env.NODE_ENV === "production" ? ".listen.show" : undefined,
     maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
-    sameSite: "lax",
+    sameSite: "none",
     secure: process.env.NODE_ENV === "production",
     httpOnly: false,
   },
