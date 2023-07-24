@@ -19,7 +19,7 @@ import {
   getRoomUsers,
   getUser,
   isDj,
-  persistUser,
+  saveUser,
   removeOnlineUser,
   updateUserAttributes,
 } from "../operations/data";
@@ -275,7 +275,7 @@ describe("authHandlers", () => {
         { username: "Homer", userId: "123", roomId: "authRoom" }
       );
 
-      expect(persistUser).toHaveBeenCalledWith("123", {
+      expect(saveUser).toHaveBeenCalledWith("123", {
         connectedAt: expect.any(String),
         id: undefined,
         isDeputyDj: false,

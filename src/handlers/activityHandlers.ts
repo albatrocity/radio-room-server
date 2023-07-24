@@ -1,6 +1,4 @@
 import { REACTIONABLE_TYPES } from "../lib/constants";
-import systemMessage from "../lib/systemMessage";
-import sendMessage from "../lib/sendMessage";
 
 import {
   addReaction as addReactionData,
@@ -78,18 +76,4 @@ export async function removeReaction(
     type: "REACTIONS",
     data: { reactions },
   });
-}
-
-export function handlePlaybackPaused({ io, socket }: HandlerConnections) {
-  const newMessage = systemMessage("Server playback has been paused", {
-    type: "alert",
-  });
-  sendMessage(io, socket.data.roomId, newMessage);
-}
-
-export function handlePlaybackResumed({ io, socket }: HandlerConnections) {
-  const newMessage = systemMessage("Server playback has been resumed", {
-    type: "alert",
-  });
-  sendMessage(io, socket.data.roomId, newMessage);
 }

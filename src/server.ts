@@ -10,7 +10,6 @@ import { User } from "./types/User";
 
 import { pubClient, subClient } from "./lib/redisClients";
 import { bindPubSubHandlers } from "./pubSub/handlers";
-import { events } from "./lib/eventEmitter";
 import { callback, login } from "./controllers/spotifyAuthController";
 import roomsController, {
   create,
@@ -19,14 +18,10 @@ import roomsController, {
   findRooms,
 } from "./controllers/roomsController";
 
-import activityController, {
-  lifecycleEvents as activityEvents,
-} from "./controllers/activityController";
+import activityController from "./controllers/activityController";
 import adminController from "./controllers/adminController";
 import authController, { me, logout } from "./controllers/authController";
-import djController, {
-  lifecycleEvents as djEvents,
-} from "./controllers/djController";
+import djController from "./controllers/djController";
 import messageController from "./controllers/messageController";
 import { clearRoomOnlineUsers } from "./operations/data";
 
@@ -74,7 +69,6 @@ const httpServer = express()
   .get("/login", login)
   .post("/logout", logout)
   .get("/callback", callback)
-  .set("event", events)
   .listen(PORT, "0.0.0.0", () => console.log(`Listening on ${PORT}`));
 
 const io = new Server(httpServer, {
@@ -104,9 +98,7 @@ io.on("connection", (socket) => {
   roomsController(socket, io);
 });
 
-// lifecycle events
-djEvents(io);
-activityEvents(io);
+// pubsub events
 bindPubSubHandlers(io);
 
 async function startJobs() {

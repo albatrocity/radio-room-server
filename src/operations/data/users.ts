@@ -98,7 +98,7 @@ export async function getRoomUsersCount(roomId: string) {
   }
 }
 
-export async function persistUser(userId: string, attributes: Partial<User>) {
+export async function saveUser(userId: string, attributes: Partial<User>) {
   try {
     return writeJsonToHset(`user:${userId}`, attributes);
   } catch (e) {
@@ -148,7 +148,7 @@ export async function updateUserAttributes(
   attributes: Partial<User>,
   roomId?: string
 ) {
-  await persistUser(userId, attributes);
+  await saveUser(userId, attributes);
   const users = roomId ? await getRoomUsers(roomId) : [];
   const user = users.find((u) => u?.userId === userId);
   return { user, users };

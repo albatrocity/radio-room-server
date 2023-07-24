@@ -1,11 +1,9 @@
 import sendMessage from "../lib/sendMessage";
 import systemMessage from "../lib/systemMessage";
-import { find, isNil, uniqBy } from "remeda";
+import { isNil, uniqBy } from "remeda";
 import { HandlerConnections } from "../types/HandlerConnections";
 import { User } from "../types/User";
-import { events } from "../lib/eventEmitter";
 import getStoredUserSpotifyTokens from "../operations/spotify/getStoredUserSpotifyTokens";
-import removeStoredUserSpotifyTokens from "../operations/spotify/removeStoredUserSpotifyTokens";
 import getRoomPath from "../lib/getRoomPath";
 import {
   addOnlineUser,
@@ -16,7 +14,7 @@ import {
   getRoomUsers,
   getUser,
   isDj,
-  persistUser,
+  saveUser,
   removeOnlineUser,
   getRoomPlaylist,
   getRoomCurrent,
@@ -101,43 +99,11 @@ export async function login(
     roomId: string;
   }
 ) {
+  let assignedUserId: string | undefined = incomingUserId;
   const session = socket.request.session;
-  const existingUserId = incomingUserId ?? session?.user?.userId;
-  const isNew = !incomingUserId && !existingUserId && !session?.user?.username;
-
-  const users = await getRoomUsers(roomId);
-  socket.join(getRoomPath(roomId));
-
-  const userId = existingUserId ?? generateId();
-  const existingUser = await getUser(userId);
-  const username =
-    existingUser?.username ??
-    session.user?.username ??
-    incomingUsername ??
-    generateAnonName();
-
-  socket.data.username = username;
-  socket.data.userId = userId;
-  socket.data.roomId = roomId;
-
   const room = await findRoom(roomId);
 
-  const isDeputyDj = room?.deputizeOnJoin ?? (await isDj(roomId, userId));
-  const isAdmin = room?.creator === socket.data.userId;
-
-  const newUser = {
-    username,
-    userId,
-    id: socket.id,
-    isDj: false,
-    isDeputyDj,
-    status: "participating" as const,
-    connectedAt: new Date().toISOString(),
-  };
-
-  socket.request.session.user = newUser;
-  socket.request.session.save();
-
+  // Throw an error if the room doesn't exist
   if (!room) {
     socket.emit("event", {
       type: "ERROR",
@@ -149,6 +115,42 @@ export async function login(
     return;
   }
 
+  // prevent spoofing of userId by checking against matching user's socket id
+  if (incomingUserId) {
+    const incomingUser = await getUser(incomingUserId);
+    if (incomingUser?.id && incomingUser?.id !== socket.id) {
+      assignedUserId = undefined;
+    }
+  }
+
+  // Retrieve or setup new user
+  const existingUserId = assignedUserId ?? session?.user?.userId;
+  const isNew = !assignedUserId && !existingUserId && !session?.user?.username;
+  const userId = existingUserId ?? generateId();
+  const existingUser = await getUser(userId);
+  const username =
+    existingUser?.username ??
+    session.user?.username ??
+    incomingUsername ??
+    generateAnonName();
+
+  // Stuff some important data into the socket
+  socket.data.username = username;
+  socket.data.userId = userId;
+  socket.data.roomId = roomId;
+
+  // Save some user details to the session
+  socket.request.session.user = {
+    userId,
+    username,
+    id: socket.id,
+  };
+  socket.request.session.save();
+
+  // Join the room
+  socket.join(getRoomPath(roomId));
+
+  // Throw an error if the room is password protected and the password is incorrect
   if (!passwordMatched(room, password, userId)) {
     socket.emit("event", {
       type: "UNAUTHORIZED",
@@ -160,9 +162,27 @@ export async function login(
     return;
   }
 
+  // Get room-specific user properties
+  const users = await getRoomUsers(roomId);
+  const isDeputyDj = room?.deputizeOnJoin ?? (await isDj(roomId, userId));
+  const isAdmin = room?.creator === socket.data.userId;
+
+  // Create a new user object
+  const newUser = {
+    username,
+    userId,
+    id: socket.id,
+    isDj: false,
+    isDeputyDj,
+    status: "participating" as const,
+    connectedAt: new Date().toISOString(),
+  };
+
   const newUsers = uniqBy([...users, newUser], (u) => u.userId);
+
+  // save data to redis
   await addOnlineUser(roomId, userId);
-  await persistUser(userId, newUser);
+  await saveUser(userId, newUser);
   if (room.deputizeOnJoin) {
     await addDj(roomId, userId);
   }
@@ -172,13 +192,10 @@ export async function login(
     await persistRoom(roomId);
   }
 
+  // Emit events
   pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
 
-  events.emit("USER_JOINED", {
-    user: newUser,
-    users: newUsers,
-  });
-
+  // Get initial data payload for user
   const messages = await getMessages(roomId, 0, 100);
   const playlist = await getRoomPlaylist(roomId);
   const meta = await getRoomCurrent(roomId);

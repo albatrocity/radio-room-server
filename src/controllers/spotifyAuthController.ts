@@ -5,7 +5,7 @@ import generateRandomString from "../lib/generateRandomString";
 import getSpotifyAuthTokens from "../operations/spotify/getSpotifyAuthTokens";
 import storeUserSpotifyTokens from "../operations/spotify/storeUserSpotifyTokens";
 import { makeSpotifyApi } from "../lib/spotifyApi";
-import { persistUser, removeUserRoomsSpotifyError } from "../operations/data";
+import { saveUser, removeUserRoomsSpotifyError } from "../operations/data";
 
 const client_id = process.env.CLIENT_ID; // Your client id
 const redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
@@ -91,7 +91,7 @@ export async function callback(req: Request, res: Response) {
       };
 
       // save user to Redis
-      await persistUser(userId, userAttributes);
+      await saveUser(userId, userAttributes);
 
       await storeUserSpotifyTokens({
         access_token,
