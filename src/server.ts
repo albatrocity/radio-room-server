@@ -54,7 +54,11 @@ const httpServer = express()
   .use(express.static(__dirname + "/public"))
   .use(
     cors({
-      origin: ["http://localhost:8000", "https://listen.show"],
+      origin: [
+        "http://localhost:8000",
+        "https://listen.show",
+        "https://www.listen.show",
+      ],
       preflightContinue: true,
       credentials: true,
     })
