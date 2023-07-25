@@ -113,13 +113,13 @@ export async function login(
     return;
   }
 
-  // prevent spoofing of userId by checking against matching user's socket id
-  if (incomingUserId) {
-    const incomingUser = await getUser(incomingUserId);
-    if (incomingUser?.id && incomingUser?.id !== socket.id) {
-      assignedUserId = undefined;
-    }
-  }
+  // // prevent spoofing of userId by checking against matching user's socket id
+  // if (incomingUserId) {
+  //   const incomingUser = await getUser(incomingUserId);
+  //   if (incomingUser?.id && incomingUser?.id !== socket.id) {
+  //     assignedUserId = undefined;
+  //   }
+  // }
 
   // Retrieve or setup new user
   const existingUserId = assignedUserId ?? session?.user?.userId;
@@ -138,12 +138,12 @@ export async function login(
   socket.data.roomId = roomId;
 
   // Save some user details to the session
-  socket.request.session.user = {
+  session.user = {
     userId,
     username,
     id: socket.id,
   };
-  socket.request.session.save();
+  session.save();
 
   // Join the room
   socket.join(getRoomPath(roomId));
