@@ -25,7 +25,6 @@ import djController from "./controllers/djController";
 import messageController from "./controllers/messageController";
 import { clearRoomOnlineUsers } from "./operations/data";
 import getStation from "./operations/getStation";
-import { SEVEN_DAYS } from "./lib/constants";
 
 declare module "express-session" {
   interface Session {
@@ -44,9 +43,8 @@ const sessionMiddleware = session({
   saveUninitialized: false, // recommended: only save session when data exists
   proxy: true,
   cookie: {
-    domain: process.env.NODE_ENV === "production" ? "listen.show" : "localhost",
-    maxAge: SEVEN_DAYS,
-    sameSite: "lax",
+    maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
+    sameSite: "none",
     secure: process.env.NODE_ENV === "production",
     httpOnly: false,
   },
