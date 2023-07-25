@@ -46,7 +46,7 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
+    httpOnly: false,
     domain:
       process.env.NODE_ENV === "production" ? ".listen.show" : "localhost",
     path: "/",
