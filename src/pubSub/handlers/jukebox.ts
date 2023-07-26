@@ -6,7 +6,7 @@ import {
 import { pubClient, subClient } from "../../lib/redisClients";
 import getRoomPath from "../../lib/getRoomPath";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
-import { makeJukeboxCurrentPayload } from "../../operations/data";
+import { findRoom, makeJukeboxCurrentPayload } from "../../operations/data";
 import { PlaylistTrack } from "../../types/PlaylistTrack";
 import { PubSubHandlerArgs } from "../../types/PubSub";
 import { RoomMeta } from "../../types/Room";
@@ -32,11 +32,14 @@ async function handleNowPlaying({ io, message, channel }: PubSubHandlerArgs) {
   if (!nowPlaying) {
     return;
   }
-  const msg = systemMessage(
-    `Now playing: ${nowPlaying.name} by ${nowPlaying.artists[0].name}`,
-    "success"
-  );
-  sendMessage(io, roomId, msg);
+  const room = await findRoom(roomId);
+  if (room?.announceNowPlaying) {
+    const msg = systemMessage(
+      `Now playing: ${nowPlaying.name} by ${nowPlaying.artists[0].name}`,
+      "success"
+    );
+    sendMessage(io, roomId, msg);
+  }
   const payload = await makeJukeboxCurrentPayload(roomId, nowPlaying, meta);
   io.to(getRoomPath(roomId)).emit("event", payload);
 }

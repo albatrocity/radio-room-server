@@ -113,14 +113,6 @@ export async function login(
     return;
   }
 
-  // // prevent spoofing of userId by checking against matching user's socket id
-  // if (incomingUserId) {
-  //   const incomingUser = await getUser(incomingUserId);
-  //   if (incomingUser?.id && incomingUser?.id !== socket.id) {
-  //     assignedUserId = undefined;
-  //   }
-  // }
-
   // Retrieve or setup new user
   const existingUserId = assignedUserId ?? session?.user?.userId;
   const isNew = !assignedUserId && !existingUserId && !session?.user?.username;
@@ -227,6 +219,7 @@ export async function changeUsername(
   { userId, username }: { userId: User["userId"]; username: User["username"] }
 ) {
   const user = await getUser(userId);
+  const room = await findRoom(socket.data.roomId);
   const oldUsername = user?.username;
 
   if (user) {
@@ -237,21 +230,25 @@ export async function changeUsername(
     );
 
     socket.request.session.user = newUser;
-    await socket.request.session.save();
+    socket.request.session.save();
 
-    const content = `${oldUsername} transformed into ${username}`;
     pubUserJoined({ io }, socket.data.roomId, {
       users: newUsers,
       user: newUser,
     });
-    sendMessage(
-      io,
-      socket.data.roomId,
-      systemMessage(content, {
-        oldUsername,
-        userId,
-      })
-    );
+
+    // send system message of username change if setting is enabled
+    if (room?.announceUsernameChanges) {
+      const content = `${oldUsername} transformed into ${username}`;
+      sendMessage(
+        io,
+        socket.data.roomId,
+        systemMessage(content, {
+          oldUsername,
+          userId,
+        })
+      );
+    }
   }
 }
 

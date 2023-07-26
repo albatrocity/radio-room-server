@@ -82,8 +82,11 @@ describe("create", () => {
       id: "roomId",
       password: null,
       radioUrl: undefined,
+      radioProtocol: undefined,
       title: "Green Room",
       type: "jukebox",
+      announceNowPlaying: true,
+      announceUsernameChanges: true,
     });
   });
 });

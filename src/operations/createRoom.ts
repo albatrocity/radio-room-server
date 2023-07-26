@@ -33,6 +33,8 @@ export function withDefaults(
     deputizeOnJoin: false,
     artwork: undefined,
     radioUrl: undefined,
+    announceNowPlaying: true,
+    announceUsernameChanges: true,
     ...roomDetails,
   };
 }

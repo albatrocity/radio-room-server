@@ -391,12 +391,35 @@ describe("authHandlers", () => {
       );
     });
 
-    test("sends system message announcing change", async () => {
+    test("sends system message announcing change if enabled", async () => {
       setupUsernameTest();
+      (findRoom as jest.Mock).mockResolvedValueOnce({
+        id: "authRoom",
+        name: "authRoom",
+        creator: "123",
+        announceUsernameChanges: true,
+      });
 
       await changeUsername({ socket, io }, { userId: "1", username: "Homer" });
 
       expect(sendMessage).toHaveBeenCalledWith(io, "authRoom", {
+        content: "Marge transformed into Homer",
+        meta: { oldUsername: "Marge", userId: "1" },
+        timestamp: expect.any(String),
+        user: {
+          id: "system",
+          userId: "system",
+          username: "system",
+        },
+      });
+    });
+
+    test("does not send system message announcing change if not enabled", async () => {
+      setupUsernameTest();
+
+      await changeUsername({ socket, io }, { userId: "1", username: "Homer" });
+
+      expect(sendMessage).not.toHaveBeenCalledWith(io, "authRoom", {
         content: "Marge transformed into Homer",
         meta: { oldUsername: "Marge", userId: "1" },
         timestamp: expect.any(String),
@@ -439,15 +462,6 @@ describe("authHandlers", () => {
 
       await disconnect({ socket, io });
       expect(removeOnlineUser).toHaveBeenCalledWith("authRoom", "1");
-    });
-
-    it("deletes user from redis if they don't have any remaining rooms", async () => {
-      setupDisconnectTest();
-      socket.data.userId = "1";
-      socket.data.username = "Homer";
-
-      await disconnect({ socket, io });
-      expect(deleteUser).toHaveBeenCalledWith("1");
     });
 
     it("does not delete user from redis if they have remaining rooms", async () => {

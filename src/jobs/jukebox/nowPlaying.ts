@@ -1,24 +1,11 @@
 import { getSpotifyApiForUser } from "../../operations/spotify/getSpotifyApi";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import {
-  PUBSUB_ROOM_NOW_PLAYING_FETCHED,
-  PUBSUB_PLAYLIST_ADDED,
-  PUBSUB_PLAYLIST_UPDATED,
   PUBSUB_SPOTIFY_AUTH_ERROR,
   PUBSUB_SPOTIFY_RATE_LIMIT_ERROR,
 } from "../../lib/constants";
-import {
-  addTrackToRoomPlaylist,
-  getQueue,
-  getRoomCurrent,
-  removeFromQueue,
-  setRoomCurrent,
-} from "../../operations/data";
 import { pubClient } from "../../lib/redisClients";
-import { PlaylistTrack } from "../../types/PlaylistTrack";
 import { SpotifyError } from "../../types/SpotifyApi";
-import { RoomMeta } from "../../types/Room";
-import spotifyTrackToPlaylistTrack from "../../lib/spotifyTrackToPlaylistTrack";
 import handleRoomNowPlayingData from "../../operations/room/handleRoomNowPlayingData";
 
 export async function communicateNowPlaying(roomId: string) {
