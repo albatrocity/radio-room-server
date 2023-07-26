@@ -78,7 +78,7 @@ export async function callback(req: Request, res: Response) {
       });
       const me = await spotify.getMe();
       const userId = me.body.id;
-      const username = me.body.display_name;
+      const username = req.session.user?.username ?? me.body.display_name;
 
       req.session.user = { userId, username };
 
