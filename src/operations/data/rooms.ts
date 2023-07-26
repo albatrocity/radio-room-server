@@ -195,6 +195,7 @@ export function parseRoom(room: StoredRoom): Room {
     fetchMeta: room.fetchMeta === "true",
     enableSpotifyLogin: room.enableSpotifyLogin === "true",
     deputizeOnJoin: room.deputizeOnJoin === "true",
+    persistent: room.persistent === "true",
     announceNowPlaying: room.announceNowPlaying === "true",
     announceUsernameChanges: room.announceUsernameChanges === "true",
     passwordRequired: !isNil(room.password),

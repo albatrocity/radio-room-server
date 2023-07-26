@@ -28,6 +28,7 @@ export type Room = {
   lastRefreshedAt: string;
   announceNowPlaying?: boolean;
   announceUsernameChanges?: boolean;
+  persistent?: boolean;
 };
 
 type Bool = "true" | "false";
@@ -41,12 +42,14 @@ export interface StoredRoom
     | "radioError"
     | "announceNowPlaying"
     | "announceUsernameChanges"
+    | "persistent"
   > {
   fetchMeta: Bool;
   enableSpotifyLogin: Bool;
   deputizeOnJoin: Bool;
   announceNowPlaying?: Bool;
   announceUsernameChanges?: Bool;
+  persistent?: Bool;
   spotifyError?: string;
   radioError?: string;
 }

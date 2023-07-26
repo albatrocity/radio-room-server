@@ -20,8 +20,9 @@ export async function cleanupRoom(roomId: string) {
 
   const onlineIds = await getRoomOnlineUserIds(roomId);
 
-  // If the room creator is not online, and the room has no ttl, set one
-  if (!onlineIds.includes(room.creator)) {
+  // If the room creator is not online, the room is not persistent,
+  // and the room has no ttl: set one
+  if (!onlineIds.includes(room.creator) && !room.persistent) {
     const ttl = await getTtl(`room:${roomId}:details`);
     if (ttl === -1) {
       await expireRoomIn(roomId, ROOM_EXPIRE_TIME);
