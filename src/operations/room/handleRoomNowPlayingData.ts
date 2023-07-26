@@ -13,6 +13,7 @@ import { SpotifyError } from "../../types/SpotifyApi";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
 import {
   addTrackToRoomPlaylist,
+  clearRoomCurrent,
   getQueue,
   getRoomCurrent,
   removeFromQueue,
@@ -25,17 +26,21 @@ export default async function handleRoomNowPlayingData(
 ) {
   // Check currently playing track in the room
   const current = await getRoomCurrent(roomId);
+
+  // If there is no currently playing track, clear the current hash and publish
+  if (!nowPlaying) {
+    const clearedCurrent = await clearRoomCurrent(roomId);
+    await pubSubNowPlaying(roomId, nowPlaying, clearedCurrent ?? {});
+    return null;
+  }
+
   await setRoomCurrent(roomId, {
     ...nowPlaying,
     lastUpdatedAt: Date.now().toString(),
   });
   const updatedCurrent = await getRoomCurrent(roomId);
 
-  // If there is no currently playing track, or the currently playing track is different from the one we just fetched, publish the new track data
-  if (!nowPlaying?.uri) {
-    await pubSubNowPlaying(roomId, nowPlaying, updatedCurrent);
-    return;
-  }
+  // If the currently playing track is the same as the one we just fetched, return early
   if (current?.release?.uri === nowPlaying?.uri) {
     return null;
   }

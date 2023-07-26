@@ -29,19 +29,18 @@ async function handleNowPlaying({ io, message, channel }: PubSubHandlerArgs) {
     meta,
   }: { nowPlaying: SpotifyTrack; roomId: string; meta: RoomMeta } =
     JSON.parse(message);
-  if (!nowPlaying) {
-    return;
-  }
+  const payload = await makeJukeboxCurrentPayload(roomId, nowPlaying, meta);
+  io.to(getRoomPath(roomId)).emit("event", payload);
+
   const room = await findRoom(roomId);
-  if (room?.announceNowPlaying) {
+
+  if (room?.announceNowPlaying && nowPlaying) {
     const msg = systemMessage(
       `Now playing: ${nowPlaying.name} by ${nowPlaying.artists[0].name}`,
       "success"
     );
     sendMessage(io, roomId, msg);
   }
-  const payload = await makeJukeboxCurrentPayload(roomId, nowPlaying, meta);
-  io.to(getRoomPath(roomId)).emit("event", payload);
 }
 
 async function handlePlaylistAdded({ io, message }: PubSubHandlerArgs) {

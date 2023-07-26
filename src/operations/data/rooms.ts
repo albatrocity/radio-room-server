@@ -123,6 +123,30 @@ export async function setRoomCurrent(roomId: string, meta: any) {
   }
 }
 
+export async function clearRoomCurrent(roomId: string) {
+  const roomCurrentKey = `room:${roomId}:current`;
+  try {
+    await pubClient.hDel(roomCurrentKey, [
+      "album",
+      "dj",
+      "release",
+      "artwork",
+      "title",
+      "bitrate",
+      "track",
+      "artist",
+      "release",
+    ]);
+
+    const current = await getRoomCurrent(roomId);
+    return current;
+  } catch (e) {
+    console.error(e);
+    console.error("Error from data/rooms/clearRoomCurrent", roomId);
+    return null;
+  }
+}
+
 export async function getRoomCurrent(roomId: string) {
   const roomCurrentKey = `room:${roomId}:current`;
   const result = await pubClient.hGetAll(roomCurrentKey);
