@@ -21,11 +21,15 @@ import {
   persistRoom,
   addDj,
   disconnectFromSpotify,
+  getUserRooms,
+  expireUserIn,
+  persistUser,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
 import { Room } from "../types/Room";
 import generateId from "../lib/generateId";
 import generateAnonName from "../lib/generateAnonName";
+import { THREE_HOURS } from "../lib/constants";
 
 function passwordMatched(
   room: Room | null,
@@ -182,6 +186,9 @@ export async function login(
     await persistRoom(roomId);
   }
 
+  // remove expiration of user keys
+  await persistUser(userId);
+
   // Emit events
   pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
 
@@ -257,6 +264,12 @@ export async function disconnect({ socket, io }: HandlerConnections) {
   socket.leave(getRoomPath(socket.data.roomId));
 
   const users = await getRoomUsers(socket.data.roomId);
+  const createdRooms = await getUserRooms(socket.data.userId);
+
+  if (createdRooms.length === 0) {
+    expireUserIn(socket.data.userId, THREE_HOURS);
+  }
+
   socket.broadcast.to(getRoomPath(socket.data.roomId)).emit("event", {
     type: "USER_LEFT",
     data: {

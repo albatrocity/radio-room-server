@@ -150,3 +150,13 @@ export async function disconnectFromSpotify(userId: string) {
     JSON.stringify({ userId, isAuthenticated: error ? true : false })
   );
 }
+
+export async function expireUserIn(userId: string, ms: number) {
+  await pubClient.pExpire(`user:${userId}`, ms);
+  await pubClient.pExpire(`user:${userId}:rooms`, ms);
+}
+
+export async function persistUser(userId: string) {
+  await pubClient.persist(`user:${userId}`);
+  await pubClient.persist(`user:${userId}:rooms`);
+}
