@@ -9,6 +9,7 @@ import {
   getUserSpotifyAuth,
   submitPassword,
   logoutSpotifyAuth,
+  nukeUser,
 } from "../handlers/authHandlers";
 import { Request, Response } from "express";
 import { disconnectFromSpotify, getUser } from "../operations/data";
@@ -56,6 +57,9 @@ export default function authController(socket: Socket, io: Server) {
   socket.on("logout spotify", (args: { userId?: string } = {}) => {
     const options = args ? { userId: args.userId } : { userId: "app" };
     logoutSpotifyAuth({ socket, io }, options);
+  });
+  socket.on("nuke user", (args: { userId?: string } = {}) => {
+    nukeUser({ socket, io });
   });
 
   socket.on("disconnect", () => disconnect({ socket, io }));

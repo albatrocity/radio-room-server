@@ -24,6 +24,8 @@ import {
   getUserRooms,
   expireUserIn,
   persistUser,
+  deleteUser,
+  nukeUserRooms,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
 import { Room } from "../types/Room";
@@ -301,4 +303,13 @@ export async function logoutSpotifyAuth(
   { userId }: { userId?: string } = {}
 ) {
   disconnectFromSpotify(userId ?? socket.data.userId);
+}
+
+export async function nukeUser({ socket, io }: HandlerConnections) {
+  const userId = socket.data.userId ?? socket.request.session.user?.userId;
+  socket.emit("SESSION_ENDED");
+  await disconnectFromSpotify(userId);
+  await nukeUserRooms(userId);
+  await deleteUser(userId);
+  socket.request.session.destroy((err) => {});
 }
