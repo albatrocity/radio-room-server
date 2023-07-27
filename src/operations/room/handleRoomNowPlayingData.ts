@@ -30,7 +30,9 @@ export default async function handleRoomNowPlayingData(
   // If there is no currently playing track, clear the current hash and publish
   if (!nowPlaying) {
     const clearedCurrent = await clearRoomCurrent(roomId);
-    await pubSubNowPlaying(roomId, nowPlaying, clearedCurrent ?? {});
+    await pubSubNowPlaying(roomId, nowPlaying, {
+      lastUpdatedAt: Date.now().toString(),
+    });
     return null;
   }
 
