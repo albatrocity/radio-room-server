@@ -14,6 +14,7 @@ import handleRoomNowPlayingData, {
 } from "../../operations/room/handleRoomNowPlayingData";
 import { findRoom, setRoomCurrent } from "../../operations/data";
 import { writeJsonToHset } from "../../operations/data/utils";
+import makeNowPlayingFromStationMeta from "../../lib/makeNowPlayingFromStationMeta";
 
 export async function communicateNowPlaying(roomId: string) {
   const room = await findRoom(roomId);
@@ -21,13 +22,7 @@ export async function communicateNowPlaying(roomId: string) {
     return;
   }
   try {
-    if (
-      !room ||
-      !room.fetchMeta ||
-      room.spotifyError ||
-      room.type !== "radio" ||
-      !room.radioUrl
-    ) {
+    if (!room || room.spotifyError || room.type !== "radio" || !room.radioUrl) {
       return;
     }
     if (room.creator) {
@@ -46,16 +41,15 @@ export async function communicateNowPlaying(roomId: string) {
         }
       }
 
-      const nowPlaying = (await fetchNowPlaying(
-        room.creator,
-        stationMeta.title
-      )) as SpotifyTrack;
+      const nowPlaying = room.fetchMeta
+        ? await fetchNowPlaying(room.creator, stationMeta.title)
+        : await makeNowPlayingFromStationMeta(stationMeta);
 
       await writeJsonToHset(roomCurrentKey, {
         stationMeta: JSON.stringify(stationMeta),
       });
 
-      await handleRoomNowPlayingData(roomId, nowPlaying);
+      await handleRoomNowPlayingData(roomId, nowPlaying, stationMeta);
     }
     return;
   } catch (e: any) {

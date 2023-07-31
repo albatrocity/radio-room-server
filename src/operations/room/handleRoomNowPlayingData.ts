@@ -7,13 +7,17 @@ import {
 } from "../../lib/constants";
 import { pubClient } from "../../lib/redisClients";
 import spotifyTrackToPlaylistTrack from "../../lib/spotifyTrackToPlaylistTrack";
+import stationMetaToPlaylistTrack from "../../lib/stationMetaToPlaylistTrack";
 import { PlaylistTrack } from "../../types/PlaylistTrack";
 import { RoomMeta } from "../../types/Room";
+import { RoomNowPlaying } from "../../types/RoomNowPlaying";
 import { SpotifyError } from "../../types/SpotifyApi";
 import { SpotifyTrack } from "../../types/SpotifyTrack";
+import { Station } from "../../types/Station";
 import {
   addTrackToRoomPlaylist,
   clearRoomCurrent,
+  findRoom,
   getQueue,
   getRoomCurrent,
   removeFromQueue,
@@ -22,28 +26,32 @@ import {
 
 export default async function handleRoomNowPlayingData(
   roomId: string,
-  nowPlaying?: SpotifyTrack
+  nowPlaying?: RoomNowPlaying,
+  stationMeta?: Station
 ) {
   // Check currently playing track in the room
+  const room = await findRoom(roomId);
   const current = await getRoomCurrent(roomId);
 
-  // If there is no currently playing track, clear the current hash and publish
-  if (!nowPlaying) {
-    const clearedCurrent = await clearRoomCurrent(roomId);
+  // If there is no currently playing track and the room is set to fetch data from Spotify, clear the current hash and publish
+  if (!nowPlaying && room?.fetchMeta) {
+    await clearRoomCurrent(roomId);
     await pubSubNowPlaying(roomId, nowPlaying, {
+      title: stationMeta?.title,
       lastUpdatedAt: Date.now().toString(),
     });
     return null;
   }
 
   await setRoomCurrent(roomId, {
-    ...nowPlaying,
+    // ...current,
+    release: nowPlaying,
     lastUpdatedAt: Date.now().toString(),
   });
   const updatedCurrent = await getRoomCurrent(roomId);
 
   // If the currently playing track is the same as the one we just fetched, return early
-  if (current?.release?.uri === nowPlaying?.uri) {
+  if (current?.release?.uri === nowPlaying?.uri && room?.fetchMeta) {
     return null;
   }
 
@@ -51,9 +59,12 @@ export default async function handleRoomNowPlayingData(
 
   // Add the track to the room playlist
   const queue = await getQueue(roomId);
-  const inQueue = (queue ?? []).find((track) => track.uri === nowPlaying.uri);
+  const inQueue =
+    nowPlaying && (queue ?? []).find((track) => track.uri === nowPlaying.uri);
 
-  const playlistTrack = spotifyTrackToPlaylistTrack(nowPlaying, inQueue);
+  const playlistTrack = nowPlaying
+    ? spotifyTrackToPlaylistTrack(nowPlaying, inQueue)
+    : stationMetaToPlaylistTrack(updatedCurrent);
 
   await addTrackToRoomPlaylist(roomId, playlistTrack);
   await pubPlaylistTrackAdded(roomId, playlistTrack);
@@ -64,7 +75,7 @@ export default async function handleRoomNowPlayingData(
 
 async function pubSubNowPlaying(
   roomId: string,
-  nowPlaying: SpotifyTrack | undefined,
+  nowPlaying: RoomNowPlaying | undefined,
   meta: RoomMeta
 ) {
   pubClient.publish(
@@ -73,7 +84,10 @@ async function pubSubNowPlaying(
   );
 }
 
-async function pubPlaylistTrackAdded(roomId: string, track: PlaylistTrack) {
+async function pubPlaylistTrackAdded(
+  roomId: string,
+  track: Partial<PlaylistTrack>
+) {
   pubClient.publish(PUBSUB_PLAYLIST_ADDED, JSON.stringify({ roomId, track }));
 }
 

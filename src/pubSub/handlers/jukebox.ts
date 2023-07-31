@@ -36,7 +36,9 @@ async function handleNowPlaying({ io, message, channel }: PubSubHandlerArgs) {
 
   if (room?.announceNowPlaying && nowPlaying) {
     const msg = systemMessage(
-      `Now playing: ${nowPlaying.name} by ${nowPlaying.artists[0].name}`,
+      `Now playing: ${nowPlaying.name} ${
+        nowPlaying.artists?.[0]?.name ? `by ${nowPlaying.artists[0].name}` : ""
+      }`,
       "success"
     );
     sendMessage(io, roomId, msg);

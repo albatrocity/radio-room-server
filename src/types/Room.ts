@@ -2,6 +2,7 @@ import { SpotifyTrack } from "./SpotifyTrack";
 import { User } from "./User";
 import { Station } from "./Station";
 import { StationProtocol } from "./StationProtocol";
+import { RoomNowPlaying } from "./RoomNowPlaying";
 
 export type RoomError = {
   status: number;
@@ -55,7 +56,7 @@ export interface StoredRoom
 }
 
 export type RoomMeta = {
-  release?: SpotifyTrack;
+  release?: RoomNowPlaying;
   track?: string;
   artist?: string;
   album?: string;

@@ -5,9 +5,18 @@ import { User } from "../types/User";
 
 import getRoomPath from "../lib/getRoomPath";
 import { Room } from "../types/Room";
-import { clearQueue, findRoom, getUser, saveRoom } from "../operations/data";
+import {
+  clearQueue,
+  clearRoomCurrent,
+  findRoom,
+  getUser,
+  saveRoom,
+  clearRoomPlaylist,
+} from "../operations/data";
 import { Socket } from "socket.io";
 import { omit } from "remeda";
+import handleRoomNowPlayingData from "../operations/room/handleRoomNowPlayingData";
+import makeNowPlayingFromStationMeta from "../lib/makeNowPlayingFromStationMeta";
 
 async function getAuthedRoom(socket: Socket) {
   const room = await findRoom(socket.data.roomId);
@@ -88,6 +97,17 @@ export async function setRoomSettings(
     ...omit(values, ["spotifyError", "radioError"]),
   };
 
+  const turningOffFetch = !newSettings.fetchMeta && room.fetchMeta;
+  const turningOnFetch = newSettings.fetchMeta && !room.fetchMeta;
+
+  if (turningOffFetch || turningOnFetch) {
+    const current = await clearRoomCurrent(room.id);
+    const nowPlaying = await makeNowPlayingFromStationMeta(
+      current?.stationMeta
+    );
+    await handleRoomNowPlayingData(room.id, nowPlaying, current?.stationMeta);
+  }
+
   await saveRoom(newSettings);
   const updatedRoom = await findRoom(socket.data.roomId);
 
@@ -103,7 +123,7 @@ export async function clearPlaylist({ socket, io }: HandlerConnections) {
     return;
   }
 
-  await clearPlaylist(socket.data.roomId);
+  await clearRoomPlaylist(socket.data.roomId);
   await clearQueue(socket.data.roomId);
 
   io.to(getRoomPath(socket.data.roomId)).emit("event", {

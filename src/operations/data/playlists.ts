@@ -3,12 +3,12 @@ import { PlaylistTrack } from "../../types/PlaylistTrack";
 
 export async function addTrackToRoomPlaylist(
   roomId: string,
-  track: PlaylistTrack
+  track: Partial<PlaylistTrack>
 ) {
   try {
     const trackString = JSON.stringify(track);
     const key = `room:${roomId}:playlist`;
-    const score = track.timestamp;
+    const score = track.timestamp ?? Date.now();
     return pubClient.zAdd(key, [{ score, value: trackString }]);
   } catch (e) {
     console.log(

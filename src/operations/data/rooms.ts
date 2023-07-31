@@ -1,4 +1,4 @@
-import { isEmpty, isNil } from "remeda";
+import { difference, isEmpty, isNil } from "remeda";
 
 import { pubClient } from "../../lib/redisClients";
 import { Room, RoomMeta, StoredRoom, StoredRoomMeta } from "../../types/Room";
@@ -7,6 +7,7 @@ import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { getQueue } from "./djs";
 import { User } from "../../types/User";
 import { PUBSUB_ROOM_DELETED } from "../../lib/constants";
+import { RoomNowPlaying } from "../../types/RoomNowPlaying";
 
 async function addRoomToRoomList(roomId: Room["id"]) {
   await pubClient.sAdd("rooms", roomId);
@@ -101,9 +102,9 @@ export async function getRoomFetching(roomId: string) {
   }
 }
 
-export async function setRoomCurrent(roomId: string, meta: any) {
+export async function setRoomCurrent(roomId: string, meta: RoomMeta) {
   const roomCurrentKey = `room:${roomId}:current`;
-  const payload = await makeJukeboxCurrentPayload(roomId, meta);
+  const payload = await makeJukeboxCurrentPayload(roomId, meta.release, meta);
   const parsedMeta = payload.data.meta;
   try {
     await pubClient.hDel(roomCurrentKey, ["dj", "release", "artwork"]);
@@ -123,20 +124,29 @@ export async function setRoomCurrent(roomId: string, meta: any) {
   }
 }
 
-export async function clearRoomCurrent(roomId: string) {
+export async function clearRoomCurrent(
+  roomId: string,
+  omitKeys?: (keyof RoomMeta)[]
+) {
   const roomCurrentKey = `room:${roomId}:current`;
   try {
-    await pubClient.hDel(roomCurrentKey, [
-      "album",
-      "dj",
-      "release",
-      "artwork",
-      "title",
-      "bitrate",
-      "track",
-      "artist",
-      "release",
-    ]);
+    await pubClient.hDel(
+      roomCurrentKey,
+      difference(
+        [
+          "album",
+          "dj",
+          "release",
+          "artwork",
+          "title",
+          "bitrate",
+          "track",
+          "artist",
+          "lastUpdatedAt",
+        ],
+        omitKeys ?? []
+      )
+    );
 
     const current = await getRoomCurrent(roomId);
     return current;
@@ -175,7 +185,7 @@ export async function getRoomCurrent(roomId: string) {
 
 export async function makeJukeboxCurrentPayload(
   roomId: string,
-  nowPlaying: SpotifyTrack,
+  nowPlaying: RoomNowPlaying | undefined,
   meta: RoomMeta = {}
 ) {
   const room = await findRoom(roomId);
@@ -188,12 +198,13 @@ export async function makeJukeboxCurrentPayload(
     data: {
       meta: {
         ...meta,
-        title: nowPlaying?.name,
+        title: nowPlaying?.name ?? meta.title,
         bitrate: 360,
-        artist: nowPlaying?.artists?.map((x) => x.name).join(", "),
-        album: nowPlaying?.album?.name,
-        track: nowPlaying?.name,
-        release: nowPlaying,
+        artist:
+          nowPlaying?.artists?.map((x) => x.name).join(", ") ?? meta.artist,
+        album: nowPlaying?.album?.name ?? meta.album,
+        track: nowPlaying?.name ?? meta.track,
+        release: nowPlaying ?? meta.release,
         artwork,
         dj: queuedTrack?.userId
           ? { userId: queuedTrack.userId, username: queuedTrack.username }
