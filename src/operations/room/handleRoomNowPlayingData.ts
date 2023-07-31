@@ -27,7 +27,8 @@ import {
 export default async function handleRoomNowPlayingData(
   roomId: string,
   nowPlaying?: RoomNowPlaying,
-  stationMeta?: Station
+  stationMeta?: Station,
+  forcePublish = false
 ) {
   // Check currently playing track in the room
   const room = await findRoom(roomId);
@@ -51,7 +52,7 @@ export default async function handleRoomNowPlayingData(
   const updatedCurrent = await getRoomCurrent(roomId);
 
   // If the currently playing track is the same as the one we just fetched, return early
-  if (current?.release?.uri === nowPlaying?.uri && room?.fetchMeta) {
+  if (!forcePublish && current?.release?.uri === nowPlaying?.uri) {
     return null;
   }
 

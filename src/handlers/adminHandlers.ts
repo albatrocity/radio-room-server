@@ -105,7 +105,12 @@ export async function setRoomSettings(
     const nowPlaying = await makeNowPlayingFromStationMeta(
       current?.stationMeta
     );
-    await handleRoomNowPlayingData(room.id, nowPlaying, current?.stationMeta);
+    await handleRoomNowPlayingData(
+      room.id,
+      nowPlaying,
+      current?.stationMeta,
+      true
+    );
   }
 
   await saveRoom(newSettings);
