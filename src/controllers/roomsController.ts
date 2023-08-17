@@ -74,10 +74,26 @@ export async function findRooms(req: Request, res: Response) {
 }
 
 export async function deleteRoom(req: Request, res: Response) {
-  if (req.params.id) {
-    await deleteRoomData(req.params.id);
+  if (!req.params.id) {
+    res.statusCode = 400;
+    return res.send({
+      success: false,
+      error: "No room id provided",
+    });
   }
-  res.send({
+
+  const room = await findRoomData(req.params.id);
+
+  if (!room || room.creator !== req.session.user?.userId) {
+    res.statusCode = 401;
+    return res.send({
+      success: false,
+      error: "Unauthorized",
+    });
+  }
+
+  await deleteRoomData(req.params.id);
+  return res.send({
     success: true,
     roomId: req.params.id,
   });

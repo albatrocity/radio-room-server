@@ -309,5 +309,6 @@ export async function clearRoomOnlineUsers(roomId: string) {
 
 export async function nukeUserRooms(userId: string) {
   const rooms = await getUserRooms(userId);
+  await pubClient.del(`user:${userId}:rooms`);
   await Promise.all(rooms.map((room) => deleteRoom(room.id)));
 }
