@@ -23,6 +23,7 @@ export function withDefaults(
     | "lastRefreshedAt"
     | "radioUrl"
     | "radioProtocol"
+    | "deputizeOnJoin"
   >
 ): Room {
   return {
@@ -30,11 +31,11 @@ export function withDefaults(
     extraInfo: undefined,
     password: null,
     enableSpotifyLogin: false,
-    deputizeOnJoin: false,
     artwork: undefined,
     radioUrl: undefined,
     announceNowPlaying: true,
     announceUsernameChanges: true,
     ...roomDetails,
+    deputizeOnJoin: roomDetails.deputizeOnJoin || false,
   };
 }

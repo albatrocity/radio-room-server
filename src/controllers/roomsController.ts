@@ -15,7 +15,15 @@ import { getLatestRoomData, getRoomSettings } from "../handlers/roomHanders";
 import { RoomSnapshot } from "../types/Room";
 
 export async function create(req: Request, res: Response) {
-  const { title, type, radioUrl, challenge, userId, radioProtocol } = req.body;
+  const {
+    title,
+    type,
+    radioUrl,
+    challenge,
+    userId,
+    radioProtocol,
+    deputizeOnJoin,
+  } = req.body;
   const createdAt = Date.now().toString();
 
   try {
@@ -29,6 +37,7 @@ export async function create(req: Request, res: Response) {
       radioProtocol,
       id,
       createdAt,
+      deputizeOnJoin,
       lastRefreshedAt: createdAt,
     });
     await saveRoom(room);
