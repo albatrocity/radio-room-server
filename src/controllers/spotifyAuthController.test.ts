@@ -145,7 +145,7 @@ describe("callback", () => {
   });
 
   it("redirects to APP_URL after auth", async () => {
-    process.env.APP_URL = "https://www.listen.show";
+    process.env.APP_URL = "https://www.listeningroom.club";
 
     const request = httpMocks.createRequest<TestRequest>({
       method: "GET",
@@ -171,12 +171,12 @@ describe("callback", () => {
 
     await callback(request, response);
     expect(response._getRedirectUrl()).toBe(
-      "https://www.listen.show?toast=Spotify%20authentication%20successful&userId=1234&challenge=RANDOM_STRING"
+      "https://www.listeningroom.club?toast=Spotify%20authentication%20successful&userId=1234&challenge=RANDOM_STRING"
     );
   });
 
   it("sets session user", async () => {
-    process.env.APP_URL = "https://www.listen.show";
+    process.env.APP_URL = "https://www.listeningroom.club";
 
     const request = httpMocks.createRequest<TestRequest>({
       method: "GET",

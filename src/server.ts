@@ -47,7 +47,9 @@ const sessionMiddleware = session({
     secure: process.env.NODE_ENV === "production",
     httpOnly: false,
     domain:
-      process.env.NODE_ENV === "production" ? ".listen.show" : "localhost",
+      process.env.NODE_ENV === "production"
+        ? ".listeningroom.club"
+        : "localhost",
     path: "/",
   },
   secret: process.env.SESSION_SECRET ?? "secret",
@@ -62,6 +64,8 @@ const httpServer = express()
         "http://localhost:8000",
         "https://listen.show",
         "https://www.listen.show",
+        "https://listeningroom.club",
+        "https://www.listeningroom.club",
       ],
       preflightContinue: true,
       credentials: true,
