@@ -41,7 +41,7 @@ async function handleRoomDeleted({ io, message, channel }: PubSubHandlerArgs) {
 async function handlePlaybackStateChange({ io, message }: PubSubHandlerArgs) {
   const { isPlaying, roomId } = JSON.parse(message);
   const newMessage = systemMessage(
-    `Server playback has been ${isPlaying ? "resumed" : "paused"}`,
+    `Spotify playback has been ${isPlaying ? "resumed" : "paused"}`,
     {
       type: "alert",
     }
