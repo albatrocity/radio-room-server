@@ -41,12 +41,22 @@ function setup() {
 
   createLimitedTimeout(JUKEBOX_FETCH_INTERVAL, () => {
     console.log("jukebox jobs");
-    jukebox();
+    try {
+      jukebox();
+    } catch (e) {
+      console.log("error from jukebox jobs");
+      console.error(e);
+    }
   });
 
   createLimitedTimeout(RADIO_FETCH_INTERVAL, () => {
     console.log("radio jobs");
-    radio();
+    try {
+      radio();
+    } catch (e) {
+      console.log("error from radio jobs");
+      console.error(e);
+    }
   });
 
   setInterval(() => {
