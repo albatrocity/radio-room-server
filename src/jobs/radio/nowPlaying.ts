@@ -28,6 +28,8 @@ export async function communicateNowPlaying(roomId: string) {
     if (room.creator) {
       // Fetch station meta
       const stationMeta = await getStation(room.radioUrl, room.radioProtocol);
+      console.log("STATION META");
+      console.log(stationMeta);
       const roomCurrentKey = `room:${roomId}:current`;
 
       if (!stationMeta?.title) {
@@ -44,6 +46,9 @@ export async function communicateNowPlaying(roomId: string) {
       const nowPlaying = room.fetchMeta
         ? await fetchNowPlaying(room.creator, stationMeta.title)
         : await makeNowPlayingFromStationMeta(stationMeta);
+
+      console.log("radio now playing");
+      console.log(nowPlaying);
 
       await writeJsonToHset(roomCurrentKey, {
         stationMeta: JSON.stringify(stationMeta),
