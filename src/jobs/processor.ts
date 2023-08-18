@@ -31,8 +31,13 @@ function setup() {
   pubClient.connect();
   subClient.connect();
 
-  jukebox();
-  rooms();
+  try {
+    jukebox();
+    rooms();
+  } catch (e) {
+    console.log("error from initial jobs");
+    console.error(e);
+  }
 
   createLimitedTimeout(JUKEBOX_FETCH_INTERVAL, () => {
     console.log("jukebox jobs");
