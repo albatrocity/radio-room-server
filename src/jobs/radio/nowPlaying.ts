@@ -1,5 +1,4 @@
 import { getSpotifyApiForUser } from "../../operations/spotify/getSpotifyApi";
-import { SpotifyTrack } from "../../types/SpotifyTrack";
 import {
   ERROR_STATION_FETCH_FAILED,
   PUBSUB_RADIO_ERROR,
@@ -12,8 +11,7 @@ import handleRoomNowPlayingData, {
   pubRoomSettingsUpdated,
   pubSpotifyError,
 } from "../../operations/room/handleRoomNowPlayingData";
-import { findRoom, setRoomCurrent } from "../../operations/data";
-import { writeJsonToHset } from "../../operations/data/utils";
+import { findRoom } from "../../operations/data";
 import makeNowPlayingFromStationMeta from "../../lib/makeNowPlayingFromStationMeta";
 
 export async function communicateNowPlaying(roomId: string) {
@@ -36,9 +34,6 @@ export async function communicateNowPlaying(roomId: string) {
         room.radioMetaUrl,
         room.radioProtocol
       );
-      console.log("STATION META");
-      console.log(stationMeta);
-      const roomCurrentKey = `room:${roomId}:current`;
 
       if (!stationMeta?.title) {
         throw new Error(ERROR_STATION_FETCH_FAILED);
@@ -54,13 +49,6 @@ export async function communicateNowPlaying(roomId: string) {
       const nowPlaying = room.fetchMeta
         ? await fetchNowPlaying(room.creator, stationMeta.title)
         : await makeNowPlayingFromStationMeta(stationMeta);
-
-      console.log("radio now playing");
-      console.log(nowPlaying);
-
-      await writeJsonToHset(roomCurrentKey, {
-        stationMeta: JSON.stringify(stationMeta),
-      });
 
       await handleRoomNowPlayingData(roomId, nowPlaying, stationMeta);
     }

@@ -12,7 +12,6 @@ import { PlaylistTrack } from "../../types/PlaylistTrack";
 import { RoomMeta } from "../../types/Room";
 import { RoomNowPlaying } from "../../types/RoomNowPlaying";
 import { SpotifyError } from "../../types/SpotifyApi";
-import { SpotifyTrack } from "../../types/SpotifyTrack";
 import { Station } from "../../types/Station";
 import {
   addTrackToRoomPlaylist,
@@ -23,6 +22,7 @@ import {
   removeFromQueue,
   setRoomCurrent,
 } from "../data";
+import { writeJsonToHset } from "../data/utils";
 
 export default async function handleRoomNowPlayingData(
   roomId: string,
@@ -34,6 +34,10 @@ export default async function handleRoomNowPlayingData(
   const room = await findRoom(roomId);
   const current = await getRoomCurrent(roomId);
 
+  const isSameTrack = room?.fetchMeta
+    ? current?.release?.uri === nowPlaying?.uri
+    : current.stationMeta?.title === stationMeta?.title;
+
   // If there is no currently playing track and the room is set to fetch data from Spotify, clear the current hash and publish
   if (!nowPlaying && room?.fetchMeta) {
     await clearRoomCurrent(roomId);
@@ -44,15 +48,17 @@ export default async function handleRoomNowPlayingData(
     return null;
   }
 
+  await writeJsonToHset(`room:${roomId}:current`, {
+    stationMeta: JSON.stringify(stationMeta),
+  });
   await setRoomCurrent(roomId, {
-    // ...current,
     release: nowPlaying,
     lastUpdatedAt: Date.now().toString(),
   });
   const updatedCurrent = await getRoomCurrent(roomId);
 
   // If the currently playing track is the same as the one we just fetched, return early
-  if (!forcePublish && current?.release?.uri === nowPlaying?.uri) {
+  if (!forcePublish && isSameTrack) {
     return null;
   }
 
