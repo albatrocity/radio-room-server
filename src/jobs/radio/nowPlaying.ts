@@ -22,12 +22,20 @@ export async function communicateNowPlaying(roomId: string) {
     return;
   }
   try {
-    if (!room || room.spotifyError || room.type !== "radio" || !room.radioUrl) {
+    if (
+      !room ||
+      room.spotifyError ||
+      room.type !== "radio" ||
+      !room.radioMetaUrl
+    ) {
       return;
     }
     if (room.creator) {
       // Fetch station meta
-      const stationMeta = await getStation(room.radioUrl, room.radioProtocol);
+      const stationMeta = await getStation(
+        room.radioMetaUrl,
+        room.radioProtocol
+      );
       console.log("STATION META");
       console.log(stationMeta);
       const roomCurrentKey = `room:${roomId}:current`;

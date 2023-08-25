@@ -1,4 +1,3 @@
-import { SpotifyTrack } from "./SpotifyTrack";
 import { User } from "./User";
 import { Station } from "./Station";
 import { StationProtocol } from "./StationProtocol";
@@ -21,7 +20,8 @@ export type Room = {
   artwork?: string;
   enableSpotifyLogin: boolean;
   deputizeOnJoin: boolean;
-  radioUrl?: string;
+  radioMetaUrl?: string;
+  radioListenUrl?: string;
   radioProtocol?: StationProtocol;
   createdAt: string;
   spotifyError?: RoomError;

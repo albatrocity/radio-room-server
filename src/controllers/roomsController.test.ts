@@ -81,7 +81,7 @@ describe("create", () => {
       fetchMeta: true,
       id: "roomId",
       password: null,
-      radioUrl: undefined,
+      radioMetaUrl: undefined,
       radioProtocol: undefined,
       title: "Green Room",
       type: "jukebox",

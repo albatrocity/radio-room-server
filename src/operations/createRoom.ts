@@ -21,7 +21,7 @@ export function withDefaults(
     | "id"
     | "createdAt"
     | "lastRefreshedAt"
-    | "radioUrl"
+    | "radioMetaUrl"
     | "radioProtocol"
     | "deputizeOnJoin"
   >
@@ -32,7 +32,7 @@ export function withDefaults(
     password: null,
     enableSpotifyLogin: false,
     artwork: undefined,
-    radioUrl: undefined,
+    radioMetaUrl: undefined,
     announceNowPlaying: true,
     announceUsernameChanges: true,
     ...roomDetails,

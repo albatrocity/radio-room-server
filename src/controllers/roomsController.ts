@@ -18,7 +18,7 @@ export async function create(req: Request, res: Response) {
   const {
     title,
     type,
-    radioUrl,
+    radioMetaUrl,
     challenge,
     userId,
     radioProtocol,
@@ -33,7 +33,7 @@ export async function create(req: Request, res: Response) {
       title,
       creator: userId,
       type,
-      radioUrl,
+      radioMetaUrl,
       radioProtocol,
       id,
       createdAt,
