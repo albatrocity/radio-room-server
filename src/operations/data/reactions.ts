@@ -50,7 +50,7 @@ export async function removeReaction(
     const reactionSubjectKey = makeReactionSubjectKey(roomId, reaction.reactTo);
     await pubClient.zRem(reactionTypeKey, key);
     await pubClient.zRem(reactionSubjectKey, key);
-    return pubClient.del(key);
+    return pubClient.unlink(key);
   } catch (e) {
     console.log(
       "ERROR FROM data/reactions/removeReaction",

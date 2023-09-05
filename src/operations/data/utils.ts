@@ -96,7 +96,7 @@ export async function deleteMembersFromSet(
 ) {
   const members = await pubClient.sMembers(setKey);
   const dels = members.map(async (key) => {
-    return pubClient.del(`${recordPrefix}:${key}`);
+    return pubClient.unlink(`${recordPrefix}:${key}`);
   });
   await dels;
   return null;

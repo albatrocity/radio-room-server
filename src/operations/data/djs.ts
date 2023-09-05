@@ -56,7 +56,7 @@ export async function addToQueue(roomId: string, track: QueuedTrack) {
 
 export async function removeFromQueue(roomId: string, uri: QueuedTrack["uri"]) {
   await pubClient.sRem(`room:${roomId}:queue`, uri);
-  await pubClient.del(`room:${roomId}:queued_track:${uri}`);
+  await pubClient.unlink(`room:${roomId}:queued_track:${uri}`);
   return null;
 }
 
@@ -86,7 +86,7 @@ export async function setQueue(roomId: string, tracks: QueuedTrack[]) {
           return null;
         }
         await pubClient.sRem(`room:${roomId}:queue`, uri);
-        return pubClient.del(`room:${roomId}:queued_track:${uri}`);
+        return pubClient.unlink(`room:${roomId}:queued_track:${uri}`);
       })
     );
 
@@ -127,7 +127,7 @@ export async function clearQueue(roomId: string) {
       `room:${roomId}:queue`,
       `room:${roomId}:queued_track`
     );
-    await pubClient.del(`room:${roomId}:queue`);
+    await pubClient.unlink(`room:${roomId}:queue`);
     return [];
   } catch (e) {
     console.log("ERROR FROM data/djs/clearQueue", roomId);

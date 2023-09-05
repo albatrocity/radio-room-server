@@ -31,5 +31,5 @@ export async function storeUserChallenge({
 }
 
 export async function clearUserChallenge(userId: string) {
-  await pubClient.del(`challenge:${userId}`);
+  await pubClient.unlink(`challenge:${userId}`);
 }

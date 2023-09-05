@@ -59,7 +59,7 @@ export async function delRoomKey(
   key: keyof Room
 ) {
   try {
-    await pubClient.del(`room:${roomId}:${namespace}${key}`);
+    await pubClient.unlink(`room:${roomId}:${namespace}${key}`);
   } catch (e) {
     console.log("ERROR FROM data/rooms/delRoomKey", roomId, namespace, key);
     console.error(e);
@@ -267,7 +267,7 @@ export async function deleteRoom(roomId: string) {
   // Get all keys relating to room
   const keys = await getAllRoomDataKeys(roomId);
   // delete them
-  await Promise.all(keys.map((k) => pubClient.del(k)));
+  await Promise.all(keys.map((k) => pubClient.unlink(k)));
   // remove room from room list and user's room list
   await removeRoomFromRoomList(room.id);
   await removeRoomFromUserRoomList(room);
@@ -304,11 +304,11 @@ export async function getRoomOnlineUsers(roomId: string) {
   return users;
 }
 export async function clearRoomOnlineUsers(roomId: string) {
-  await pubClient.del(`room:${roomId}:online_users`);
+  await pubClient.unlink(`room:${roomId}:online_users`);
 }
 
 export async function nukeUserRooms(userId: string) {
   const rooms = await getUserRooms(userId);
-  await pubClient.del(`user:${userId}:rooms`);
+  await pubClient.unlink(`user:${userId}:rooms`);
   await Promise.all(rooms.map((room) => deleteRoom(room.id)));
 }

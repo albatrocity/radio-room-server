@@ -123,7 +123,7 @@ export async function getUser(userId: string) {
 
 export async function deleteUser(userId: string) {
   try {
-    return pubClient.del(`user:${userId}`);
+    return pubClient.unlink(`user:${userId}`);
   } catch (e) {
     console.log("ERROR FROM data/users/deleteUser", userId);
     console.error(e);

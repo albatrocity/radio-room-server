@@ -11,8 +11,8 @@ export default async function removeStoredUserSpotifyTokens(userId: string) {
 
   const client = await createClient();
   try {
-    await client.del(accessKey);
-    await client.del(refreshKey);
+    await client.unlink(accessKey);
+    await client.unlink(refreshKey);
     return {
       message: "Successfully removed user's Spotify tokens from Redis",
     };

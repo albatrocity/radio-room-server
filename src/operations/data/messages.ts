@@ -63,7 +63,7 @@ export async function clearMessages(roomId: string) {
   try {
     console.log("CLEARING MESSAGES", roomId);
     const roomKey = `room:${roomId}:messages`;
-    return pubClient.del(roomKey);
+    return pubClient.unlink(roomKey);
   } catch (e) {
     console.log("ERROR FROM data/messages/clearMessages", roomId);
     console.error(e);
