@@ -19,13 +19,20 @@ export default async function refreshSpotifyToken(userId: string = "app") {
       spotifyApi.setRefreshToken(refreshToken);
 
       const data = await spotifyApi.refreshAccessToken();
-      spotifyApi.setAccessToken(data.body["access_token"]);
+      spotifyApi.setAccessToken(data.body.access_token);
+      if (data.body.refresh_token) {
+        spotifyApi.setRefreshToken(data.body.refresh_token);
+        await redisClient.set(
+          `${SPOTIFY_REFRESH_TOKEN}:${userId}`,
+          data.body.refresh_token
+        );
+      }
 
       await redisClient.set(
         `${SPOTIFY_ACCESS_TOKEN}:${userId}`,
-        data.body["access_token"]
+        data.body.access_token
       );
-      return data.body["access_token"];
+      return data.body.access_token;
     }
   } catch (e) {
     console.error(e);
