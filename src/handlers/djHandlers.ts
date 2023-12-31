@@ -16,13 +16,13 @@ import {
   findRoom,
   getDjs,
   getQueue,
-  getRoomUsers,
   getUser,
   isDj,
   removeDj,
   updateUserAttributes,
 } from "../operations/data";
 import { pubUserJoined } from "../operations/sockets/users";
+import { makeSpotifyApi } from "../lib/spotifyApi";
 
 export async function djDeputizeUser(
   { io, socket }: HandlerConnections,
@@ -37,12 +37,13 @@ export async function djDeputizeUser(
 
   if (userIsDj) {
     eventType = "END_DEPUTY_DJ_SESSION";
-    message = `You are no longer a deputy DJ`;
+    message = "You are no longer a deputy DJ";
     isDeputyDj = false;
     await removeDj(socket.data.roomId, userId);
   } else {
     eventType = "START_DEPUTY_DJ_SESSION";
-    message = `You've been promoted to a deputy DJ. You may now add songs to the DJ's queue.`;
+    message =
+      "You've been promoted to a deputy DJ. You may now add songs to the DJ's queue.";
     isDeputyDj = true;
     await addDj(socket.data.roomId, userId);
   }
@@ -128,9 +129,8 @@ export async function searchSpotifyTrack(
   { socket }: HandlerConnections,
   { query, options }: { query: string; options: SearchOptions }
 ) {
-  const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
-
   try {
+    const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
     const data = await spotifyApi.searchTracks(query, options);
     socket.emit("event", {
       type: "TRACK_SEARCH_RESULTS",
@@ -139,6 +139,9 @@ export async function searchSpotifyTrack(
   } catch (e) {
     const token = await refreshSpotifyToken(socket.data.userId);
     if (token) {
+      const spotifyApi = makeSpotifyApi({
+        accessToken: token,
+      });
       spotifyApi.setAccessToken(token);
     }
     socket.emit("event", {
@@ -169,8 +172,8 @@ export async function savePlaylist(
 }
 
 export async function getSavedTracks({ socket }: HandlerConnections) {
-  const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
   try {
+    const spotifyApi = await getSpotifyApiForRoom(socket.data.roomId);
     const data = await spotifyApi.getMySavedTracks();
     socket.emit("event", { type: "SAVED_TRACKS_RESULTS", data: data.body });
   } catch (error) {

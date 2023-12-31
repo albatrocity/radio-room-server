@@ -4,7 +4,7 @@ import {
   PUBSUB_RADIO_ERROR,
 } from "../../lib/constants";
 import { pubClient, subClient } from "../../lib/redisClients";
-import { findRoom, getUser } from "../../operations/data";
+import { getUser } from "../../operations/data";
 import { PubSubHandlerArgs } from "../../types/PubSub";
 import { SpotifyError } from "../../types/SpotifyApi";
 import getRoomPath from "../../lib/getRoomPath";
@@ -32,7 +32,7 @@ function getErrorMessage(status: number) {
   }
 }
 
-async function handleSpotifyError({ io, message, channel }: PubSubHandlerArgs) {
+async function handleSpotifyError({ io, message }: PubSubHandlerArgs) {
   const {
     userId,
     roomId,
@@ -63,7 +63,7 @@ async function handleSpotifyError({ io, message, channel }: PubSubHandlerArgs) {
   }
 }
 
-async function handleRadioError({ io, message, channel }: PubSubHandlerArgs) {
+async function handleRadioError({ io, message }: PubSubHandlerArgs) {
   const { roomId, error }: { userId: string; roomId?: string; error: Error } =
     JSON.parse(message);
   if (roomId) {
