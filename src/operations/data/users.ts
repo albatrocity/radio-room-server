@@ -6,29 +6,48 @@ import removeStoredUserSpotifyTokens from "../spotify/removeStoredUserSpotifyTok
 import { PUBSUB_USER_SPOTIFY_AUTHENTICATION_STATUS } from "../../lib/constants";
 
 export async function addTypingUser(roomId: string, userId: string) {
-  return pubClient.sAdd(`room:${roomId}:typing_users`, userId);
+  try {
+    if (!roomId || !userId) {
+      return null;
+    }
+    return await pubClient.sAdd(`room:${roomId}:typing_users`, userId);
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 }
 export async function removeTypingUser(roomId: string, userId: string) {
-  if (roomId && userId) {
-    return pubClient.sRem(`room:${roomId}:typing_users`, userId);
+  try {
+    if (!roomId || !userId) {
+      return null;
+    }
+    return await pubClient.sRem(`room:${roomId}:typing_users`, userId);
+  } catch (e) {
+    console.error(e);
+    return null;
   }
 }
 export async function getTypingUsers(roomId: string) {
-  const users = await pubClient.sMembers(`room:${roomId}:typing_users`);
-  const reads = users.map(async (userId) => {
-    const userData = await getUser(userId);
-    if (!userData) {
-      return null;
-    }
-    return userData;
-  });
-  const allUsers = await Promise.all(reads);
-  return compact(allUsers);
+  try {
+    const users = await pubClient.sMembers(`room:${roomId}:typing_users`);
+    const reads = users.map(async (userId) => {
+      const userData = await getUser(userId);
+      if (!userData) {
+        return null;
+      }
+      return userData;
+    });
+    const allUsers = await Promise.all(reads);
+    return compact(allUsers);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
 }
 
 export async function addOnlineUser(roomId: string, userId: string) {
   try {
-    return pubClient.sAdd(`room:${roomId}:online_users`, userId);
+    return await pubClient.sAdd(`room:${roomId}:online_users`, userId);
   } catch (e) {
     console.log("ERROR FROM data/users/addOnlineUser", roomId, userId);
     console.error(e);
@@ -38,7 +57,7 @@ export async function addOnlineUser(roomId: string, userId: string) {
 export async function removeOnlineUser(roomId: string, userId: string) {
   try {
     if (userId) {
-      return pubClient.sRem(`room:${roomId}:online_users`, userId);
+      return await pubClient.sRem(`room:${roomId}:online_users`, userId);
     }
     return null;
   } catch (e) {
@@ -50,7 +69,7 @@ export async function removeOnlineUser(roomId: string, userId: string) {
 
 export async function incrementRoomUsers(roomId: string) {
   try {
-    return pubClient.incr(`room:${roomId}:users`);
+    return await pubClient.incr(`room:${roomId}:users`);
   } catch (e) {
     console.log("ERROR FROM data/users/incrementRoomUsers", roomId);
     console.error(e);
@@ -59,7 +78,7 @@ export async function incrementRoomUsers(roomId: string) {
 }
 export async function decrementRoomUsers(roomId: string) {
   try {
-    return pubClient.decr(`room:${roomId}:users`);
+    return await pubClient.decr(`room:${roomId}:users`);
   } catch (e) {
     console.log("ERROR FROM data/users/decrementRoomUsers", roomId);
     console.error(e);
@@ -99,7 +118,7 @@ export async function getRoomUsersCount(roomId: string) {
 
 export async function saveUser(userId: string, attributes: Partial<User>) {
   try {
-    return writeJsonToHset(`user:${userId}`, attributes);
+    return await writeJsonToHset(`user:${userId}`, attributes);
   } catch (e) {
     console.log("ERROR FROM data/users/persistUser", userId, attributes);
     console.error(e);
@@ -123,7 +142,7 @@ export async function getUser(userId: string) {
 
 export async function deleteUser(userId: string) {
   try {
-    return pubClient.unlink(`user:${userId}`);
+    return await pubClient.unlink(`user:${userId}`);
   } catch (e) {
     console.log("ERROR FROM data/users/deleteUser", userId);
     console.error(e);
@@ -136,10 +155,21 @@ export async function updateUserAttributes(
   attributes: Partial<User>,
   roomId?: string
 ) {
-  await saveUser(userId, attributes);
-  const users = roomId ? await getRoomUsers(roomId) : [];
-  const user = users.find((u) => u?.userId === userId);
-  return { user, users };
+  try {
+    await saveUser(userId, attributes);
+    const users = roomId ? await getRoomUsers(roomId) : [];
+    const user = users.find((u) => u?.userId === userId);
+    return { user, users };
+  } catch (e) {
+    console.log(
+      "ERROR FROM data/users/updateUserAttributes",
+      userId,
+      attributes,
+      roomId
+    );
+    console.error(e);
+    return null;
+  }
 }
 
 export async function disconnectFromSpotify(userId: string) {
