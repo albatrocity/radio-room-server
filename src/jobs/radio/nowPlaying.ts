@@ -30,9 +30,17 @@ export async function communicateNowPlaying(roomId: string) {
     }
     if (room.creator) {
       // Fetch station meta
+
+      try {
+        await getStation(room.radioMetaUrl, room.radioProtocol);
+      } catch (e) {
+        console.log("ERROR!");
+        console.log(e);
+      }
+
       const stationMeta = await getStation(
         room.radioMetaUrl,
-        room.radioProtocol
+        room.radioProtocol,
       );
 
       if (!stationMeta?.title) {
@@ -65,7 +73,7 @@ export async function communicateNowPlaying(roomId: string) {
           message:
             "Fetching the radio station failed. Metadata cannot be collected and audio streaming will not work until this is resolved by the host.",
           name: "RadioError",
-        }
+        },
       );
     }
     if (e.body?.error?.status === 401) {
@@ -88,10 +96,10 @@ async function fetchNowPlaying(userId: string, query: string) {
 
 async function pubRadioError(
   { userId, roomId }: { userId: string; roomId: string },
-  error: Error
+  error: Error,
 ) {
   pubClient.publish(
     PUBSUB_RADIO_ERROR,
-    JSON.stringify({ userId, roomId, error })
+    JSON.stringify({ userId, roomId, error }),
   );
 }

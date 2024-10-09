@@ -19,12 +19,14 @@ export async function create(req: Request, res: Response) {
     title,
     type,
     radioMetaUrl,
+    radioListenUrl,
     challenge,
     userId,
     radioProtocol,
     deputizeOnJoin,
   } = req.body;
   const createdAt = Date.now().toString();
+  console.log("radioListenUrl", radioListenUrl);
 
   try {
     await checkUserChallenge({ challenge, userId });
@@ -35,6 +37,7 @@ export async function create(req: Request, res: Response) {
       type,
       radioMetaUrl,
       radioProtocol,
+      radioListenUrl,
       id,
       createdAt,
       deputizeOnJoin,
@@ -101,9 +104,9 @@ export async function deleteRoom(req: Request, res: Response) {
 
 export default function socketHandlers(socket: Socket, io: Server) {
   socket.on("get room settings", (url: string) =>
-    getRoomSettings({ socket, io })
+    getRoomSettings({ socket, io }),
   );
   socket.on("get latest room data", (snapshot: RoomSnapshot) =>
-    getLatestRoomData({ socket, io }, snapshot)
+    getLatestRoomData({ socket, io }, snapshot),
   );
 }

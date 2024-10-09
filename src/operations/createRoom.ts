@@ -22,9 +22,10 @@ export function withDefaults(
     | "createdAt"
     | "lastRefreshedAt"
     | "radioMetaUrl"
+    | "radioListenUrl"
     | "radioProtocol"
     | "deputizeOnJoin"
-  >
+  >,
 ): Room {
   return {
     fetchMeta: true,

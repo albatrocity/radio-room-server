@@ -20,7 +20,7 @@ function getProtocol(protocol: StationProtocol) {
 
 const getStation = async (
   url: string,
-  protocol: StationProtocol = "shoutcastv2"
+  protocol: StationProtocol = "shoutcastv2",
 ): Promise<Station> => {
   const streamProtocol = getProtocol(protocol);
 
@@ -33,7 +33,7 @@ const getStation = async (
         }
         return resolve(station);
       },
-      streamProtocol
+      streamProtocol,
     );
   });
 };
