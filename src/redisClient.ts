@@ -6,5 +6,9 @@ export async function createClient() {
   });
   await client.connect();
 
+  client.on("error", (error) => {
+    console.error(error);
+  });
+
   return client;
 }
