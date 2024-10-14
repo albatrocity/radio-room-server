@@ -3,10 +3,13 @@ import { createClient as redisCreateClient } from "redis";
 export async function createClient() {
   const client = redisCreateClient({
     url: process.env.REDIS_TLS_URL ?? "redis://127.0.0.1:6379",
-    socket: {
-      tls: true,
-      rejectUnauthorized: false,
-    },
+    socket:
+      process.env.NODE_ENV === "production"
+        ? {
+            tls: true,
+            rejectUnauthorized: false,
+          }
+        : undefined,
   });
   await client.connect();
 
