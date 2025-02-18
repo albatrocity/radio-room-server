@@ -58,6 +58,8 @@ export async function communicateNowPlaying(roomId: string) {
         ? await fetchNowPlaying(room.creator, stationMeta.title)
         : await makeNowPlayingFromStationMeta(stationMeta);
 
+      console.log("nowPlaying", nowPlaying);
+
       await handleRoomNowPlayingData(roomId, nowPlaying, stationMeta);
     }
     return;
@@ -89,9 +91,15 @@ export async function communicateNowPlaying(roomId: string) {
 }
 
 async function fetchNowPlaying(userId: string, query: string) {
-  const api = await getSpotifyApiForUser(userId);
-  const searchResults = await api.searchTracks(query);
-  return searchResults?.body?.tracks?.items[0];
+  console.log("fetch now playing", userId, query);
+  try {
+    const api = await getSpotifyApiForUser(userId);
+    const searchResults = await api.searchTracks(query);
+    return searchResults?.body?.tracks?.items[0];
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 }
 
 async function pubRadioError(
