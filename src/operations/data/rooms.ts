@@ -188,30 +188,39 @@ export async function makeJukeboxCurrentPayload(
   nowPlaying: RoomNowPlaying | undefined,
   meta: RoomMeta = {}
 ) {
-  const room = await findRoom(roomId);
-  const artwork = room?.artwork ?? nowPlaying?.album?.images?.[0]?.url;
-  const queue = await getQueue(roomId);
-  const queuedTrack = queue.find((x) => x.uri === nowPlaying?.uri);
+  try {
+    const currentlyPlaying = await getRoomCurrent(roomId);
+    const trackIsCurrent = currentlyPlaying?.release?.uri === nowPlaying?.uri;
+    const room = await findRoom(roomId);
+    const artwork = room?.artwork ?? nowPlaying?.album?.images?.[0]?.url;
+    const queue = await getQueue(roomId);
+    const queuedTrack = queue.find((x) => x.uri === nowPlaying?.uri);
+    const trackDj = trackIsCurrent
+      ? currentlyPlaying?.dj
+      : queuedTrack
+      ? { userId: queuedTrack.userId, username: queuedTrack.username }
+      : null;
 
-  return {
-    type: "META",
-    data: {
-      meta: {
-        ...meta,
-        title: nowPlaying?.name ?? meta.title,
-        bitrate: 360,
-        artist:
-          nowPlaying?.artists?.map((x) => x.name).join(", ") ?? meta.artist,
-        album: nowPlaying?.album?.name ?? meta.album,
-        track: nowPlaying?.name ?? meta.track,
-        release: nowPlaying ?? meta.release,
-        artwork,
-        dj: queuedTrack?.userId
-          ? { userId: queuedTrack.userId, username: queuedTrack.username }
-          : null,
+    return {
+      type: "META",
+      data: {
+        meta: {
+          ...meta,
+          title: nowPlaying?.name ?? meta.title,
+          bitrate: 360,
+          artist:
+            nowPlaying?.artists?.map((x) => x.name).join(", ") ?? meta.artist,
+          album: nowPlaying?.album?.name ?? meta.album,
+          track: nowPlaying?.name ?? meta.track,
+          release: nowPlaying ?? meta.release,
+          artwork,
+          dj: trackDj,
+        },
       },
-    },
-  };
+    };
+  } catch (e) {
+    console.log("ERROR", e);
+  }
 }
 
 export async function removeUserRoomsSpotifyError(userId: string) {
@@ -250,7 +259,7 @@ export function removeSensitiveRoomAttributes(room: Room) {
 }
 
 async function getAllRoomDataKeys(roomId: string) {
-  let keys = [];
+  const keys = [];
   for await (const key of pubClient.scanIterator({
     MATCH: `room:${roomId}:*`,
   })) {
