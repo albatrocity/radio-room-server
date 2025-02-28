@@ -24,7 +24,9 @@ export async function getMessages(
     if (!roomExists) {
       return [];
     } else {
-      const results = await pubClient.zRange(roomKey, offset, offset + size);
+      const results = await pubClient.zRange(roomKey, offset, offset + size, {
+        REV: true,
+      });
       return results.map((m) => JSON.parse(m) as ChatMessage) || [];
     }
   } catch (e) {
