@@ -195,7 +195,7 @@ export async function login(
   pubUserJoined({ io }, socket.data.roomId, { user: newUser, users: newUsers });
 
   // Get initial data payload for user
-  const messages = await getMessages(roomId, 0, 100);
+  const messages = await getMessages(roomId, -1, -100);
   const playlist = await getRoomPlaylist(roomId);
   const meta = await getRoomCurrent(roomId);
   const allReactions = await getAllRoomReactions(roomId);
